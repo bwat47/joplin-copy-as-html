@@ -19,6 +19,12 @@
 			"label": "Embed images as base64",
 			"description": "If enabled, images in selection will be embedded as base64.",
 			"value": true
+		},
+		"forceHardBreaks": {
+			"type": "bool",
+			"label": "Force hard breaks",
+			"description": "If enabled, single newlines in markdown will be rendered as hard breaks (HTML <br>).",
+			"value": true
 		}
 	}
 }

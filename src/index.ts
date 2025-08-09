@@ -5,10 +5,12 @@ const removeMarkdown = require('remove-markdown');
 
 const SETTINGS = {
 	EMBED_IMAGES: 'embedImages',
+	FORCE_HARD_BREAKS: 'forceHardBreaks',
 };
 
 const DEFAULTS = {
 	[SETTINGS.EMBED_IMAGES]: true,
+	[SETTINGS.FORCE_HARD_BREAKS]: true,
 };
 
 joplin.plugins.register({
@@ -27,6 +29,14 @@ joplin.plugins.register({
 				label: 'Embed images as base64',
 				description: 'If enabled, images in selection will be embedded as base64.',
 			},
+			[SETTINGS.FORCE_HARD_BREAKS]: {
+				value: true,
+				type: SettingItemType.Bool,
+				section: 'copyAsHtml',
+				public: true,
+				label: 'Force hard breaks',
+				description: 'If enabled, single newlines in markdown will be rendered as hard breaks (HTML <br>).',
+			},
 		});
 
 		// Register command
@@ -44,9 +54,12 @@ joplin.plugins.register({
 					return;
 				}
 
-				// Preprocess: convert soft breaks (single newlines within paragraphs) to hard breaks (two spaces + newline)
-				// Only convert single newlines that are not surrounded by empty lines
-				selection = selection.replace(/([^\n])\n(?!\n)/g, '$1  \n');
+				const forceHardBreaks = await joplin.settings.value(SETTINGS.FORCE_HARD_BREAKS);
+				if (forceHardBreaks) {
+					// Preprocess: convert soft breaks (single newlines within paragraphs) to hard breaks (two spaces + newline)
+					// Only convert single newlines that are not surrounded by empty lines
+					selection = selection.replace(/([^\n])\n(?!\n)/g, '$1  \n');
+				}
 
 				const embedImages = await joplin.settings.value(SETTINGS.EMBED_IMAGES);
 
