@@ -1,5 +1,8 @@
 # Joplin Copy as HTML
 
+> [!important]
+> My coding knowledge is currently very limited. This plugin was created entirely with AI tools, and I may be limited in my ability to fix any issues.
+
 This plugin allows you to copy selected text in the markdown editor as either HTML or plaintext (with markdown formatting characters removed).
 
 The primary use case is copying text from Joplin and pasting formatted text into other apps that support HTML formatting (e.g. pasting text into an Outlook email).
@@ -16,6 +19,8 @@ This will populate the clipboard's text/html category with the HTML formatted te
 ### Embed images as base64
 
 By default, the plugin will embed any images as base64 in the text/html output, allowing you paste text + images into external applications. However, this can be disabled in the plugin's settings.
+
+This should work with both markdown image embeds and the html img src embeds that you get when resizing images via joplin's rich text editor.
 
 ## Copy as Plain Text
 
