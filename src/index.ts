@@ -44,8 +44,6 @@ joplin.plugins.register({
 					return;
 				}
 
-				// ...existing code...
-
 				const embedImages = await joplin.settings.value(SETTINGS.EMBED_IMAGES);
 
 				// Convert markdown to HTML
@@ -61,7 +59,6 @@ joplin.plugins.register({
 				const minimalTheme = {};
 				const output = await mdToHtml.render(selection, minimalTheme, renderOptions);
 				let html = output.html;
-				// ...existing code...
 
 				// Embed images as base64 if enabled
 				if (embedImages) {
@@ -89,7 +86,7 @@ joplin.plugins.register({
 							}
 							const base64 = Buffer.from(fileBuffer).toString('base64');
 							imgDataUrl = `data:${resource.mime};base64,${base64}`;
-							// ...existing code...
+
 						} catch (err) {
 							console.error('[copy-as-html] Error embedding image:', id, err);
 						}
@@ -124,7 +121,7 @@ joplin.plugins.register({
 							}
 							const base64 = Buffer.from(fileBuffer).toString('base64');
 							imgDataUrl = `data:${resource.mime};base64,${base64}`;
-							// ...existing code...
+
 						} catch (err) {
 							console.error('[copy-as-html] Error embedding image (fallback):', id, err);
 						}
@@ -150,7 +147,7 @@ joplin.plugins.register({
 					} else {
 						fragment = html.trim();
 					}
-					// ...existing code...
+
 				} catch (err) {
 					console.error('[copy-as-html] jsdom extraction error:', err);
 				}
