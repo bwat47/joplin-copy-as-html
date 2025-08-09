@@ -153,7 +153,7 @@ joplin.plugins.register({
 
 				// Pass the extracted fragment directly to the clipboard as HTML
 				await joplin.clipboard.writeHtml(fragment);
-				await joplin.views.dialogs.showMessageBox('Copied selection as HTML!');
+				await joplin.views.dialogs.showToast({ message: 'Copied selection as HTML!' });
 
 				// Helper: async replace for regex
 				async function replaceAsync(str, regex, asyncFn) {
@@ -189,7 +189,7 @@ joplin.plugins.register({
 				// Use remove-markdown to convert markdown to plain text, preserving list leaders
 				const plainText = removeMarkdown(selection, { stripListLeaders: false });
 				await joplin.clipboard.writeText(plainText);
-				await joplin.views.dialogs.showMessageBox('Copied selection as Plain Text!');
+				await joplin.views.dialogs.showToast({ message: 'Copied selection as Plain Text!' });
 			},
 		});
 		await joplin.views.menuItems.create('copyAsPlainTextShortcut', 'copyAsPlainText', MenuItemLocation.EditorContextMenu, {
