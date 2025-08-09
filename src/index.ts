@@ -43,13 +43,12 @@ joplin.plugins.register({
 					return;
 				}
 
-				// Get user settings
+				console.warn('[copy-as-html] Markdown selection length:', selection.length);
+
 				const embedImages = await joplin.settings.value(SETTINGS.EMBED_IMAGES);
 
 				// Convert markdown to HTML
-
 				const { MdToHtml } = await import('@joplin/renderer');
-				// Minimal ResourceModel stub to prevent isResourceUrl error
 				const ResourceModel = {
 					isResourceUrl: (url) => typeof url === 'string' && url.startsWith(':/'),
 					urlToId: (url) => url.replace(':/', ''),
@@ -61,6 +60,7 @@ joplin.plugins.register({
 				const minimalTheme = {};
 				const output = await mdToHtml.render(selection, minimalTheme, renderOptions);
 				let html = output.html;
+				console.warn('[copy-as-html] Rendered HTML length:', html.length);
 
 				// Embed images as base64 if enabled
 				if (embedImages) {
@@ -68,14 +68,12 @@ joplin.plugins.register({
 					const srcRegex = /(<img[^>]*src=["'])(:\/([a-zA-Z0-9]+))(["'][^>]*>)/g;
 					html = await replaceAsync(html, srcRegex, async (match, pre, src, id, post) => {
 						if (!id) return match;
-						// Get resource info
 						const resource = await joplin.data.get(['resources', id], { fields: ['id', 'mime'] });
 						if (!resource || !resource.mime.startsWith('image/')) {
 							console.warn('Resource not found or not an image:', id, resource);
 							return match;
 						}
-						// Get image as base64 from resource file
-						let dataUrl = '';
+						let imgDataUrl = '';
 						try {
 							console.log('[copy-as-html] Embedding image resource:', id);
 							const fileObj = await joplin.data.get(['resources', id, 'file']);
@@ -91,30 +89,28 @@ joplin.plugins.register({
 								fileBuffer = fileObj;
 							}
 							const base64 = Buffer.from(fileBuffer).toString('base64');
-							dataUrl = `data:${resource.mime};base64,${base64}`;
-							console.log('[copy-as-html] dataUrl:', dataUrl ? dataUrl.substring(0, 100) : dataUrl);
+							imgDataUrl = `data:${resource.mime};base64,${base64}`;
+							console.log('[copy-as-html] dataUrl:', imgDataUrl ? imgDataUrl.substring(0, 100) : imgDataUrl);
 						} catch (err) {
 							console.error('[copy-as-html] Error embedding image:', id, err);
 						}
-						if (!dataUrl || !dataUrl.startsWith('data:image')) {
-							console.warn('[copy-as-html] No valid dataUrl for image:', id, dataUrl);
+						if (!imgDataUrl || !imgDataUrl.startsWith('data:image')) {
+							console.warn('[copy-as-html] No valid dataUrl for image:', id, imgDataUrl);
 							return `${pre}about:blank${post}`;
 						}
-						// Replace src with base64 data
-						return `${pre}${dataUrl}${post}`;
+						return `${pre}${imgDataUrl}${post}`;
 					});
 
 					// Replace fallback [Image: :/resourceId] text with actual base64 image
 					const fallbackRegex = /\[Image: :\/([a-zA-Z0-9]+)\]/g;
 					html = await replaceAsync(html, fallbackRegex, async (match, id) => {
 						if (!id) return match;
-						// Get resource info
 						const resource = await joplin.data.get(['resources', id], { fields: ['id', 'mime'] });
 						if (!resource || !resource.mime.startsWith('image/')) {
 							console.warn('Resource not found or not an image (fallback):', id, resource);
 							return match;
 						}
-						let dataUrl = '';
+						let imgDataUrl = '';
 						try {
 							console.log('[copy-as-html] Embedding image resource (fallback):', id);
 							const fileObj = await joplin.data.get(['resources', id, 'file']);
@@ -130,28 +126,39 @@ joplin.plugins.register({
 								fileBuffer = fileObj;
 							}
 							const base64 = Buffer.from(fileBuffer).toString('base64');
-							dataUrl = `data:${resource.mime};base64,${base64}`;
-							console.log('[copy-as-html] dataUrl (fallback):', dataUrl ? dataUrl.substring(0, 100) : dataUrl);
+							imgDataUrl = `data:${resource.mime};base64,${base64}`;
+							console.log('[copy-as-html] dataUrl (fallback):', imgDataUrl ? imgDataUrl.substring(0, 100) : imgDataUrl);
 						} catch (err) {
 							console.error('[copy-as-html] Error embedding image (fallback):', id, err);
 						}
-						if (!dataUrl || !dataUrl.startsWith('data:image')) {
-							console.warn('[copy-as-html] No valid dataUrl for image (fallback):', id, dataUrl);
+						if (!imgDataUrl || !imgDataUrl.startsWith('data:image')) {
+							console.warn('[copy-as-html] No valid dataUrl for image (fallback):', id, imgDataUrl);
 							return `<img src="about:blank" alt="" />`;
 						}
-						// Insert a minimal img tag
-						return `<img src="${dataUrl}" alt="" />`;
+						return `<img src="${imgDataUrl}" alt="" />`;
 					});
 				}
 
+				// Use jsdom to robustly extract the inner HTML of <div id="rendered-md">
+				const { JSDOM } = require('jsdom');
+				let fragment = html.trim();
+				try {
+					const dom = new JSDOM(html);
+					const renderedMd = dom.window.document.querySelector('#rendered-md');
+					if (renderedMd) {
+						// Remove all <pre class="joplin-source"> blocks
+						const sourceBlocks = renderedMd.querySelectorAll('pre.joplin-source');
+						sourceBlocks.forEach(el => el.remove());
+						fragment = renderedMd.innerHTML.trim();
+					} else {
+						fragment = html.trim();
+					}
+					console.warn('[copy-as-html] HTML fragment length (jsdom, cleaned):', fragment.length);
+				} catch (err) {
+					console.error('[copy-as-html] jsdom extraction error:', err);
+				}
 
-
-				// Extract only the inner HTML of <div id="rendered-md">
-				let htmlContent = html.trim();
-				const match = htmlContent.match(/<div id="rendered-md"[^>]*>([\s\S]*?)<\/div>/i);
-				let fragment = match ? match[1].trim() : htmlContent;
-
-				// Pass the extracted fragment directly to the clipboard as HTML
+				// Pass the cleaned fragment directly to the clipboard as HTML
 				await joplin.clipboard.writeHtml(fragment);
 				await joplin.views.dialogs.showToast({ message: 'Copied selection as HTML!' });
 
@@ -167,6 +174,7 @@ joplin.plugins.register({
 				}
 			},
 		});
+
 
 		// Register keyboard shortcut
 		// Use MenuItemLocation from types
