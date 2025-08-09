@@ -57,6 +57,8 @@ export interface Command {
 	 * Note: Commands are enabled by default unless you use this property.
 	 */
 	enabledCondition?: string;
+	
+	when?: string;
 }
 
 // =================================================================

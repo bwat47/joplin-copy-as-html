@@ -34,6 +34,7 @@ joplin.plugins.register({
 			name: 'copyAsHtml',
 			label: 'Copy selection as HTML',
 			iconName: 'fas fa-copy',
+			when: 'markdownEditorVisible',
 			execute: async () => {
 
 				// Get selected markdown
@@ -184,6 +185,7 @@ joplin.plugins.register({
 			name: 'copyAsPlainText',
 			label: 'Copy selection as Plain Text',
 			iconName: 'fas fa-copy',
+			when: 'markdownEditorVisible',
 			execute: async () => {
 				const selection = await joplin.commands.execute('editor.execCommand', { name: 'getSelection' });
 				if (!selection) {
@@ -191,8 +193,79 @@ joplin.plugins.register({
 					return;
 				}
 				// Use remove-markdown to convert markdown to plain text, preserving list leaders
-				const plainText = removeMarkdown(selection, { stripListLeaders: false });
-				await joplin.clipboard.writeText(plainText);
+				// Preserve code blocks and inline code by replacing them with robust placeholders
+				let codeBlocks = [];
+				let inlineCodes = [];
+				let text = selection;
+
+				// Use unique placeholder strings
+				function makePlaceholder(type, idx) {
+					return `@@JOPLIN_${type}_${idx}@@`;
+				}
+
+				// Extract code blocks (```...```) and preserve full block including backticks
+				text = text.replace(/```[\s\S]*?```/g, (match) => {
+					const placeholder = makePlaceholder('CODEBLOCK', codeBlocks.length);
+					codeBlocks.push(match);
+					return placeholder;
+				});
+
+				// Extract inline code (`...`) and preserve full match including backticks
+				text = text.replace(/`[^`]+`/g, (match) => {
+					const placeholder = makePlaceholder('INLINECODE', inlineCodes.length);
+					inlineCodes.push(match);
+					return placeholder;
+				});
+
+				// Remove markdown from the rest
+				let plainText = removeMarkdown(text, { stripListLeaders: false });
+
+				// Restore code blocks
+				codeBlocks.forEach((code, idx) => {
+					const placeholder = makePlaceholder('CODEBLOCK', idx);
+					plainText = plainText.replace(new RegExp(placeholder, 'g'), code);
+				});
+				// Restore inline code
+				inlineCodes.forEach((code, idx) => {
+					const placeholder = makePlaceholder('INLINECODE', idx);
+					plainText = plainText.replace(new RegExp(placeholder, 'g'), code);
+				});
+
+				// Split into segments: code blocks, inline code, and normal text using a combined regex
+				const combinedRegex = /```[\s\S]*?```|`[^`]+`/g;
+				let segments = [];
+				let lastIndex = 0;
+				plainText.replace(combinedRegex, (match, offset) => {
+					if (offset > lastIndex) {
+						segments.push({ type: 'text', value: plainText.slice(lastIndex, offset) });
+					}
+					segments.push({ type: 'code', value: match });
+					lastIndex = offset + match.length;
+					return match;
+				});
+				if (lastIndex < plainText.length) {
+					segments.push({ type: 'text', value: plainText.slice(lastIndex) });
+				}
+				// Apply unescaping only to non-code segments
+				const unescape = s => s
+					.replace(/\\/g, '\\')      // double backslash to single
+					.replace(/\\([.\\])/g, '$1'); // remove backslash before . and 
+				const result = segments.map(seg => seg.type === 'text' ? unescape(seg.value) : seg.value).join('');
+				// Remove backticks from code segments
+				const stripCodeTicks = seg => {
+					// Code block: starts and ends with triple backticks
+					if (/^```[\s\S]*```$/.test(seg)) {
+						// Remove leading/trailing triple backticks and newlines
+						return seg.replace(/^```\n?/, '').replace(/\n?```$/, '');
+					}
+					// Inline code: starts and ends with single backtick
+					if (/^`[^`]+`$/.test(seg)) {
+						return seg.slice(1, -1);
+					}
+					return seg;
+				};
+				const finalResult = segments.map(seg => seg.type === 'text' ? unescape(seg.value) : stripCodeTicks(seg.value)).join('');
+				await joplin.clipboard.writeText(finalResult);
 				await joplin.views.dialogs.showToast({ message: 'Copied selection as Plain Text!' });
 			},
 		});
