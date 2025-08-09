@@ -46,9 +46,10 @@ joplin.plugins.register({
 
 
 				// Use Joplin global settings for subscript, superscript, and soft breaks rendering
-				const globalSubEnabled = await joplin.settings.globalValue('markdown.plugin.sub');
-				const globalSupEnabled = await joplin.settings.globalValue('markdown.plugin.sup');
-				const globalSoftBreaksEnabled = await joplin.settings.globalValue('markdown.plugin.softbreaks');
+			const globalSubEnabled = await joplin.settings.globalValue('markdown.plugin.sub');
+			const globalSupEnabled = await joplin.settings.globalValue('markdown.plugin.sup');
+			const globalMarkEnabled = await joplin.settings.globalValue('markdown.plugin.mark');
+			const globalSoftBreaksEnabled = await joplin.settings.globalValue('markdown.plugin.softbreaks');
 				const embedImages = await joplin.settings.value(SETTINGS.EMBED_IMAGES);
 
 				// If soft breaks are disabled, force hard breaks by converting single newlines to two spaces + newline
@@ -65,10 +66,11 @@ joplin.plugins.register({
 					isSupportedImageMimeType: (mime) => mime && mime.startsWith('image/'),
 				};
 			// Build pluginOptions to disable sub/sup plugins if needed
-		let pluginOptions: any = {};
-		if (!globalSubEnabled) pluginOptions.sub = { enabled: false };
-		if (!globalSupEnabled) pluginOptions.sup = { enabled: false };
-		const mdToHtml = new MdToHtml({ ResourceModel, pluginOptions });
+	let pluginOptions: any = {};
+	if (!globalSubEnabled) pluginOptions.sub = { enabled: false };
+	if (!globalSupEnabled) pluginOptions.sup = { enabled: false };
+	if (!globalMarkEnabled) pluginOptions.mark = { enabled: false };
+	const mdToHtml = new MdToHtml({ ResourceModel, pluginOptions });
 				const renderOptions = {};
 				const theme = {};
 				const output = await mdToHtml.render(selection, theme, renderOptions);
