@@ -249,7 +249,7 @@ joplin.plugins.register({
 				// Apply unescaping only to non-code segments
 				const unescape = s => s
 					.replace(/\\/g, '\\')      // double backslash to single
-					.replace(/\\([.\\])/g, '$1'); // remove backslash before . and 
+					.replace(/\\([^\w])/g, '$1'); // remove backslash before any non-word character
 				const result = segments.map(seg => seg.type === 'text' ? unescape(seg.value) : seg.value).join('');
 				// Remove backticks from code segments
 				const stripCodeTicks = seg => {
