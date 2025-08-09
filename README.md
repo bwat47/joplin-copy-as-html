@@ -28,5 +28,11 @@ This should work with both markdown image embeds and the html img src embeds tha
 
 This will strip the markdown formatting characters from the raw markdown (except for numbered/unordered list markers) and populate it as text/plain in the clipboard, for scenarios where you need to paste into an app that supports neither HTML formatting or markdown.
 
+## Known Issues
+
+The context menu options appear in the rich text editor's context menu (but aren't functional, the plugin is only intended for the markdown editor). I wasn't able to find a way to make the context menu options only appear in the markdown editor's context menu (it seems like this might be a plugin API limitation, but I'm not sure).
+
+## Misc
+
 > [!NOTE]
 > I originally wanted to implement a single action that populated both the text/html and the text/plain clipboard categories (allowing you to seamlessly paste as rich text or plain text), but this currently doesn't seem possible due limitations with joplin's clipboard API. The joplin clipboard API doesn't appear to allow writing both text/html and text/plain at the same time... you only get one or the other (if I'm wrong about this, please let me know!)
