@@ -30,7 +30,9 @@ This will strip the markdown formatting characters from the raw markdown (except
 
 ## Known Issues
 
-The context menu options appear in the rich text editor's context menu (but aren't functional, the plugin is only intended for the markdown editor).
+- The context menu options appear in the rich text editor's context menu (but aren't functional, the plugin is only intended for the markdown editor).
+
+- For Joplin images that have img src tags with width and/or height defined, the image sizes are not retained in the text/html (so they will be pasted at original size). I haven't been able to fix this (the size attributes always seemed to get stripped from the rendered html).
 
 ## Misc
 
