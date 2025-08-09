@@ -20,7 +20,7 @@ joplin.plugins.register({
 		});
 		await joplin.settings.registerSettings({
 			[SETTINGS.EMBED_IMAGES]: {
-				value: true,
+				value: true, // Default to true
 				type: SettingItemType.Bool, // Use the enum here
 				section: 'copyAsHtml',
 				public: true,
@@ -43,7 +43,7 @@ joplin.plugins.register({
 					return;
 				}
 
-				console.warn('[copy-as-html] Markdown selection length:', selection.length);
+				// ...existing code...
 
 				const embedImages = await joplin.settings.value(SETTINGS.EMBED_IMAGES);
 
@@ -60,7 +60,7 @@ joplin.plugins.register({
 				const minimalTheme = {};
 				const output = await mdToHtml.render(selection, minimalTheme, renderOptions);
 				let html = output.html;
-				console.warn('[copy-as-html] Rendered HTML length:', html.length);
+				// ...existing code...
 
 				// Embed images as base64 if enabled
 				if (embedImages) {
@@ -75,9 +75,7 @@ joplin.plugins.register({
 						}
 						let imgDataUrl = '';
 						try {
-							console.log('[copy-as-html] Embedding image resource:', id);
 							const fileObj = await joplin.data.get(['resources', id, 'file']);
-							console.log('[copy-as-html] fileObj:', fileObj);
 							let fileBuffer;
 							if (fileObj && fileObj.body) {
 								fileBuffer = fileObj.body;
@@ -90,7 +88,7 @@ joplin.plugins.register({
 							}
 							const base64 = Buffer.from(fileBuffer).toString('base64');
 							imgDataUrl = `data:${resource.mime};base64,${base64}`;
-							console.log('[copy-as-html] dataUrl:', imgDataUrl ? imgDataUrl.substring(0, 100) : imgDataUrl);
+							// ...existing code...
 						} catch (err) {
 							console.error('[copy-as-html] Error embedding image:', id, err);
 						}
@@ -112,9 +110,7 @@ joplin.plugins.register({
 						}
 						let imgDataUrl = '';
 						try {
-							console.log('[copy-as-html] Embedding image resource (fallback):', id);
 							const fileObj = await joplin.data.get(['resources', id, 'file']);
-							console.log('[copy-as-html] fileObj (fallback):', fileObj);
 							let fileBuffer;
 							if (fileObj && fileObj.body) {
 								fileBuffer = fileObj.body;
@@ -127,7 +123,7 @@ joplin.plugins.register({
 							}
 							const base64 = Buffer.from(fileBuffer).toString('base64');
 							imgDataUrl = `data:${resource.mime};base64,${base64}`;
-							console.log('[copy-as-html] dataUrl (fallback):', imgDataUrl ? imgDataUrl.substring(0, 100) : imgDataUrl);
+							// ...existing code...
 						} catch (err) {
 							console.error('[copy-as-html] Error embedding image (fallback):', id, err);
 						}
@@ -153,7 +149,7 @@ joplin.plugins.register({
 					} else {
 						fragment = html.trim();
 					}
-					console.warn('[copy-as-html] HTML fragment length (jsdom, cleaned):', fragment.length);
+					// ...existing code...
 				} catch (err) {
 					console.error('[copy-as-html] jsdom extraction error:', err);
 				}
