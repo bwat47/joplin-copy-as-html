@@ -30,7 +30,7 @@ This will strip the markdown formatting characters from the raw markdown (except
 
 ## Known Issues
 
-The context menu options appear in the rich text editor's context menu (but aren't functional, the plugin is only intended for the markdown editor). I wasn't able to find a way to make the context menu options only appear in the markdown editor's context menu (it seems like this might be a plugin API limitation, but I'm not sure).
+The context menu options appear in the rich text editor's context menu (but aren't functional, the plugin is only intended for the markdown editor).
 
 ## Misc
 
