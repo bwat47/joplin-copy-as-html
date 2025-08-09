@@ -1,0 +1,24 @@
+{
+	"manifest_version": 1,
+	"id": "com.bwat47.copyashtml",
+	"app_min_version": "3.3",
+	"version": "1.0.0",
+	"name": "Copy as HTML",
+	"description": "Allows you to copy text with HTML (rich text) formatting from the markdown editor without excess styling.",
+	"author": "bwat47",
+	"homepage_url": "https://github.com/bwat47/joplin-copy-as-html",
+	"repository_url": "https://github.com/bwat47/joplin-copy-as-html",
+	"keywords": [],
+	"categories": [],
+	"screenshots": [],
+	"icons": {},
+	"promo_tile": {},
+	"settings": {
+		"embedImages": {
+			"type": "bool",
+			"label": "Embed images as base64",
+			"description": "If enabled, images in selection will be embedded as base64.",
+			"value": true
+		}
+	}
+}
