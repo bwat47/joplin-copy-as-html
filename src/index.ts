@@ -45,8 +45,9 @@ joplin.plugins.register({
 				}
 
 
-				// Use Joplin global settings for subscript and soft breaks rendering
+				// Use Joplin global settings for subscript, superscript, and soft breaks rendering
 				const globalSubEnabled = await joplin.settings.globalValue('markdown.plugin.sub');
+				const globalSupEnabled = await joplin.settings.globalValue('markdown.plugin.sup');
 				const globalSoftBreaksEnabled = await joplin.settings.globalValue('markdown.plugin.softbreaks');
 				const embedImages = await joplin.settings.value(SETTINGS.EMBED_IMAGES);
 
@@ -63,8 +64,11 @@ joplin.plugins.register({
 					filename: () => '',
 					isSupportedImageMimeType: (mime) => mime && mime.startsWith('image/'),
 				};
-				const pluginOptions = globalSubEnabled ? {} : { sub: { enabled: false } };
-				const mdToHtml = new MdToHtml({ ResourceModel, pluginOptions });
+			// Build pluginOptions to disable sub/sup plugins if needed
+		let pluginOptions: any = {};
+		if (!globalSubEnabled) pluginOptions.sub = { enabled: false };
+		if (!globalSupEnabled) pluginOptions.sup = { enabled: false };
+		const mdToHtml = new MdToHtml({ ResourceModel, pluginOptions });
 				const renderOptions = {};
 				const theme = {};
 				const output = await mdToHtml.render(selection, theme, renderOptions);
