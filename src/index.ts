@@ -38,11 +38,15 @@ joplin.plugins.register({
 			execute: async () => {
 
 				// Get selected markdown
-				const selection = await joplin.commands.execute('editor.execCommand', { name: 'getSelection' });
+				let selection = await joplin.commands.execute('editor.execCommand', { name: 'getSelection' });
 				if (!selection) {
 					await joplin.views.dialogs.showMessageBox('No text selected.');
 					return;
 				}
+
+				// Preprocess: convert soft breaks (single newlines within paragraphs) to hard breaks (two spaces + newline)
+				// Only convert single newlines that are not surrounded by empty lines
+				selection = selection.replace(/([^\n])\n(?!\n)/g, '$1  \n');
 
 				const embedImages = await joplin.settings.value(SETTINGS.EMBED_IMAGES);
 
@@ -56,8 +60,8 @@ joplin.plugins.register({
 				};
 				const mdToHtml = new MdToHtml({ ResourceModel });
 				const renderOptions = {};
-				const minimalTheme = {};
-				const output = await mdToHtml.render(selection, minimalTheme, renderOptions);
+				const theme = {};
+				const output = await mdToHtml.render(selection, theme, renderOptions);
 				let html = output.html;
 
 				// Embed images as base64 if enabled
