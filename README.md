@@ -22,6 +22,15 @@ By default, the plugin will embed any images as base64 in the text/html output, 
 
 This should work with both markdown image embeds and the html img src embeds that you get when resizing images via joplin's rich text editor.
 
+### Optional markdown syntax
+
+The plugin will adhere to Joplin's settings for:
+
+- Soft Breaks
+- ^sup^
+- ~sub~
+- ==mark==
+
 ## Copy as Plain Text
 
 "Copy selection as Plain Text" is provided as a right click context menu option and as a keyboard shortcut (ctrl + alt + c by default).
