@@ -5,12 +5,10 @@ const removeMarkdown = require('remove-markdown');
 
 const SETTINGS = {
 	EMBED_IMAGES: 'embedImages',
-	FORCE_HARD_BREAKS: 'forceHardBreaks',
 };
 
 const DEFAULTS = {
 	[SETTINGS.EMBED_IMAGES]: true,
-	[SETTINGS.FORCE_HARD_BREAKS]: true,
 };
 
 joplin.plugins.register({
@@ -29,14 +27,6 @@ joplin.plugins.register({
 				label: 'Embed images as base64',
 				description: 'If enabled, images in selection will be embedded as base64.',
 			},
-			[SETTINGS.FORCE_HARD_BREAKS]: {
-				value: true,
-				type: SettingItemType.Bool,
-				section: 'copyAsHtml',
-				public: true,
-				label: 'Force hard breaks',
-				description: 'If enabled, single newlines in markdown will be rendered as hard breaks (HTML <br>).',
-			},
 		});
 
 		// Register command
@@ -54,14 +44,16 @@ joplin.plugins.register({
 					return;
 				}
 
-				const forceHardBreaks = await joplin.settings.value(SETTINGS.FORCE_HARD_BREAKS);
-				if (forceHardBreaks) {
-					// Preprocess: convert soft breaks (single newlines within paragraphs) to hard breaks (two spaces + newline)
-					// Only convert single newlines that are not surrounded by empty lines
+
+				// Use Joplin global settings for subscript and soft breaks rendering
+				const globalSubEnabled = await joplin.settings.globalValue('markdown.plugin.sub');
+				const globalSoftBreaksEnabled = await joplin.settings.globalValue('markdown.plugin.softbreaks');
+				const embedImages = await joplin.settings.value(SETTINGS.EMBED_IMAGES);
+
+				// If soft breaks are disabled, force hard breaks by converting single newlines to two spaces + newline
+				if (!globalSoftBreaksEnabled) {
 					selection = selection.replace(/([^\n])\n(?!\n)/g, '$1  \n');
 				}
-
-				const embedImages = await joplin.settings.value(SETTINGS.EMBED_IMAGES);
 
 				// Convert markdown to HTML
 				const { MdToHtml } = await import('@joplin/renderer');
@@ -71,7 +63,8 @@ joplin.plugins.register({
 					filename: () => '',
 					isSupportedImageMimeType: (mime) => mime && mime.startsWith('image/'),
 				};
-				const mdToHtml = new MdToHtml({ ResourceModel });
+				const pluginOptions = globalSubEnabled ? {} : { sub: { enabled: false } };
+				const mdToHtml = new MdToHtml({ ResourceModel, pluginOptions });
 				const renderOptions = {};
 				const theme = {};
 				const output = await mdToHtml.render(selection, theme, renderOptions);
