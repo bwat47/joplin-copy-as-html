@@ -82,10 +82,15 @@ joplin.plugins.register({
 					const srcRegex = /(<img[^>]*src=["'])(:\/([a-zA-Z0-9]+))(["'][^>]*>)/g;
 					html = await replaceAsync(html, srcRegex, async (match, pre, src, id, post) => {
 						if (!id) return match;
-						const resource = await joplin.data.get(['resources', id], { fields: ['id', 'mime'] });
+						let resource;
+						try {
+							resource = await joplin.data.get(['resources', id], { fields: ['id', 'mime'] });
+						} catch (err) {
+							// Resource not found
+							return `<span style="color: red; font-style: italic;">Resource ID “:/${id}” could not be found.</span>`;
+						}
 						if (!resource || !resource.mime.startsWith('image/')) {
-							console.warn('Resource not found or not an image:', id, resource);
-							return match;
+							return `<span style="color: red; font-style: italic;">Resource ID “:/${id}” could not be found.</span>`;
 						}
 						let imgDataUrl = '';
 						try {
@@ -102,13 +107,12 @@ joplin.plugins.register({
 							}
 							const base64 = Buffer.from(fileBuffer).toString('base64');
 							imgDataUrl = `data:${resource.mime};base64,${base64}`;
-
 						} catch (err) {
-							console.error('[copy-as-html] Error embedding image:', id, err);
+							// File fetch failed
+							return `<span style="color: red; font-style: italic;">Resource ID “:/${id}” could not be found.</span>`;
 						}
 						if (!imgDataUrl || !imgDataUrl.startsWith('data:image')) {
-							console.warn('[copy-as-html] No valid dataUrl for image:', id, imgDataUrl);
-							return `${pre}about:blank${post}`;
+							return `<span style="color: red; font-style: italic;">Resource ID “:/${id}” could not be found.</span>`;
 						}
 						return `${pre}${imgDataUrl}${post}`;
 					});
@@ -117,10 +121,15 @@ joplin.plugins.register({
 					const fallbackRegex = /\[Image: :\/([a-zA-Z0-9]+)\]/g;
 					html = await replaceAsync(html, fallbackRegex, async (match, id) => {
 						if (!id) return match;
-						const resource = await joplin.data.get(['resources', id], { fields: ['id', 'mime'] });
+						let resource;
+						try {
+							resource = await joplin.data.get(['resources', id], { fields: ['id', 'mime'] });
+						} catch (err) {
+							// Resource not found
+							return `<span style="color: red; font-style: italic;">Resource ID “:/${id}” could not be found.</span>`;
+						}
 						if (!resource || !resource.mime.startsWith('image/')) {
-							console.warn('Resource not found or not an image (fallback):', id, resource);
-							return match;
+							return `<span style="color: red; font-style: italic;">Resource ID “:/${id}” could not be found.</span>`;
 						}
 						let imgDataUrl = '';
 						try {
@@ -137,13 +146,12 @@ joplin.plugins.register({
 							}
 							const base64 = Buffer.from(fileBuffer).toString('base64');
 							imgDataUrl = `data:${resource.mime};base64,${base64}`;
-
 						} catch (err) {
-							console.error('[copy-as-html] Error embedding image (fallback):', id, err);
+							// File fetch failed
+							return `<span style="color: red; font-style: italic;">Resource ID “:/${id}” could not be found.</span>`;
 						}
 						if (!imgDataUrl || !imgDataUrl.startsWith('data:image')) {
-							console.warn('[copy-as-html] No valid dataUrl for image (fallback):', id, imgDataUrl);
-							return `<img src="about:blank" alt="" />`;
+							return `<span style="color: red; font-style: italic;">Resource ID “:/${id}” could not be found.</span>`;
 						}
 						return `<img src="${imgDataUrl}" alt="" />`;
 					});
