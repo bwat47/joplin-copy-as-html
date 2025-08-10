@@ -1,5 +1,5 @@
 import joplin from 'api';
-import { SettingItemType } from 'api/types';
+import { SettingItemType, ToastType } from 'api/types';
 const removeMarkdown = require('remove-markdown');
 
 
@@ -170,7 +170,7 @@ joplin.plugins.register({
 
 				// Pass the cleaned fragment directly to the clipboard as HTML
 				await joplin.clipboard.writeHtml(fragment);
-				await joplin.views.dialogs.showToast({ message: 'Copied selection as HTML!' });
+				await joplin.views.dialogs.showToast({ message: 'Copied selection as HTML!', type: ToastType.Success });
 
 				// Helper: async replace for regex
 				async function replaceAsync(str, regex, asyncFn) {
@@ -279,7 +279,7 @@ joplin.plugins.register({
 				};
 				const finalResult = segments.map(seg => seg.type === 'text' ? unescape(seg.value) : stripCodeTicks(seg.value)).join('');
 				await joplin.clipboard.writeText(finalResult);
-				await joplin.views.dialogs.showToast({ message: 'Copied selection as Plain Text!' });
+				await joplin.views.dialogs.showToast({ message: 'Copied selection as Plain Text!', type: ToastType.Success });
 			},
 		});
 		await joplin.views.menuItems.create('copyAsPlainTextShortcut', 'copyAsPlainText', MenuItemLocation.EditorContextMenu, {
