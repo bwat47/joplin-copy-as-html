@@ -241,6 +241,9 @@ joplin.plugins.register({
 				// Remove markdown from the rest
 				let plainText = removeMarkdown(text, { stripListLeaders: false });
 
+				// Remove &nbsp; characters (used by Joplin rich text editor for empty lines)
+				plainText = plainText.replace(/\u00A0|&nbsp;/g, '');
+
 				// Restore code blocks
 				codeBlocks.forEach((code, idx) => {
 					const placeholder = makePlaceholder('CODEBLOCK', idx);
