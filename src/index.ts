@@ -40,7 +40,7 @@ joplin.plugins.register({
 				// Get selected markdown
 				let selection = await joplin.commands.execute('editor.execCommand', { name: 'getSelection' });
 				if (!selection) {
-					await joplin.views.dialogs.showMessageBox('No text selected.');
+					await joplin.views.dialogs.showToast({ message: 'No text selected.', type: ToastType.Info });
 					return;
 				}
 
@@ -202,7 +202,7 @@ joplin.plugins.register({
 			execute: async () => {
 				const selection = await joplin.commands.execute('editor.execCommand', { name: 'getSelection' });
 				if (!selection) {
-					await joplin.views.dialogs.showMessageBox('No text selected.');
+					await joplin.views.dialogs.showToast({ message: 'No text selected.', type: ToastType.Info });
 					return;
 				}
 				// Use remove-markdown to convert markdown to plain text, preserving list leaders
