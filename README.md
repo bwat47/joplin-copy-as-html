@@ -24,7 +24,7 @@ This should work with both markdown image embeds and the html img src embeds tha
 
 ### Optional markdown syntax
 
-The plugin will adhere to Joplin's settings for:
+The plugin will adhere to Joplin's settings for whether or not to render:
 
 - Soft Breaks
 - ^sup^
