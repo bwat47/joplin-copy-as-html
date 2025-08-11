@@ -1,14 +1,16 @@
 import joplin from 'api';
 import { SettingItemType, ToastType } from 'api/types';
-const removeMarkdown = require('remove-markdown');
+
+
 
 
 const SETTINGS = {
 	EMBED_IMAGES: 'embedImages',
-};
-
-const DEFAULTS = {
-	[SETTINGS.EMBED_IMAGES]: true,
+	PRESERVE_SUPERSCRIPT: 'preserveSuperscript',
+	PRESERVE_SUBSCRIPT: 'preserveSubscript',
+	PRESERVE_EMPHASIS: 'preserveEmphasis',
+	PRESERVE_BOLD: 'preserveBold',
+	PRESERVE_HEADING: 'preserveHeading',
 };
 
 joplin.plugins.register({
@@ -18,14 +20,55 @@ joplin.plugins.register({
 			label: 'Copy as HTML',
 			iconName: 'fas fa-copy',
 		});
+
 		await joplin.settings.registerSettings({
 			[SETTINGS.EMBED_IMAGES]: {
-				value: true, // Default to true
-				type: SettingItemType.Bool, // Use the enum here
+				value: true,
+				type: SettingItemType.Bool,
 				section: 'copyAsHtml',
 				public: true,
 				label: 'Embed images as base64',
-				description: 'If enabled, images in selection will be embedded as base64.',
+				description: 'If enabled, images in selection will be embedded as base64 in HTML output.',
+			},
+			[SETTINGS.PRESERVE_SUPERSCRIPT]: {
+				value: false,
+				type: SettingItemType.Bool,
+				section: 'copyAsHtml',
+				public: true,
+				label: 'Preserve superscript characters (^TEST^)',
+				description: 'If enabled, ^TEST^ will remain ^TEST^ in plain text output.',
+			},
+			[SETTINGS.PRESERVE_SUBSCRIPT]: {
+				value: false,
+				type: SettingItemType.Bool,
+				section: 'copyAsHtml',
+				public: true,
+				label: 'Preserve subscript characters (~TEST~)',
+				description: 'If enabled, ~TEST~ will remain ~TEST~ in plain text output.',
+			},
+			[SETTINGS.PRESERVE_EMPHASIS]: {
+				value: false,
+				type: SettingItemType.Bool,
+				section: 'copyAsHtml',
+				public: true,
+				label: 'Preserve emphasis characters (*TEST* or _TEST_)',
+				description: 'If enabled, *TEST* or _TEST_ will remain as-is in plain text output.',
+			},
+			[SETTINGS.PRESERVE_BOLD]: {
+				value: false,
+				type: SettingItemType.Bool,
+				section: 'copyAsHtml',
+				public: true,
+				label: 'Preserve bold characters (**TEST** or __TEST__)',
+				description: 'If enabled, **TEST** or __TEST__ will remain as-is in plain text output.',
+			},
+			[SETTINGS.PRESERVE_HEADING]: {
+				value: false,
+				type: SettingItemType.Bool,
+				section: 'copyAsHtml',
+				public: true,
+				label: 'Preserve heading characters (## TEST)',
+				description: 'If enabled, ## TEST will remain as-is in plain text output.',
 			},
 		});
 
@@ -213,83 +256,139 @@ joplin.plugins.register({
 					await joplin.views.dialogs.showToast({ message: 'No text selected.', type: ToastType.Info });
 					return;
 				}
-				// Use remove-markdown to convert markdown to plain text, preserving list leaders
-				// Preserve code blocks and inline code by replacing them with robust placeholders
-				let codeBlocks = [];
-				let inlineCodes = [];
-				let text = selection;
 
-				// Use unique placeholder strings
-				function makePlaceholder(type, idx) {
-					return `@@JOPLIN_${type}_${idx}@@`;
+				// Get preservation settings
+				const preserveSuperscript = await joplin.settings.value(SETTINGS.PRESERVE_SUPERSCRIPT);
+				const preserveSubscript = await joplin.settings.value(SETTINGS.PRESERVE_SUBSCRIPT);
+				const preserveEmphasis = await joplin.settings.value(SETTINGS.PRESERVE_EMPHASIS);
+				const preserveBold = await joplin.settings.value(SETTINGS.PRESERVE_BOLD);
+				const preserveHeading = await joplin.settings.value(SETTINGS.PRESERVE_HEADING);
+
+				// Use markdown-it to parse and render plain text
+				const MarkdownIt = require('markdown-it');
+				const md = new MarkdownIt();
+				const tokens = md.parse(selection, {});
+
+				// Helper: Remove backslash escapes
+				function unescape(text) {
+					return text.replace(/\\([*_~^`#])/g, '$1');
 				}
 
-				// Extract code blocks (```...```) and preserve full block including backticks
-				text = text.replace(/```[\s\S]*?```/g, (match) => {
-					const placeholder = makePlaceholder('CODEBLOCK', codeBlocks.length);
-					codeBlocks.push(match);
-					return placeholder;
-				});
 
-				// Extract inline code (`...`) and preserve full match including backticks
-				text = text.replace(/`[^`]+`/g, (match) => {
-					const placeholder = makePlaceholder('INLINECODE', inlineCodes.length);
-					inlineCodes.push(match);
-					return placeholder;
-				});
-
-				// Remove markdown from the rest
-				let plainText = removeMarkdown(text, { stripListLeaders: false, gfm: false });
-
-				// Remove &nbsp; characters (used by Joplin rich text editor for empty lines)
-				plainText = plainText.replace(/\u00A0|&nbsp;/g, '');
-
-				// Restore code blocks
-				codeBlocks.forEach((code, idx) => {
-					const placeholder = makePlaceholder('CODEBLOCK', idx);
-					plainText = plainText.replace(new RegExp(placeholder, 'g'), code);
-				});
-				// Restore inline code
-				inlineCodes.forEach((code, idx) => {
-					const placeholder = makePlaceholder('INLINECODE', idx);
-					plainText = plainText.replace(new RegExp(placeholder, 'g'), code);
-				});
-
-				// Split into segments: code blocks, inline code, and normal text using a combined regex
-				const combinedRegex = /```[\s\S]*?```|`[^`]+`/g;
-				let segments = [];
-				let lastIndex = 0;
-				plainText.replace(combinedRegex, (match, offset) => {
-					if (offset > lastIndex) {
-						segments.push({ type: 'text', value: plainText.slice(lastIndex, offset) });
+				// Recursively process tokens for plain text extraction
+				function renderPlainText(tokens, listContext = null) {
+					let result = '';
+					let orderedIndex = listContext && listContext.type === 'ordered' ? listContext.index : 1;
+					for (let i = 0; i < tokens.length; i++) {
+						const t = tokens[i];
+						if (t.type === 'fence' || t.type === 'code_block') {
+							result += t.content;
+							// Add paragraph break if next token is paragraph/text/inline/code block/inline code
+							const next = tokens[i+1];
+							if (next && (
+								next.type === 'paragraph_open' ||
+								next.type === 'inline' ||
+								next.type === 'text' ||
+								next.type === 'fence' ||
+								next.type === 'code_block' ||
+								next.type === 'code_inline')) {
+								result += '\n\n';
+							}
+						} else if (t.type === 'code_inline') {
+							result += t.content;
+							// Do NOT add paragraph break after inline code
+						} else if (t.type === 'inline' && t.children) {
+							result += renderPlainText(t.children, listContext);
+						} else if (t.type === 'heading_open') {
+							if (preserveHeading) {
+								result += '#'.repeat(parseInt(t.tag[1])) + ' ';
+							}
+						} else if (t.type === 'heading_close') {
+							result += '\n\n';
+						} else if (t.type === 'bullet_list_open') {
+							// Enter bullet list context
+							let subTokens = [];
+							let depth = 1;
+							for (let j = i + 1; j < tokens.length; j++) {
+								if (tokens[j].type === 'bullet_list_open') depth++;
+								if (tokens[j].type === 'bullet_list_close') depth--;
+								if (depth === 0) break;
+								subTokens.push(tokens[j]);
+							}
+							result += renderPlainText(subTokens, { type: 'bullet' });
+							// Skip processed tokens
+							i += subTokens.length;
+						} else if (t.type === 'ordered_list_open') {
+							// Enter ordered list context
+							let subTokens = [];
+							let depth = 1;
+							let start = t.attrs && t.attrs.find(a => a[0] === 'start') ? parseInt(t.attrs.find(a => a[0] === 'start')[1]) : 1;
+							let idx = start;
+							for (let j = i + 1; j < tokens.length; j++) {
+								if (tokens[j].type === 'ordered_list_open') depth++;
+								if (tokens[j].type === 'ordered_list_close') depth--;
+								if (depth === 0) break;
+								// Mark each list_item_open with its index
+								if (tokens[j].type === 'list_item_open') tokens[j].orderedIndex = idx++;
+								subTokens.push(tokens[j]);
+							}
+							result += renderPlainText(subTokens, { type: 'ordered' });
+							i += subTokens.length;
+						} else if (t.type === 'list_item_open') {
+							if (listContext && listContext.type === 'ordered') {
+								// Use the index for ordered lists
+								let idx = t.orderedIndex || orderedIndex;
+								result += idx + '. ';
+								orderedIndex = idx + 1;
+							} else {
+								result += '- ';
+							}
+						} else if (t.type === 'em_open') {
+							if (preserveEmphasis) result += t.markup;
+						} else if (t.type === 'em_close') {
+							if (preserveEmphasis) result += t.markup;
+						} else if (t.type === 'strong_open') {
+							if (preserveBold) result += t.markup;
+						} else if (t.type === 'strong_close') {
+							if (preserveBold) result += t.markup;
+						} else if (t.type === 'text') {
+							let txt = t.content;
+							if (preserveSuperscript) {
+								txt = txt.replace(/\^([^\^]+)\^/g, '^$1^');
+							} else {
+								txt = txt.replace(/\^([^\^]+)\^/g, '$1');
+							}
+							if (preserveSubscript) {
+								txt = txt.replace(/~([^~]+)~/g, '~$1~');
+							} else {
+								txt = txt.replace(/~([^~]+)~/g, '$1');
+							}
+							txt = unescape(txt);
+							txt = txt.replace(/\u00A0|&nbsp;/g, '');
+							result += txt;
+						} else if (t.type === 'softbreak' || t.type === 'hardbreak') {
+							result += '\n';
+						} else if (t.type === 'paragraph_close') {
+							result += '\n\n';
+						}
 					}
-					segments.push({ type: 'code', value: match });
-					lastIndex = offset + match.length;
-					return match;
-				});
-				if (lastIndex < plainText.length) {
-					segments.push({ type: 'text', value: plainText.slice(lastIndex) });
+					return result;
 				}
-				// Apply unescaping only to non-code segments
-				const unescape = s => s
-					.replace(/\\/g, '\\')      // double backslash to single
-					.replace(/\\([^\w])/g, '$1'); // remove backslash before any non-word character
-				const result = segments.map(seg => seg.type === 'text' ? unescape(seg.value) : seg.value).join('');
-				// Remove backticks from code segments
-				const stripCodeTicks = seg => {
-					// Code block: starts and ends with triple backticks
-					if (/^```[\s\S]*```$/.test(seg)) {
-						// Remove leading/trailing triple backticks and newlines
-						return seg.replace(/^```\n?/, '').replace(/\n?```$/, '');
-					}
-					// Inline code: starts and ends with single backtick
-					if (/^`[^`]+`$/.test(seg)) {
-						return seg.slice(1, -1);
-					}
-					return seg;
-				};
-				const finalResult = segments.map(seg => seg.type === 'text' ? unescape(seg.value) : stripCodeTicks(seg.value)).join('');
-				await joplin.clipboard.writeText(finalResult);
+
+				let plainText = renderPlainText(tokens);
+				// Remove HTML <img> tags
+				plainText = plainText.replace(/<img[^>]*>/gi, '');
+				// Remove markdown image embeds ![](:/resourceId)
+				plainText = plainText.replace(/!\[[^\]]*\]\(:\/[a-zA-Z0-9]+\)/g, '');
+				// Collapse 3+ consecutive newlines to 2
+				plainText = plainText.replace(/\n{3,}/g, '\n\n');
+				// Debug: Show extracted plain text in a toast (truncate if long)
+				// await joplin.views.dialogs.showToast({ message: 'Extracted: ' + (plainText.length > 100 ? plainText.slice(0, 100) + '...' : plainText), type: ToastType.Info });
+				if (!plainText.trim()) {
+					await joplin.clipboard.writeText(selection);
+				} else {
+					await joplin.clipboard.writeText(plainText);
+				}
 				await joplin.views.dialogs.showToast({ message: 'Copied selection as Plain Text!', type: ToastType.Success });
 			},
 		});
