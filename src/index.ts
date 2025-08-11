@@ -388,27 +388,47 @@ joplin.plugins.register({
 							// Skip processed tokens
 							i += subTokens.length;
 						} else if (t.type === 'ordered_list_open') {
-							// Enter ordered list context
 							let subTokens = [];
 							let depth = 1;
-							let start = t.attrs && t.attrs.find(a => a[0] === 'start') ? parseInt(t.attrs.find(a => a[0] === 'start')[1]) : 1;
+							let start = 1;
+							if (t.attrs) {
+                                const startAttr = t.attrs.find(attr => attr[0] === 'start');
+                                if (startAttr) start = parseInt(startAttr[1]);
+                            }
 							let idx = start;
 							for (let j = i + 1; j < tokens.length; j++) {
 								if (tokens[j].type === 'ordered_list_open') depth++;
 								if (tokens[j].type === 'ordered_list_close') depth--;
 								if (depth === 0) break;
-								// Mark each list_item_open with its index
-								if (tokens[j].type === 'list_item_open') tokens[j].orderedIndex = idx++;
+
+								// If we hit a bullet_list_open at depth 1, skip its tokens for orderedIndex assignment
+								if (tokens[j].type === 'bullet_list_open' && depth === 1) {
+									let bulletDepth = 1;
+									subTokens.push(tokens[j]);
+									for (let k = j + 1; k < tokens.length; k++) {
+										if (tokens[k].type === 'bullet_list_open') bulletDepth++;
+										if (tokens[k].type === 'bullet_list_close') bulletDepth--;
+										subTokens.push(tokens[k]);
+										if (bulletDepth === 0) {
+											j = k;
+											break;
+										}
+									}
+									continue;
+								}
+
+								// Only assign orderedIndex for direct children of this ordered list
+								if (tokens[j].type === 'list_item_open' && depth === 1) {
+									tokens[j].orderedIndex = idx++;
+								}
 								subTokens.push(tokens[j]);
 							}
-							result += renderPlainText(subTokens, { type: 'ordered' });
+							// Recursively process subTokens
+							result += renderPlainText(subTokens, { type: 'ordered', index: start });
 							i += subTokens.length;
 						} else if (t.type === 'list_item_open') {
-							if (listContext && listContext.type === 'ordered') {
-								// Use the index for ordered lists
-								let idx = t.orderedIndex || orderedIndex;
-								result += idx + '. ';
-								orderedIndex = idx + 1;
+							if (listContext && listContext.type === 'ordered' && typeof t.orderedIndex !== 'undefined') {
+								result += t.orderedIndex + '. ';
 							} else {
 								result += '- ';
 							}
