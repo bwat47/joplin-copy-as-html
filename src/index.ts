@@ -291,7 +291,10 @@ joplin.plugins.register({
 								next.type === 'text' ||
 								next.type === 'fence' ||
 								next.type === 'code_block' ||
-								next.type === 'code_inline')) {
+								next.type === 'code_inline' ||
+								next.type === 'heading_open' ||
+								next.type === 'bullet_list_open' ||
+								next.type === 'ordered_list_open')) {
 								result += '\n\n';
 							}
 						} else if (t.type === 'code_inline') {
