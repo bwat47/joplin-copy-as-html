@@ -239,7 +239,7 @@ joplin.plugins.register({
 				});
 
 				// Remove markdown from the rest
-				let plainText = removeMarkdown(text, { stripListLeaders: false });
+				let plainText = removeMarkdown(text, { stripListLeaders: false, gfm: false });
 
 				// Remove &nbsp; characters (used by Joplin rich text editor for empty lines)
 				plainText = plainText.replace(/\u00A0|&nbsp;/g, '');
