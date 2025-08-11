@@ -277,192 +277,186 @@ joplin.plugins.register({
 
 				// Recursively process tokens for plain text extraction
 				function renderPlainText(tokens, listContext = null, indentLevel = 0) {
-					let result = '';
-					let orderedIndex = listContext && listContext.type === 'ordered' ? listContext.index : 1;
-					for (let i = 0; i < tokens.length; i++) {
-						const t = tokens[i];
-						if (t.type === 'table_open') {
-							// Collect all tokens until table_close
-							let tableTokens = [];
-							let depth = 1;
-							let j = i + 1;
-							while (j < tokens.length && depth > 0) {
-								if (tokens[j].type === 'table_open') depth++;
-								if (tokens[j].type === 'table_close') depth--;
-								tableTokens.push(tokens[j]);
-								j++;
-							}
-							// Parse table rows
-							let tableRows = [];
-							let currentRow = [];
-							let isHeaderRow = false;
-							for (let k = 0; k < tableTokens.length; k++) {
-								const tk = tableTokens[k];
-								if (tk.type === 'thead_open') isHeaderRow = true;
-								if (tk.type === 'thead_close') isHeaderRow = false;
-								if (tk.type === 'tr_open') currentRow = [];
-								if ((tk.type === 'th_open' || tk.type === 'td_open')) {
-									// Collect cell content
-									let cellContent = '';
-									let l = k + 1;
-									while (l < tableTokens.length && tableTokens[l].type !== 'th_close' && tableTokens[l].type !== 'td_close') {
-										if (tableTokens[l].type === 'inline' && tableTokens[l].children) {
-											cellContent += renderPlainText(tableTokens[l].children);
-										} else if (tableTokens[l].type === 'text') {
-											cellContent += tableTokens[l].content;
-										}
-										l++;
-									}
-									currentRow.push(cellContent.trim());
-								}
-								if (tk.type === 'tr_close') {
-									tableRows.push({ cells: currentRow.slice(), isHeader: isHeaderRow });
-								}
-							}
-							// Calculate max width for each column
-							let colWidths = [];
-							for (let r = 0; r < tableRows.length; r++) {
-								let cells = tableRows[r].cells;
-								for (let c = 0; c < cells.length; c++) {
-									colWidths[c] = Math.max(colWidths[c] || 0, cells[c].length);
-								}
-							}
-							// Helper to pad a cell
-							function padCell(cell, width) {
-								return cell + ' '.repeat(width - cell.length);
-							}
-							// Output table rows
-							let headerDone = false;
-							for (let r = 0; r < tableRows.length; r++) {
-								let paddedCells = tableRows[r].cells.map((c, i) => padCell(c, colWidths[i]));
-								result += paddedCells.join('  ') + '\n';
-								if (tableRows[r].isHeader && !headerDone && tableRows.length > 1) {
-									// Add separator after header
-									let sepCells = colWidths.map(w => '-'.repeat(Math.max(3, w)));
-									result += sepCells.join('  ') + '\n';
-									headerDone = true;
-								}
-							}
-							i = j - 1; // Skip all table tokens
-							continue;
+    let result = '';
+    let orderedIndex = listContext && listContext.type === 'ordered' ? listContext.index : 1;
+    for (let i = 0; i < tokens.length; i++) {
+        const t = tokens[i];
+        if (t.type === 'table_open') {
+			// Collect all tokens until table_close
+			let tableTokens = [];
+			let depth = 1;
+			let j = i + 1;
+			while (j < tokens.length && depth > 0) {
+				if (tokens[j].type === 'table_open') depth++;
+				if (tokens[j].type === 'table_close') depth--;
+				tableTokens.push(tokens[j]);
+				j++;
+			}
+			// Parse table rows
+			let tableRows = [];
+			let currentRow = [];
+			let isHeaderRow = false;
+			for (let k = 0; k < tableTokens.length; k++) {
+				const tk = tableTokens[k];
+				if (tk.type === 'thead_open') isHeaderRow = true;
+				if (tk.type === 'thead_close') isHeaderRow = false;
+				if (tk.type === 'tr_open') currentRow = [];
+				if ((tk.type === 'th_open' || tk.type === 'td_open')) {
+					// Collect cell content
+					let cellContent = '';
+					let l = k + 1;
+					while (l < tableTokens.length && tableTokens[l].type !== 'th_close' && tableTokens[l].type !== 'td_close') {
+						if (tableTokens[l].type === 'inline' && tableTokens[l].children) {
+							cellContent += renderPlainText(tableTokens[l].children);
+						} else if (tableTokens[l].type === 'text') {
+							cellContent += tableTokens[l].content;
 						}
-						if (t.type === 'fence' || t.type === 'code_block') {
-							result += t.content;
-							// Add paragraph break if next token is paragraph/text/inline/code block/inline code/list/heading
-							const next = tokens[i+1];
-							if (next && (
-								next.type === 'paragraph_open' ||
-								next.type === 'inline' ||
-								next.type === 'text' ||
-								next.type === 'fence' ||
-								next.type === 'code_block' ||
-								next.type === 'code_inline' ||
-								next.type === 'heading_open' ||
-								next.type === 'bullet_list_open' ||
-								next.type === 'ordered_list_open')) {
-								result += '\n\n';
-							}
-						} else if (t.type === 'code_inline') {
-							result += t.content;
-							// Do NOT add paragraph break after inline code
-						} else if (t.type === 'inline' && t.children) {
-							result += renderPlainText(t.children, listContext, indentLevel);
-						} else if (t.type === 'heading_open') {
-							if (preserveHeading) {
-								result += '#'.repeat(parseInt(t.tag[1])) + ' ';
-							}
-						} else if (t.type === 'heading_close') {
-							result += '\n\n';
-						} else if (t.type === 'bullet_list_open') {
-							// Enter bullet list context
-							let subTokens = [];
-							let depth = 1;
-							for (let j = i + 1; j < tokens.length; j++) {
-								if (tokens[j].type === 'bullet_list_open') depth++;
-								if (tokens[j].type === 'bullet_list_close') depth--;
-								if (depth === 0) break;
-								subTokens.push(tokens[j]);
-							}
-							result += renderPlainText(subTokens, { type: 'bullet' }, indentLevel + 1);
-							// Skip processed tokens
-							i += subTokens.length;
-						} else if (t.type === 'ordered_list_open') {
-							let subTokens = [];
-							let depth = 1;
-							let start = 1;
-							if (t.attrs) {
-                                const startAttr = t.attrs.find(attr => attr[0] === 'start');
-                                if (startAttr) start = parseInt(startAttr[1]);
-                            }
-							let idx = start;
-							for (let j = i + 1; j < tokens.length; j++) {
-								if (tokens[j].type === 'ordered_list_open') depth++;
-								if (tokens[j].type === 'ordered_list_close') depth--;
-								if (depth === 0) break;
-
-								// If we hit a bullet_list_open at depth 1, skip its tokens for orderedIndex assignment
-								if (tokens[j].type === 'bullet_list_open' && depth === 1) {
-									let bulletDepth = 1;
-									subTokens.push(tokens[j]);
-									for (let k = j + 1; k < tokens.length; k++) {
-										if (tokens[k].type === 'bullet_list_open') bulletDepth++;
-										if (tokens[k].type === 'bullet_list_close') bulletDepth--;
-										subTokens.push(tokens[k]);
-										if (bulletDepth === 0) {
-											j = k;
-											break;
-										}
-									}
-									continue;
-								}
-
-								// Only assign orderedIndex for direct children of this ordered list
-								if (tokens[j].type === 'list_item_open' && depth === 1) {
-									tokens[j].orderedIndex = idx++;
-								}
-								subTokens.push(tokens[j]);
-							}
-							// Recursively process subTokens
-							result += renderPlainText(subTokens, { type: 'ordered', index: start }, indentLevel + 1);
-							i += subTokens.length;
-						} else if (t.type === 'list_item_open') {
-							const indent = '\t'.repeat(indentLevel);
-							if (listContext && listContext.type === 'ordered' && typeof t.orderedIndex !== 'undefined') {
-								result += indent + t.orderedIndex + '. ';
-							} else {
-								result += indent + '- ';
-							}
-						} else if (t.type === 'em_open') {
-							if (preserveEmphasis) result += t.markup;
-						} else if (t.type === 'em_close') {
-							if (preserveEmphasis) result += t.markup;
-						} else if (t.type === 'strong_open') {
-							if (preserveBold) result += t.markup;
-						} else if (t.type === 'strong_close') {
-							if (preserveBold) result += t.markup;
-						} else if (t.type === 'text') {
-							let txt = t.content;
-							if (preserveSuperscript) {
-								txt = txt.replace(/\^([^\^]+)\^/g, '^$1^');
-							} else {
-								txt = txt.replace(/\^([^\^]+)\^/g, '$1');
-							}
-							if (preserveSubscript) {
-								txt = txt.replace(/~([^~]+)~/g, '~$1~');
-							} else {
-								txt = txt.replace(/~([^~]+)~/g, '$1');
-							}
-							txt = unescape(txt);
-							txt = txt.replace(/\u00A0|&nbsp;/g, '');
-							result += txt;
-						} else if (t.type === 'softbreak' || t.type === 'hardbreak') {
-							result += '\n';
-						} else if (t.type === 'paragraph_close') {
-							result += '\n\n';
+						l++;
+					}
+					currentRow.push(cellContent.trim());
+				}
+				if (tk.type === 'tr_close') {
+					tableRows.push({ cells: currentRow.slice(), isHeader: isHeaderRow });
+				}
+			}
+			// Calculate max width for each column
+			let colWidths = [];
+			for (let r = 0; r < tableRows.length; r++) {
+				let cells = tableRows[r].cells;
+				for (let c = 0; c < cells.length; c++) {
+					colWidths[c] = Math.max(colWidths[c] || 0, cells[c].length);
+				}
+			}
+			// Helper to pad a cell
+			function padCell(cell, width) {
+				return cell + ' '.repeat(width - cell.length);
+			}
+			// Output table rows
+			let headerDone = false;
+			for (let r = 0; r < tableRows.length; r++) {
+				let paddedCells = tableRows[r].cells.map((c, i) => padCell(c, colWidths[i]));
+				result += paddedCells.join('  ') + '\n';
+				if (tableRows[r].isHeader && !headerDone && tableRows.length > 1) {
+					// Add separator after header
+					let sepCells = colWidths.map(w => '-'.repeat(Math.max(3, w)));
+					result += sepCells.join('  ') + '\n';
+					headerDone = true;
+				}
+			}
+			i = j - 1; // Skip all table tokens
+			continue;
+		}
+		if (t.type === 'fence' || t.type === 'code_block') {
+			result += t.content;
+			const next = tokens[i+1];
+			if (next && (
+				next.type === 'paragraph_open' ||
+				next.type === 'inline' ||
+				next.type === 'text' ||
+				next.type === 'fence' ||
+				next.type === 'code_block' ||
+				next.type === 'code_inline' ||
+				next.type === 'heading_open' ||
+				next.type === 'bullet_list_open' ||
+				next.type === 'ordered_list_open')) {
+				result += '\n\n';
+			}
+		} else if (t.type === 'code_inline') {
+			result += t.content;
+		} else if (t.type === 'inline' && t.children) {
+			result += renderPlainText(t.children, listContext, indentLevel);
+		} else if (t.type === 'heading_open') {
+			if (preserveHeading) {
+				result += '#'.repeat(parseInt(t.tag[1])) + ' ';
+			}
+		} else if (t.type === 'heading_close') {
+			result += '\n\n';
+		} else if (t.type === 'bullet_list_open') {
+			let subTokens = [];
+			let depth = 1;
+			for (let j = i + 1; j < tokens.length; j++) {
+				if (tokens[j].type === 'bullet_list_open') depth++;
+				if (tokens[j].type === 'bullet_list_close') depth--;
+				if (depth === 0) break;
+				subTokens.push(tokens[j]);
+			}
+			// Always increase indentLevel for nested lists
+			result += renderPlainText(subTokens, { type: 'bullet' }, indentLevel + 1);
+			i += subTokens.length;
+		} else if (t.type === 'ordered_list_open') {
+			let subTokens = [];
+			let depth = 1;
+			let start = 1;
+			if (t.attrs) {
+				const startAttr = t.attrs.find(attr => attr[0] === 'start');
+				if (startAttr) start = parseInt(startAttr[1]);
+			}
+			let idx = start;
+			for (let j = i + 1; j < tokens.length; j++) {
+				if (tokens[j].type === 'ordered_list_open') depth++;
+				if (tokens[j].type === 'ordered_list_close') depth--;
+				if (depth === 0) break;
+				if (tokens[j].type === 'bullet_list_open' && depth === 1) {
+					let bulletDepth = 1;
+					subTokens.push(tokens[j]);
+					for (let k = j + 1; k < tokens.length; k++) {
+						if (tokens[k].type === 'bullet_list_open') bulletDepth++;
+						if (tokens[k].type === 'bullet_list_close') bulletDepth--;
+						subTokens.push(tokens[k]);
+						if (bulletDepth === 0) {
+							j = k;
+							break;
 						}
 					}
-					return result;
+					continue;
 				}
+				if (tokens[j].type === 'list_item_open' && depth === 1) {
+					tokens[j].orderedIndex = idx++;
+				}
+				subTokens.push(tokens[j]);
+			}
+			// Always increase indentLevel for nested lists
+			result += renderPlainText(subTokens, { type: 'ordered', index: start }, indentLevel + 1);
+			i += subTokens.length;
+		} else if (t.type === 'list_item_open') {
+			// Top-level lists (indentLevel === 1) should have no indent, nested lists should
+			const indent = indentLevel > 1 ? '\t'.repeat(indentLevel - 1) : '';
+			if (listContext && listContext.type === 'ordered' && typeof t.orderedIndex !== 'undefined') {
+				result += indent + t.orderedIndex + '. ';
+			} else {
+				result += indent + '- ';
+			}
+		} else if (t.type === 'em_open') {
+			if (preserveEmphasis) result += t.markup;
+		} else if (t.type === 'em_close') {
+			if (preserveEmphasis) result += t.markup;
+		} else if (t.type === 'strong_open') {
+			if (preserveBold) result += t.markup;
+		} else if (t.type === 'strong_close') {
+			if (preserveBold) result += t.markup;
+		} else if (t.type === 'text') {
+			let txt = t.content;
+			if (preserveSuperscript) {
+				txt = txt.replace(/\^([^\^]+)\^/g, '^$1^');
+			} else {
+				txt = txt.replace(/\^([^\^]+)\^/g, '$1');
+			}
+			if (preserveSubscript) {
+				txt = txt.replace(/~([^~]+)~/g, '~$1~');
+			} else {
+				txt = txt.replace(/~([^~]+)~/g, '$1');
+			}
+			txt = unescape(txt);
+			txt = txt.replace(/\u00A0|&nbsp;/g, '');
+			result += txt;
+		} else if (t.type === 'softbreak' || t.type === 'hardbreak') {
+			result += '\n';
+		} else if (t.type === 'paragraph_close') {
+			result += '\n\n';
+		}
+	}
+	return result;
+}
 
 				let plainText = renderPlainText(tokens);
 				// Remove HTML <img> tags
