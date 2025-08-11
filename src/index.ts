@@ -276,7 +276,7 @@ joplin.plugins.register({
 
 
 				// Recursively process tokens for plain text extraction
-				function renderPlainText(tokens, listContext = null) {
+				function renderPlainText(tokens, listContext = null, indentLevel = 0) {
 					let result = '';
 					let orderedIndex = listContext && listContext.type === 'ordered' ? listContext.index : 1;
 					for (let i = 0; i < tokens.length; i++) {
@@ -346,7 +346,6 @@ joplin.plugins.register({
 							i = j - 1; // Skip all table tokens
 							continue;
 						}
-						// ...existing code for all other tokens...
 						if (t.type === 'fence' || t.type === 'code_block') {
 							result += t.content;
 							// Add paragraph break if next token is paragraph/text/inline/code block/inline code/list/heading
@@ -367,7 +366,7 @@ joplin.plugins.register({
 							result += t.content;
 							// Do NOT add paragraph break after inline code
 						} else if (t.type === 'inline' && t.children) {
-							result += renderPlainText(t.children, listContext);
+							result += renderPlainText(t.children, listContext, indentLevel);
 						} else if (t.type === 'heading_open') {
 							if (preserveHeading) {
 								result += '#'.repeat(parseInt(t.tag[1])) + ' ';
@@ -384,7 +383,7 @@ joplin.plugins.register({
 								if (depth === 0) break;
 								subTokens.push(tokens[j]);
 							}
-							result += renderPlainText(subTokens, { type: 'bullet' });
+							result += renderPlainText(subTokens, { type: 'bullet' }, indentLevel + 1);
 							// Skip processed tokens
 							i += subTokens.length;
 						} else if (t.type === 'ordered_list_open') {
@@ -424,13 +423,14 @@ joplin.plugins.register({
 								subTokens.push(tokens[j]);
 							}
 							// Recursively process subTokens
-							result += renderPlainText(subTokens, { type: 'ordered', index: start });
+							result += renderPlainText(subTokens, { type: 'ordered', index: start }, indentLevel + 1);
 							i += subTokens.length;
 						} else if (t.type === 'list_item_open') {
+							const indent = '\t'.repeat(indentLevel);
 							if (listContext && listContext.type === 'ordered' && typeof t.orderedIndex !== 'undefined') {
-								result += t.orderedIndex + '. ';
+								result += indent + t.orderedIndex + '. ';
 							} else {
-								result += '- ';
+								result += indent + '- ';
 							}
 						} else if (t.type === 'em_open') {
 							if (preserveEmphasis) result += t.markup;
