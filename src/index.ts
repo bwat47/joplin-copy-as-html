@@ -281,9 +281,75 @@ joplin.plugins.register({
 					let orderedIndex = listContext && listContext.type === 'ordered' ? listContext.index : 1;
 					for (let i = 0; i < tokens.length; i++) {
 						const t = tokens[i];
+						if (t.type === 'table_open') {
+							// Collect all tokens until table_close
+							let tableTokens = [];
+							let depth = 1;
+							let j = i + 1;
+							while (j < tokens.length && depth > 0) {
+								if (tokens[j].type === 'table_open') depth++;
+								if (tokens[j].type === 'table_close') depth--;
+								tableTokens.push(tokens[j]);
+								j++;
+							}
+							// Parse table rows
+							let tableRows = [];
+							let currentRow = [];
+							let isHeaderRow = false;
+							for (let k = 0; k < tableTokens.length; k++) {
+								const tk = tableTokens[k];
+								if (tk.type === 'thead_open') isHeaderRow = true;
+								if (tk.type === 'thead_close') isHeaderRow = false;
+								if (tk.type === 'tr_open') currentRow = [];
+								if ((tk.type === 'th_open' || tk.type === 'td_open')) {
+									// Collect cell content
+									let cellContent = '';
+									let l = k + 1;
+									while (l < tableTokens.length && tableTokens[l].type !== 'th_close' && tableTokens[l].type !== 'td_close') {
+										if (tableTokens[l].type === 'inline' && tableTokens[l].children) {
+											cellContent += renderPlainText(tableTokens[l].children);
+										} else if (tableTokens[l].type === 'text') {
+											cellContent += tableTokens[l].content;
+										}
+										l++;
+									}
+									currentRow.push(cellContent.trim());
+								}
+								if (tk.type === 'tr_close') {
+									tableRows.push({ cells: currentRow.slice(), isHeader: isHeaderRow });
+								}
+							}
+							// Calculate max width for each column
+							let colWidths = [];
+							for (let r = 0; r < tableRows.length; r++) {
+								let cells = tableRows[r].cells;
+								for (let c = 0; c < cells.length; c++) {
+									colWidths[c] = Math.max(colWidths[c] || 0, cells[c].length);
+								}
+							}
+							// Helper to pad a cell
+							function padCell(cell, width) {
+								return cell + ' '.repeat(width - cell.length);
+							}
+							// Output table rows
+							let headerDone = false;
+							for (let r = 0; r < tableRows.length; r++) {
+								let paddedCells = tableRows[r].cells.map((c, i) => padCell(c, colWidths[i]));
+								result += paddedCells.join('  ') + '\n';
+								if (tableRows[r].isHeader && !headerDone && tableRows.length > 1) {
+									// Add separator after header
+									let sepCells = colWidths.map(w => '-'.repeat(Math.max(3, w)));
+									result += sepCells.join('  ') + '\n';
+									headerDone = true;
+								}
+							}
+							i = j - 1; // Skip all table tokens
+							continue;
+						}
+						// ...existing code for all other tokens...
 						if (t.type === 'fence' || t.type === 'code_block') {
 							result += t.content;
-							// Add paragraph break if next token is paragraph/text/inline/code block/inline code
+							// Add paragraph break if next token is paragraph/text/inline/code block/inline code/list/heading
 							const next = tokens[i+1];
 							if (next && (
 								next.type === 'paragraph_open' ||
