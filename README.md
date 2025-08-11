@@ -37,6 +37,23 @@ The plugin will adhere to Joplin's settings for whether or not to render:
 
 This will strip the markdown formatting characters from the raw markdown (except for numbered/unordered list markers) and populate it as text/plain in the clipboard, for scenarios where you need to paste into an app that supports neither HTML formatting or markdown.
 
+As of version 1.0.8, the following options are provided to maintain specific markdown formatting in the plain text output:
+
+- Preserve superscript characters `(^TEST^)`
+If enabled, `^TEST^` will remain `^TEST^` in plain text output.
+
+- Preserve subscript characters `(~TEST~)`
+If enabled, `~TEST~` will remain `~TEST~` in plain text output.
+
+- Preserve emphasis characters `(*TEST* or _TEST_)`
+If enabled, `*TEST*` or `_TEST_` will remain as-is in plain text output.
+
+- Preserve bold characters `(**TEST** or __TEST__)`
+If enabled, `**TEST*`* or `__TEST__` will remain as-is in plain text output.
+
+- Preserve heading characters `(## TEST)`
+If enabled, `## TEST` will remain as-is in plain text output.
+
 ## Known Issues
 
 - The context menu options appear in the rich text editor's context menu (but aren't functional, the plugin is only intended for the markdown editor).
