@@ -11,7 +11,7 @@ This plugin allows users to copy selected markdown from the Joplin editor as HTM
 - **Global Markdown Settings**: Honors Joplin's global settings for subscript, superscript, and mark syntax.
 - **Clipboard API**: Uses Joplin's clipboard API to write both HTML and plain text formats.
 - **Error Handling**: Gracefully handles missing resources by inserting a placeholder message instead of failing.
-**Plain Text Output**: Uses a custom markdown-it based renderer for robust plain text extraction. Removes images and links, preserves line breaks, paragraph spacing, indentation and list leaders. Offers settings to preserve specific markdown features (superscript, subscript, emphasis, bold, heading) in plain text output. All preservation options default to off for clean plain text.
+- **Plain Text Output**: Uses a custom markdown-it based renderer for robust plain text extraction. Removes images and links, preserves line breaks, paragraph spacing, indentation and list leaders. Offers settings to preserve specific markdown features (superscript, subscript, emphasis, bold, heading) in plain text output. All preservation options default to off for clean plain text.
 - **User Feedback**: Uses toast notifications for success and info messages.
 - **Context Menu Integration**: Adds commands to the markdown editor context menu with keyboard shortcuts.
 
