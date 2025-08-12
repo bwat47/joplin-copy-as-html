@@ -118,14 +118,52 @@ joplin.plugins.register({
 				const theme = {};
 				let html = '';
 
-				// Before rendering markdown to HTML:
+				// Split selection into code/non-code segments
+				const codeBlockRegex = /(```[\s\S]*?```|`[\s\S]*?`)/g;
+				let segments = [];
+				let lastIndex = 0;
+				let match;
+				while ((match = codeBlockRegex.exec(selection)) !== null) {
+					// Add non-code segment before this code block
+					if (match.index > lastIndex) {
+						segments.push({ type: 'text', content: selection.slice(lastIndex, match.index) });
+					}
+					// Add code block segment
+					segments.push({ type: 'code', content: match[0] });
+					lastIndex = codeBlockRegex.lastIndex;
+				}
+				// Add any remaining non-code segment
+				if (lastIndex < selection.length) {
+					segments.push({ type: 'text', content: selection.slice(lastIndex) });
+				}
+
+				// Only replace <img> tags in non-code segments
 				const imgTagRegex = /<img\s+([^>]*src=["']:\/[a-zA-Z0-9]+[^>]*)>/gi;
 				let imgTags = [];
-				selection = selection.replace(imgTagRegex, (match, attrs) => {
-						imgTags.push(match);
-						// Replace with a unique placeholder
-						return `[[HTML_IMAGE_${imgTags.length - 1}]]`;
-					});
+				segments = segments.map(seg => {
+					if (seg.type === 'text') {
+						return {
+							...seg,
+							content: seg.content.replace(imgTagRegex, (match, attrs) => {
+								imgTags.push(match);
+								return `[[HTML_IMAGE_${imgTags.length - 1}]]`;
+							}),
+						};
+					}
+					return seg;
+				});
+
+				// Recombine segments
+				selection = segments.map(seg => seg.content).join('');
+
+				// Before rendering markdown to HTML:
+				// const imgTagRegex = /<img\s+([^>]*src=["']:\/[a-zA-Z0-9]+[^>]*)>/gi;
+				// let imgTags = [];
+				// selection = selection.replace(imgTagRegex, (match, attrs) => {
+				// 		imgTags.push(match);
+				// 		// Replace with a unique placeholder
+				// 		return `[[HTML_IMAGE_${imgTags.length - 1}]]`;
+				// 	});
 
 				// Render markdown to HTML
 				const renderResult = await mdToHtml.render(selection, theme, renderOptions);
@@ -210,53 +248,66 @@ html = renderResult.html;
 						}
 						return `<img src="${imgDataUrl}" alt="" />`;
 					});
+				} else {
+					// Remove all Joplin resource images from HTML
+					const resourceImgRegex = /<img[^>]*src=["']:\/[a-zA-Z0-9]+["'][^>]*>/gi;
+					html = html.replace(resourceImgRegex, '');
+					// Optionally, remove markdown fallback [Image: ...] as well
+					const fallbackImgRegex = /\[Image: :\/[a-zA-Z0-9]+\]/gi;
+					html = html.replace(fallbackImgRegex, '');
 				}
 
 				// Restore original <img> tags with base64 src
-				for (let i = 0; i < imgTags.length; i++) {
-					const imgTag = imgTags[i];
-					// Extract resource ID from src
-					const srcMatch = imgTag.match(/src=["'](:\/([a-zA-Z0-9]+))["']/);
-					if (!srcMatch) continue;
-					const id = srcMatch[2];
-					let resource;
-					try {
-						resource = await joplin.data.get(['resources', id], { fields: ['id', 'mime'] });
-					} catch (err) {
-						html = html.replace(`[[HTML_IMAGE_${i}]]`, `<span style="color: red; font-style: italic;">Resource ID “:/${id}” could not be found.</span>`);
-						continue;
-					}
-					if (!resource || !resource.mime.startsWith('image/')) {
-						html = html.replace(`[[HTML_IMAGE_${i}]]`, `<span style="color: red; font-style: italic;">Resource ID “:/${id}” could not be found.</span>`);
-						continue;
-					}
-					let imgDataUrl = '';
-					try {
-						const fileObj = await joplin.data.get(['resources', id, 'file']);
-						let fileBuffer;
-						if (fileObj && fileObj.body) {
-							fileBuffer = fileObj.body;
-						} else if (fileObj && fileObj.data) {
-							fileBuffer = fileObj.data;
-						} else if (fileObj && fileObj.content) {
-							fileBuffer = fileObj.content;
-						} else {
-							fileBuffer = fileObj;
-						}
-						const base64 = Buffer.from(fileBuffer).toString('base64');
-						imgDataUrl = `data:${resource.mime};base64,${base64}`;
-					} catch (err) {
-						html = html.replace(`[[HTML_IMAGE_${i}]]`, `<span style="color: red; font-style: italic;">Resource ID “:/${id}” could not be found.</span>`);
-						continue;
-					}
-					if (!imgDataUrl || !imgDataUrl.startsWith('data:image')) {
-						html = html.replace(`[[HTML_IMAGE_${i}]]`, `<span style="color: red; font-style: italic;">Resource ID “:/${id}” could not be found.</span>`);
-						continue;
-					}
-					// Replace src in the original tag, keep all other attributes
-					const patchedTag = imgTag.replace(/src=["']:\/[a-zA-Z0-9]+["']/, `src="${imgDataUrl}"`);
-					html = html.replace(`[[HTML_IMAGE_${i}]]`, patchedTag);
-				}
+				if (embedImages) {
+    for (let i = 0; i < imgTags.length; i++) {
+        const imgTag = imgTags[i];
+        const srcMatch = imgTag.match(/src=["'](:\/([a-zA-Z0-9]+))["']/);
+        if (!srcMatch) continue;
+        const id = srcMatch[2];
+        let resource;
+        try {
+            resource = await joplin.data.get(['resources', id], { fields: ['id', 'mime'] });
+        } catch (err) {
+            html = html.replace(`[[HTML_IMAGE_${i}]]`, `<span style="color: red; font-style: italic;">Resource ID “:/${id}” could not be found.</span>`);
+            continue;
+        }
+        if (!resource || !resource.mime.startsWith('image/')) {
+            html = html.replace(`[[HTML_IMAGE_${i}]]`, `<span style="color: red; font-style: italic;">Resource ID “:/${id}” could not be found.</span>`);
+            continue;
+        }
+        let imgDataUrl = '';
+        try {
+            const fileObj = await joplin.data.get(['resources', id, 'file']);
+            let fileBuffer;
+            if (fileObj && fileObj.body) {
+                fileBuffer = fileObj.body;
+            } else if (fileObj && fileObj.data) {
+                fileBuffer = fileObj.data;
+            } else if (fileObj && fileObj.content) {
+                fileBuffer = fileObj.content;
+            } else {
+                fileBuffer = fileObj;
+            }
+            const base64 = Buffer.from(fileBuffer).toString('base64');
+            imgDataUrl = `data:${resource.mime};base64,${base64}`;
+        } catch (err) {
+            html = html.replace(`[[HTML_IMAGE_${i}]]`, `<span style="color: red; font-style: italic;">Resource ID “:/${id}” could not be found.</span>`);
+            continue;
+        }
+        if (!imgDataUrl || !imgDataUrl.startsWith('data:image')) {
+            html = html.replace(`[[HTML_IMAGE_${i}]]`, `<span style="color: red; font-style: italic;">Resource ID “:/${id}” could not be found.</span>`);
+            continue;
+        }
+        // Replace src in the original tag, keep all other attributes
+        const patchedTag = imgTag.replace(/src=["']:\/[a-zA-Z0-9]+["']/, `src="${imgDataUrl}"`);
+        html = html.replace(`[[HTML_IMAGE_${i}]]`, patchedTag);
+    }
+} else {
+    // If not embedding, just remove the placeholders
+    for (let i = 0; i < imgTags.length; i++) {
+        html = html.replace(`[[HTML_IMAGE_${i}]]`, '');
+    }
+}
 
 				// Use jsdom to robustly extract the inner HTML of <div id="rendered-md">
 				const { JSDOM } = require('jsdom');
