@@ -37,7 +37,7 @@ This is the main entry point for the plugin. It registers settings, commands, an
 - If nothing is selected, shows an info toast.
 - Uses markdown-it to parse and recursively render plain text from the selected markdown.
 - Removes all images and markdown image embeds from the output.
-- Preserves line breaks, paragraph spacing, and list leaders for readable plain text.
+- Preserves line breaks, paragraph spacing, indentation and list leaders for readable plain text.
 - Honors user settings to optionally preserve superscript (^TEST^), subscript (~TEST~), emphasis (*TEST* or _TEST_), bold (**TEST** or __TEST__), and heading (## TEST) markdown in plain text output.
 - All preservation options default to off for clean plain text.
 - Copies the result to the clipboard and shows a success toast.
