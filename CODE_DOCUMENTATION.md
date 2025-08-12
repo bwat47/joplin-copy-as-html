@@ -11,7 +11,7 @@ This plugin allows users to copy selected markdown from the Joplin editor as HTM
 - **Global Markdown Settings**: Honors Joplin's global settings for subscript, superscript, and mark syntax.
 - **Clipboard API**: Uses Joplin's clipboard API to write both HTML and plain text formats.
 - **Error Handling**: Gracefully handles missing resources by inserting a placeholder message instead of failing.
-**Plain Text Output**: Uses a custom markdown-it based renderer for robust plain text extraction. Removes images and links, preserves line breaks, paragraph spacing, and list leaders. Offers settings to preserve specific markdown features (superscript, subscript, emphasis, bold, heading) in plain text output. All preservation options default to off for clean plain text.
+**Plain Text Output**: Uses a custom markdown-it based renderer for robust plain text extraction. Removes images and links, preserves line breaks, paragraph spacing, indentation and list leaders. Offers settings to preserve specific markdown features (superscript, subscript, emphasis, bold, heading) in plain text output. All preservation options default to off for clean plain text.
 - **User Feedback**: Uses toast notifications for success and info messages.
 - **Context Menu Integration**: Adds commands to the markdown editor context menu with keyboard shortcuts.
 
@@ -21,7 +21,7 @@ This plugin allows users to copy selected markdown from the Joplin editor as HTM
 This is the main entry point for the plugin. It registers settings, commands, and menu items.
 
 #### Settings Registration
-- Registers a section and a setting (`embedImages`) to control whether images are embedded as base64 in HTML output.
+- Registers a section and a setting (`embedImages`) to control whether images are embedded as base64 in HTML output. Other settings are: `PRESERVE_SUPERSCRIPT`, `PRESERVE_SUBSCRIPT`, `PRESERVE_EMPHASIS`, `PRESERVE_BOLD`, `PRESERVE_HEADING` which control the markdown characters that are preserved in the plain text output.
 
 #### Command: copyAsHtml
 - Gets the selected markdown from the editor.
@@ -49,7 +49,7 @@ This is the main entry point for the plugin. It registers settings, commands, an
 - `replaceAsync`: Utility for performing asynchronous regex replacements (used for image embedding).
 
 ### src/manifest.json
-Defines plugin metadata and settings. The only user-facing setting is `embedImages`.
+Defines plugin metadata and settings.
 
 ### webpack.config.js
 Standard Joplin plugin build config. No custom logic relevant to plugin features.
@@ -59,12 +59,12 @@ Standard Joplin plugin build config. No custom logic relevant to plugin features
 - The plugin never fails silently or throws unhandled errors to the user.
 
 ## Why These Approaches?
- **Minimal HTML Extraction**: Using Joplin's renderer and extracting only the rendered fragment ensures compatibility with webmail and other rich text editors, avoiding excess styling and wrapper tags.
- **Base64 Image Embedding**: Embedding images as base64 ensures portability and compatibility when pasting into other apps.
- **Graceful Error Handling**: Replacing missing resources with a visible placeholder prevents silent failures and makes issues clear to the user.
- **Plain Text Robustness**: The markdown-it based renderer ensures technical content, list leaders, and paragraph structure are preserved in plain text output. User settings allow optional preservation of markdown features for more control over output.
- **Global Settings Compliance**: Respecting Joplin's global markdown settings ensures the plugin behaves consistently with the user's preferences.
- **Async Regex Replacement**: The `replaceAsync` helper is necessary for embedding images, since resource fetching is asynchronous.
+-  **Minimal HTML Extraction**: Using Joplin's renderer and extracting only the rendered fragment ensures compatibility with webmail and other rich text editors, avoiding excess styling and wrapper tags.
+-  **Base64 Image Embedding**: Embedding images as base64 ensures portability and compatibility when pasting into other apps.
+-  **Graceful Error Handling**: Replacing missing resources with a visible placeholder prevents silent failures and makes issues clear to the user.
+-  **Plain Text Robustness**: The markdown-it based renderer ensures technical content, list leaders, and paragraph structure are preserved in plain text output. User settings allow optional preservation of markdown features for more control over output.
+-  **Global Settings Compliance**: Respecting Joplin's global markdown settings ensures the plugin behaves consistently with the user's preferences.
+-  **Async Regex Replacement**: The `replaceAsync` helper is necessary for embedding images, since resource fetching is asynchronous.
 - **Toast Notifications**: Using toasts for feedback is less disruptive than modal dialogs and fits Joplin's UX conventions.
 
 ## Code Comments Review
