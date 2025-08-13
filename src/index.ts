@@ -156,15 +156,6 @@ joplin.plugins.register({
 				// Recombine segments
 				selection = segments.map(seg => seg.content).join('');
 
-				// Before rendering markdown to HTML:
-				// const imgTagRegex = /<img\s+([^>]*src=["']:\/[a-zA-Z0-9]+[^>]*)>/gi;
-				// let imgTags = [];
-				// selection = selection.replace(imgTagRegex, (match, attrs) => {
-				// 		imgTags.push(match);
-				// 		// Replace with a unique placeholder
-				// 		return `[[HTML_IMAGE_${imgTags.length - 1}]]`;
-				// 	});
-
 				// Render markdown to HTML
 				const renderResult = await mdToHtml.render(selection, theme, renderOptions);
 html = renderResult.html;
