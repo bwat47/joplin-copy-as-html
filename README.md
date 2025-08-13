@@ -20,16 +20,16 @@ This will populate the clipboard's text/html category with the HTML formatted te
 
 By default, the plugin will embed any images as base64 in the text/html output, allowing you paste text + images into external applications. However, this can be disabled in the plugin's settings.
 
-This should work with both markdown image embeds and the html img src embeds that you get when resizing images via joplin's rich text editor.
+This should work with both markdown image embeds and the html `<img>` embeds that you get when resizing images via joplin's rich text editor.
 
 ### Optional markdown syntax
 
 The plugin will adhere to Joplin's settings for whether or not to render:
 
 - Soft Breaks
-- ^sup^
-- ~sub~
-- ==mark==
+- `^sup^`
+- `~sub~`
+- `==mark==`
 
 ## Copy as Plain Text
 
