@@ -544,7 +544,6 @@ function renderPlainText(tokens, listContext = null, indentLevel = 0) {
 				txt = txt.replace(/~([^~]+)~/g, '$1');
 			}
 			txt = unescape(txt);
-			txt = txt.replace(/\u00A0|&nbsp;/g, '');
 			result += txt;
 		} else if (t.type === 'softbreak' || t.type === 'hardbreak') {
 			result += '\n';
@@ -557,6 +556,10 @@ function renderPlainText(tokens, listContext = null, indentLevel = 0) {
 
 				let plainText = renderPlainText(tokens);
 
+// Only remove nbsp characters that are on their own line
+plainText = plainText.replace(/^(?:\u00A0|&nbsp;)$/gm, '');
+
+// Collapse 3+ consecutive newlines to 2
 plainText = plainText.replace(/\n{3,}/g, '\n\n');
 
 				await joplin.clipboard.writeText(plainText);
