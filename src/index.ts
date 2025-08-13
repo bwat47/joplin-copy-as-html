@@ -1,5 +1,5 @@
 import joplin from 'api';
-import { SettingItemType, ToastType } from 'api/types';
+import { SettingItemType, ToastType, MenuItemLocation } from 'api/types';
 
 
 
@@ -351,7 +351,6 @@ html = renderResult.html;
 
 		// Register keyboard shortcut
 		// Use MenuItemLocation from types
-		const { MenuItemLocation } = await import('api/types');
 		await joplin.views.menuItems.create('copyAsHtmlShortcut', 'copyAsHtml', MenuItemLocation.EditorContextMenu, {
 			accelerator: 'Ctrl+Shift+C',
 		});
@@ -363,32 +362,32 @@ html = renderResult.html;
 			iconName: 'fas fa-copy',
 			when: 'markdownEditorVisible',
 			execute: async () => {
-				const selection = await joplin.commands.execute('editor.execCommand', { name: 'getSelection' });
-				if (!selection) {
-					await joplin.views.dialogs.showToast({ message: 'No text selected.', type: ToastType.Info });
-					return;
-				}
+				// Get selected markdown
+const selection = await joplin.commands.execute('editor.execCommand', { name: 'getSelection' });
+if (!selection) {
+    await joplin.views.dialogs.showToast({ message: 'No text selected.', type: ToastType.Info });
+    return;
+}
 
-				// Get preservation settings
-				const preserveSuperscript = await joplin.settings.value(SETTINGS.PRESERVE_SUPERSCRIPT);
-				const preserveSubscript = await joplin.settings.value(SETTINGS.PRESERVE_SUBSCRIPT);
-				const preserveEmphasis = await joplin.settings.value(SETTINGS.PRESERVE_EMPHASIS);
-				const preserveBold = await joplin.settings.value(SETTINGS.PRESERVE_BOLD);
-				const preserveHeading = await joplin.settings.value(SETTINGS.PRESERVE_HEADING);
+// Get preservation settings
+const preserveSuperscript = await joplin.settings.value(SETTINGS.PRESERVE_SUPERSCRIPT);
+const preserveSubscript = await joplin.settings.value(SETTINGS.PRESERVE_SUBSCRIPT);
+const preserveEmphasis = await joplin.settings.value(SETTINGS.PRESERVE_EMPHASIS);
+const preserveBold = await joplin.settings.value(SETTINGS.PRESERVE_BOLD);
+const preserveHeading = await joplin.settings.value(SETTINGS.PRESERVE_HEADING);
 
-				// Use markdown-it to parse and render plain text
-				const MarkdownIt = require('markdown-it');
-				const md = new MarkdownIt();
-				const tokens = md.parse(selection, {});
+// Use markdown-it to parse and render plain text
+const MarkdownIt = require('markdown-it');
+const md = new MarkdownIt();
+const tokens = md.parse(selection, {});
 
-				// Helper: Remove backslash escapes
-				function unescape(text) {
-					return text.replace(/\\([*_~^`#])/g, '$1');
-				}
+// Helper: Remove backslash escapes
+function unescape(text) {
+    return text.replace(/\\([*_~^`#])/g, '$1');
+}
 
-
-				// Recursively process tokens for plain text extraction
-				function renderPlainText(tokens, listContext = null, indentLevel = 0) {
+// Recursively process tokens for plain text extraction
+function renderPlainText(tokens, listContext = null, indentLevel = 0) {
     let result = '';
     let orderedIndex = listContext && listContext.type === 'ordered' ? listContext.index : 1;
     for (let i = 0; i < tokens.length; i++) {
@@ -459,21 +458,10 @@ html = renderResult.html;
 			continue;
 		}
 		if (t.type === 'fence' || t.type === 'code_block') {
-			result += t.content;
-			const next = tokens[i+1];
-			if (next && (
-				next.type === 'paragraph_open' ||
-				next.type === 'inline' ||
-				next.type === 'text' ||
-				next.type === 'fence' ||
-				next.type === 'code_block' ||
-				next.type === 'code_inline' ||
-				next.type === 'heading_open' ||
-				next.type === 'bullet_list_open' ||
-				next.type === 'ordered_list_open')) {
-				result += '\n\n';
-			}
+			// Output code block content only (no backticks)
+			result += t.content + '\n\n';
 		} else if (t.type === 'code_inline') {
+			// Output inline code content only (no backticks)
 			result += t.content;
 		} else if (t.type === 'inline' && t.children) {
 			result += renderPlainText(t.children, listContext, indentLevel);
@@ -492,7 +480,6 @@ html = renderResult.html;
 				if (depth === 0) break;
 				subTokens.push(tokens[j]);
 			}
-			// Always increase indentLevel for nested lists
 			result += renderPlainText(subTokens, { type: 'bullet' }, indentLevel + 1);
 			i += subTokens.length;
 		} else if (t.type === 'ordered_list_open') {
@@ -527,11 +514,9 @@ html = renderResult.html;
 				}
 				subTokens.push(tokens[j]);
 			}
-			// Always increase indentLevel for nested lists
 			result += renderPlainText(subTokens, { type: 'ordered', index: start }, indentLevel + 1);
 			i += subTokens.length;
 		} else if (t.type === 'list_item_open') {
-			// Top-level lists (indentLevel === 1) should have no indent, nested lists should
 			const indent = indentLevel > 1 ? '\t'.repeat(indentLevel - 1) : '';
 			if (listContext && listContext.type === 'ordered' && typeof t.orderedIndex !== 'undefined') {
 				result += indent + t.orderedIndex + '. ';
@@ -571,24 +556,16 @@ html = renderResult.html;
 }
 
 				let plainText = renderPlainText(tokens);
-				// Remove HTML <img> tags
-				plainText = plainText.replace(/<img[^>]*>/gi, '');
-				// Remove markdown image embeds ![](:/resourceId)
-				plainText = plainText.replace(/!\[[^\]]*\]\(:\/[a-zA-Z0-9]+\)/g, '');
-				// Collapse 3+ consecutive newlines to 2
-				plainText = plainText.replace(/\n{3,}/g, '\n\n');
-				// Debug: Show extracted plain text in a toast (truncate if long)
-				// await joplin.views.dialogs.showToast({ message: 'Extracted: ' + (plainText.length > 100 ? plainText.slice(0, 100) + '...' : plainText), type: ToastType.Info });
-				if (!plainText.trim()) {
-					await joplin.clipboard.writeText(selection);
-				} else {
-					await joplin.clipboard.writeText(plainText);
-				}
+
+plainText = plainText.replace(/\n{3,}/g, '\n\n');
+
+				await joplin.clipboard.writeText(plainText);
 				await joplin.views.dialogs.showToast({ message: 'Copied selection as Plain Text!', type: ToastType.Success });
 			},
 		});
+
 		await joplin.views.menuItems.create('copyAsPlainTextShortcut', 'copyAsPlainText', MenuItemLocation.EditorContextMenu, {
-			accelerator: 'Ctrl+Alt+C',
-		});
+    accelerator: 'Ctrl+Shift+X',
+});
 	},
 });
