@@ -463,57 +463,66 @@ function renderPlainText(tokens, listContext = null, indentLevel = 0) {
 		} else if (t.type === 'heading_close') {
 			result += '\n\n';
 		} else if (t.type === 'bullet_list_open') {
-			let subTokens = [];
-			let depth = 1;
-			for (let j = i + 1; j < tokens.length; j++) {
-				if (tokens[j].type === 'bullet_list_open') depth++;
-				if (tokens[j].type === 'bullet_list_close') depth--;
-				if (depth === 0) break;
-				subTokens.push(tokens[j]);
-			}
-			result += renderPlainText(subTokens, { type: 'bullet' }, indentLevel + 1);
-			i += subTokens.length;
-		} else if (t.type === 'ordered_list_open') {
-			let subTokens = [];
-			let depth = 1;
-			let start = 1;
-			if (t.attrs) {
-				const startAttr = t.attrs.find(attr => attr[0] === 'start');
-				if (startAttr) start = parseInt(startAttr[1]);
-			}
-			let idx = start;
-			for (let j = i + 1; j < tokens.length; j++) {
-				if (tokens[j].type === 'ordered_list_open') depth++;
-				if (tokens[j].type === 'ordered_list_close') depth--;
-				if (depth === 0) break;
-				if (tokens[j].type === 'bullet_list_open' && depth === 1) {
-					let bulletDepth = 1;
-					subTokens.push(tokens[j]);
-					for (let k = j + 1; k < tokens.length; k++) {
-						if (tokens[k].type === 'bullet_list_open') bulletDepth++;
-						if (tokens[k].type === 'bullet_list_close') bulletDepth--;
-						subTokens.push(tokens[k]);
-						if (bulletDepth === 0) {
-							j = k;
-							break;
-						}
-					}
-					continue;
-				}
-				if (tokens[j].type === 'list_item_open' && depth === 1) {
-					tokens[j].orderedIndex = idx++;
-				}
-				subTokens.push(tokens[j]);
-			}
-			result += renderPlainText(subTokens, { type: 'ordered', index: start }, indentLevel + 1);
-			i += subTokens.length;
-		} else if (t.type === 'list_item_open') {
-			const indent = indentLevel > 1 ? '\t'.repeat(indentLevel - 1) : '';
-			if (listContext && listContext.type === 'ordered' && typeof t.orderedIndex !== 'undefined') {
-				result += indent + t.orderedIndex + '. ';
-			} else {
-				result += indent + '- ';
-			}
+            // Indent nested bullet lists by increasing indentLevel.
+            // Top-level lists (indentLevel === 1) have no indent.
+            // Nested lists (indentLevel > 1) are indented by one tab per level.
+            let subTokens = [];
+            let depth = 1;
+            for (let j = i + 1; j < tokens.length; j++) {
+                if (tokens[j].type === 'bullet_list_open') depth++;
+                if (tokens[j].type === 'bullet_list_close') depth--;
+                if (depth === 0) break;
+                subTokens.push(tokens[j]);
+            }
+            result += renderPlainText(subTokens, { type: 'bullet' }, indentLevel + 1);
+            i += subTokens.length;
+
+        } else if (t.type === 'ordered_list_open') {
+            // Indent nested ordered lists by increasing indentLevel.
+            // Top-level lists (indentLevel === 1) have no indent.
+            // Nested lists (indentLevel > 1) are indented by one tab per level.
+            let subTokens = [];
+            let depth = 1;
+            let start = 1;
+            if (t.attrs) {
+                const startAttr = t.attrs.find(attr => attr[0] === 'start');
+                if (startAttr) start = parseInt(startAttr[1]);
+            }
+            let idx = start;
+            for (let j = i + 1; j < tokens.length; j++) {
+                if (tokens[j].type === 'ordered_list_open') depth++;
+                if (tokens[j].type === 'ordered_list_close') depth--;
+                if (depth === 0) break;
+                if (tokens[j].type === 'bullet_list_open' && depth === 1) {
+                    let bulletDepth = 1;
+                    subTokens.push(tokens[j]);
+                    for (let k = j + 1; k < tokens.length; k++) {
+                        if (tokens[k].type === 'bullet_list_open') bulletDepth++;
+                        if (tokens[k].type === 'bullet_list_close') bulletDepth--;
+                        subTokens.push(tokens[k]);
+                        if (bulletDepth === 0) {
+                            j = k;
+                            break;
+                        }
+                    }
+                    continue;
+                }
+                if (tokens[j].type === 'list_item_open' && depth === 1) {
+                    tokens[j].orderedIndex = idx++;
+                }
+                subTokens.push(tokens[j]);
+            }
+            result += renderPlainText(subTokens, { type: 'ordered', index: start }, indentLevel + 1);
+            i += subTokens.length;
+
+        } else if (t.type === 'list_item_open') {
+            // Only indent if indentLevel > 1 (top-level lists have no indent)
+            const indent = indentLevel > 1 ? '\t'.repeat(indentLevel - 1) : '';
+            if (listContext && listContext.type === 'ordered' && typeof t.orderedIndex !== 'undefined') {
+                result += indent + t.orderedIndex + '. ';
+            } else {
+                result += indent + '- ';
+            }
 		} else if (t.type === 'em_open') {
 			if (preserveEmphasis) result += t.markup;
 		} else if (t.type === 'em_close') {
@@ -556,7 +565,7 @@ plainText = plainText.replace(/\n{3,}/g, '\n\n');
 		});
 
 		await joplin.views.menuItems.create('copyAsPlainTextShortcut', 'copyAsPlainText', MenuItemLocation.EditorContextMenu, {
-    accelerator: 'Ctrl+Shift+X',
+    accelerator: 'Ctrl+Alt+C',
 });
 	},
 });
