@@ -556,9 +556,6 @@ function renderPlainText(tokens, listContext = null, indentLevel = 0) {
 
 				let plainText = renderPlainText(tokens);
 
-// Only remove nbsp characters that are on their own line
-plainText = plainText.replace(/^(?:\u00A0|&nbsp;)$/gm, '');
-
 // Collapse 3+ consecutive newlines to 2
 plainText = plainText.replace(/\n{3,}/g, '\n\n');
 
