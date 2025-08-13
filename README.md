@@ -3,9 +3,9 @@
 > [!important]
 > My coding knowledge is currently very limited. This plugin was created entirely with AI tools, and I may be limited in my ability to fix any issues.
 
-This plugin allows you to copy selected text in the markdown editor as either HTML or plaintext (with markdown formatting characters removed).
+This plugin allows you to copy selected text in the markdown editor as either HTML or plain text (with markdown formatting characters removed).
 
-The primary use case is copying text from Joplin and pasting formatted text into other apps that support HTML formatting (e.g. pasting text into an Outlook email).
+The primary use case is copying text from Joplin and pasting formatted text into other apps that support HTML formatting (e.g. pasting text into an Outlook email). A plain text fallback is provided for scenarios where you need to paste text into an application that supports neither HTML formatting nor markdown.
 
 ## Copy as HTML
 
@@ -13,7 +13,7 @@ The primary use case is copying text from Joplin and pasting formatted text into
 
 This will populate the clipboard's text/html category with the HTML formatted text.
 
-> [!important]
+> [!note]
 > By design, the plugin only copies an HTML fragment including the basic semantic HTML markup (i.e. it won't include any of the Joplin theme styling). This is for maximum compatibility with pasting into other apps, so you don't see issues such as Joplin's background color being pasted- you'll just get the formatted text (bold, italics, formatted lists, etc...).
 
 ### Embed images as base64
@@ -35,7 +35,7 @@ The plugin will adhere to Joplin's settings for whether or not to render:
 
 "Copy selection as Plain Text" is provided as a right click context menu option and as a keyboard shortcut (ctrl + alt + c by default).
 
-This will strip markdown formatting characters, backslash escapes, and image embeds (e.g. `![](:/22cce3a8c2244493877c66c9e3259274)` or `<img src=":/5bb1066cec6f4c849cefc28ba7b0fc1e"`) from the source markdown and populate it as text/plain in the clipboard, for scenarios where you need to paste into an app that supports neither HTML formatting or markdown.
+This will strip markdown formatting characters, backslash escapes, and image embeds (e.g. `![](:/22cce3a8c2244493877c66c9e3259274)` or `<img src=":/5bb1066cec6f4c849cefc28ba7b0fc1e">`) from the source markdown and populate it as text/plain in the clipboard, for scenarios where you need to paste into an app that supports neither HTML formatting or markdown.
 
 List leaders and nested list indentation will be maintained (these are normally lost when copying from the markdown viewer or rich text editor).
 
