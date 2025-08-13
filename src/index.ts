@@ -533,6 +533,10 @@ function renderPlainText(tokens, listContext = null, indentLevel = 0) {
 			if (preserveBold) result += t.markup;
 		} else if (t.type === 'text') {
 			let txt = t.content;
+
+			// Remove HTML <img> tags ONLY in text tokens
+    		txt = txt.replace(/<img[^>]*>/gi, '');
+
 			if (preserveSuperscript) {
 				txt = txt.replace(/\^([^\^]+)\^/g, '^$1^');
 			} else {
