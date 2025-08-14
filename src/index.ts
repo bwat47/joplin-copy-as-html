@@ -450,7 +450,7 @@ function renderPlainText(tokens, listContext = null, indentLevel = 0) {
 		}
 		if (t.type === 'fence' || t.type === 'code_block') {
 			// Output code block content only (no backticks)
-			result += t.content + '\n\n';
+			result += t.content + '\n';
 		} else if (t.type === 'code_inline') {
 			// Output inline code content only (no backticks)
 			result += t.content;
