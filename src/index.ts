@@ -537,6 +537,9 @@ function renderPlainText(tokens, listContext = null, indentLevel = 0) {
 			// Remove HTML <img> tags ONLY in text tokens
     		txt = txt.replace(/<img[^>]*>/gi, '');
 
+			// Collapse 3+ consecutive newlines to 2 ONLY in text tokens
+    		txt = txt.replace(/\n{3,}/g, '\n\n');
+
 			if (preserveSuperscript) {
 				txt = txt.replace(/\^([^\^]+)\^/g, '^$1^');
 			} else {
@@ -559,9 +562,6 @@ function renderPlainText(tokens, listContext = null, indentLevel = 0) {
 }
 
 				let plainText = renderPlainText(tokens);
-
-// Collapse 3+ consecutive newlines to 2
-plainText = plainText.replace(/\n{3,}/g, '\n\n');
 
 				await joplin.clipboard.writeText(plainText);
 				await joplin.views.dialogs.showToast({ message: 'Copied selection as Plain Text!', type: ToastType.Success });
