@@ -48,10 +48,8 @@ function extractImageDimensions(markdown: string, embedImages: boolean): { proce
 		if (!embedImages) {
 			// Remove HTML img tags
 			processedContent = processedContent.replace(/<img[^>]*>/gi, '');
-			// Remove markdown image syntax ![alt](://resourceId)
-			processedContent = processedContent.replace(/!\[[^\]]*\]\(:\/[a-zA-Z0-9]+\)/g, '');
-			// Remove standalone markdown images ![](://resourceId) 
-			processedContent = processedContent.replace(/!\[\]\(:\/[a-zA-Z0-9]+\)/g, '');
+			// Remove markdown image syntax for Joplin resources (more precise)
+			processedContent = processedContent.replace(/!\[[^\]]*\]\(:\/{1,2}[a-f0-9]{32}\)/gi, '');
 		} else {
 			// Only process HTML img tags that contain Joplin resource IDs in non-code segments
 			const htmlImgRegex = /<img([^>]*src=["']:\/([a-zA-Z0-9]+)["'][^>]*)>/gi;
