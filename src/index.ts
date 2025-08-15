@@ -220,6 +220,7 @@ async function convertResourceToBase64(id: string): Promise<string> {
 		const base64 = Buffer.from(fileBuffer).toString('base64');
 		return `data:${resource.mime};base64,${base64}`;
 	} catch (err) {
+		console.error(`[copy-as-html] Failed to convert resource :/${id} to base64:`, err);
 		const msg = err && err.message ? err.message : err;
 		return `<span style="color: red; font-style: italic;">Resource ID ":/${id}" could not be retrieved: ${msg}</span>`;
 	}
