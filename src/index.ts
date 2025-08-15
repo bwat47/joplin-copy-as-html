@@ -263,7 +263,10 @@ interface TableData {
     rows: TableRow[];
 }
 
-// Parses tokens into a TableData structure
+/**
+ * Parses table-related tokens into a structured TableData object.
+ * Handles header and body rows, and extracts cell content using renderPlainText for nested formatting.
+ */
 function parseTableTokens(tableTokens: any[], options: PlainTextOptions, listContext: any, indentLevel: number): TableData {
     let tableRows: TableRow[] = [];
     let currentRow: string[] = [];
@@ -293,7 +296,9 @@ function parseTableTokens(tableTokens: any[], options: PlainTextOptions, listCon
     return { rows: tableRows };
 }
 
-// Calculates the max width for each column
+/**
+ * Calculates the maximum width for each column in the table for aligned formatting.
+ */
 function calculateColumnWidths(tableData: TableData): number[] {
     let colWidths: number[] = [];
     for (let r = 0; r < tableData.rows.length; r++) {
@@ -305,7 +310,10 @@ function calculateColumnWidths(tableData: TableData): number[] {
     return colWidths;
 }
 
-// Formats the table as a string
+/**
+ * Formats the table as a human-readable aligned plain text string, including header separators.
+ * Adds an extra newline at the end for spacing.
+ */
 function formatTable(tableData: TableData, colWidths: number[]): string {
     function padCell(cell: string, width: number) {
         return cell + ' '.repeat(width - cell.length);
