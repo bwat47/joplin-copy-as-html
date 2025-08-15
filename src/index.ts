@@ -180,7 +180,7 @@ function applyPreservedDimensions(html: string, dimensions: Map<string, any>): s
  * @param asyncFn The async function to apply to each match.
  * @returns The processed string.
  */
-async function replaceAsync(str: string, regex: RegExp, asyncFn: Function) {
+async function replaceAsync(str: string, regex: RegExp, asyncFn: Function): Promise<string> {
 	const promises: Promise<string>[] = [];
 	str.replace(regex, (match, ...args) => {
 		promises.push(asyncFn(match, ...args));
@@ -649,3 +649,16 @@ const tokens = md.parse(selection, {});
 		});
 	},
 });
+
+export {
+    extractImageDimensions,
+    applyPreservedDimensions,
+    replaceAsync,
+    convertResourceToBase64,
+    unescape,
+    renderPlainText,
+    ImageDimensions,
+    MarkdownSegment,
+    PluginOptions,
+    PlainTextOptions,
+};
