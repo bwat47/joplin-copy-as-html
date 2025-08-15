@@ -31,7 +31,7 @@ interface MarkdownSegment {
     content: string;
 }
 
-// Add near the top of your file
+// Constants for timeouts, formatting, and dimension keys
 const CONSTANTS = {
     BASE64_TIMEOUT_MS: 5000,
     MIN_COLUMN_WIDTH: 3,
@@ -432,7 +432,7 @@ function renderPlainText(
 
 joplin.plugins.register({
 	onStart: async function() {
-		// Register settings (unchanged)
+		// Register plugin settings
 		await joplin.settings.registerSection('copyAsHtml', {
 			label: 'Copy as HTML',
 			iconName: 'fas fa-copy',
@@ -591,12 +591,12 @@ joplin.plugins.register({
 			},
 		});
 
-		// Register keyboard shortcut
+		// Register keyboard shortcut for HTML copy
 		await joplin.views.menuItems.create('copyAsHtmlShortcut', 'copyAsHtml', MenuItemLocation.EditorContextMenu, {
 			accelerator: 'Ctrl+Shift+C',
 		});
 
-		// Plain text copy command (completely unchanged)
+		// Register plain text copy command
 		await joplin.commands.register({
 			name: 'copyAsPlainText',
 			label: 'Copy selection as Plain Text',
@@ -623,13 +623,13 @@ const md = new MarkdownIt();
 const tokens = md.parse(selection, {});
 
 // Remove the inner renderPlainText function from the copyAsPlainText command
-				let plainText = renderPlainText(tokens, null, 0, {
-					preserveHeading,
-					preserveEmphasis,
-					preserveBold,
-					preserveSuperscript,
-					preserveSubscript
-				});
+                 let plainText = renderPlainText(tokens, null, 0, {
+                     preserveHeading,
+                     preserveEmphasis,
+                     preserveBold,
+                     preserveSuperscript,
+                     preserveSubscript
+                 });
 
 				// Copy to clipboard as plain text
 				await joplin.clipboard.writeText(plainText);
