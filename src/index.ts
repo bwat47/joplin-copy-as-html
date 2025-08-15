@@ -10,49 +10,9 @@ const SETTINGS = {
 	PRESERVE_HEADING: 'preserveHeading',
 };
 
-// Create custom renderer for embed/no-embed logic
-function createCustomRenderer(embedImages: boolean, globalSubEnabled: boolean, globalSupEnabled: boolean, globalMarkEnabled: boolean) {
-	const { MdToHtml } = require('@joplin/renderer');
-	
-	const ResourceModel = {
-		isResourceUrl: (url: string) => typeof url === 'string' && url.startsWith(':/'),
-		urlToId: (url: string) => url.replace(':/', ''),
-		filename: () => '',
-		isSupportedImageMimeType: (mime: string) => mime && mime.startsWith('image/'),
-	};
-
-	// Build pluginOptions to disable sub/sup plugins if needed
-	let pluginOptions: any = {};
-	if (!globalSubEnabled) pluginOptions.sub = { enabled: false };
-	if (!globalSupEnabled) pluginOptions.sup = { enabled: false };
-	if (!globalMarkEnabled) pluginOptions.mark = { enabled: false };
-
-	if (!embedImages) {
-		// Remove images entirely by excluding img from allowedTags
-		const renderer = new MdToHtml({ ResourceModel, pluginOptions });
-		const defaultRules = renderer.defaultSanitizeHtml();
-		const customRules = {
-			...defaultRules,
-			allowedTags: defaultRules.allowedTags.filter(tag => tag !== 'img')
-		};
-		
-		// Remove img from allowedAttributes as well
-		const { img, ...otherAttributes } = customRules.allowedAttributes || {};
-		customRules.allowedAttributes = otherAttributes;
-		
-		return new MdToHtml({ 
-			ResourceModel, 
-			pluginOptions,
-			sanitizeHtml: customRules 
-		});
-	} else {
-		// Standard renderer - we'll handle width/height separately
-		return new MdToHtml({ ResourceModel, pluginOptions });
-	}
-}
-
 // Extract width/height from HTML img tags before rendering (excluding code blocks)
-function extractImageDimensions(markdown: string): { processedMarkdown: string, dimensions: Map<string, {width?: string, height?: string, style?: string}> } {
+// Also remove images entirely if embedImages is false
+function extractImageDimensions(markdown: string, embedImages: boolean): { processedMarkdown: string, dimensions: Map<string, {width?: string, height?: string, style?: string}> } {
 	const dimensions = new Map();
 	let counter = 0;
 	
@@ -76,40 +36,51 @@ function extractImageDimensions(markdown: string): { processedMarkdown: string, 
 		segments.push({ type: 'text', content: markdown.slice(lastIndex) });
 	}
 	
-	// Only process HTML img tags that contain Joplin resource IDs in non-code segments
-	const htmlImgRegex = /<img([^>]*src=["']:\/([a-zA-Z0-9]+)["'][^>]*)>/gi;
-	
 	const processedSegments = segments.map(segment => {
 		if (segment.type === 'code') {
 			// Don't process code blocks - return as-is
 			return segment;
 		}
 		
-		// Process text segments
-		const processedContent = segment.content.replace(htmlImgRegex, (match, attrs, resourceId) => {
-			// Extract width, height, and style attributes
-			const widthMatch = attrs.match(/\bwidth\s*=\s*["']?([^"'\s>]+)["']?/i);
-			const heightMatch = attrs.match(/\bheight\s*=\s*["']?([^"'\s>]+)["']?/i);
-			const styleMatch = attrs.match(/\bstyle\s*=\s*["']([^"']*)["']/i);
+		let processedContent = segment.content;
+		
+		// If not embedding images, remove all image references
+		if (!embedImages) {
+			// Remove HTML img tags
+			processedContent = processedContent.replace(/<img[^>]*>/gi, '');
+			// Remove markdown image syntax ![alt](://resourceId)
+			processedContent = processedContent.replace(/!\[[^\]]*\]\(:\/[a-zA-Z0-9]+\)/g, '');
+			// Remove standalone markdown images ![](://resourceId) 
+			processedContent = processedContent.replace(/!\[\]\(:\/[a-zA-Z0-9]+\)/g, '');
+		} else {
+			// Only process HTML img tags that contain Joplin resource IDs in non-code segments
+			const htmlImgRegex = /<img([^>]*src=["']:\/([a-zA-Z0-9]+)["'][^>]*)>/gi;
 			
-			if (widthMatch || heightMatch || styleMatch) {
-				const dimensionKey = `DIMENSION_${counter}`;
-				dimensions.set(dimensionKey, {
-					width: widthMatch ? widthMatch[1] : undefined,
-					height: heightMatch ? heightMatch[1] : undefined,
-					style: styleMatch ? styleMatch[1] : undefined,
-					resourceId: resourceId
-				});
+			processedContent = processedContent.replace(htmlImgRegex, (match, attrs, resourceId) => {
+				// Extract width, height, and style attributes
+				const widthMatch = attrs.match(/\bwidth\s*=\s*["']?([^"'\s>]+)["']?/i);
+				const heightMatch = attrs.match(/\bheight\s*=\s*["']?([^"'\s>]+)["']?/i);
+				const styleMatch = attrs.match(/\bstyle\s*=\s*["']([^"']*)["']/i);
 				
-				// Convert to markdown image syntax with dimension marker
-				const result = `![${dimensionKey}](://${resourceId})`;
-				counter++;
-				return result;
-			}
-			
-			// No dimensions to preserve, convert to standard markdown
-			return `![](://${resourceId})`;
-		});
+				if (widthMatch || heightMatch || styleMatch) {
+					const dimensionKey = `DIMENSION_${counter}`;
+					dimensions.set(dimensionKey, {
+						width: widthMatch ? widthMatch[1] : undefined,
+						height: heightMatch ? heightMatch[1] : undefined,
+						style: styleMatch ? styleMatch[1] : undefined,
+						resourceId: resourceId
+					});
+					
+					// Convert to markdown image syntax with dimension marker
+					const result = `![${dimensionKey}](://${resourceId})`;
+					counter++;
+					return result;
+				}
+				
+				// No dimensions to preserve, convert to standard markdown
+				return `![](://${resourceId})`;
+			});
+		}
 		
 		return { ...segment, content: processedContent };
 	});
@@ -287,15 +258,21 @@ joplin.plugins.register({
 				}
 
 				// Extract and preserve image dimensions from HTML img tags
-				const { processedMarkdown, dimensions } = extractImageDimensions(selection);
+				const { processedMarkdown, dimensions } = extractImageDimensions(selection, embedImages);
 
-				// Create custom renderer
-				const mdToHtml = createCustomRenderer(embedImages, globalSubEnabled, globalSupEnabled, globalMarkEnabled);
+				// Create renderer with plugin options
+				const { MarkupToHtml, MarkupLanguage } = require('@joplin/renderer');
+				let pluginOptions: any = {};
+				if (!globalSubEnabled) pluginOptions.sub = { enabled: false };
+				if (!globalSupEnabled) pluginOptions.sup = { enabled: false };
+				if (!globalMarkEnabled) pluginOptions.mark = { enabled: false };
+
+				const markupToHtml = new MarkupToHtml({ pluginOptions });
 				
-				// Render processed markdown to HTML
+				// Render processed markdown to HTML using MarkupLanguage.Markdown
 				const renderOptions = {};
 				const theme = {};
-				const renderResult = await mdToHtml.render(processedMarkdown, theme, renderOptions);
+				const renderResult = await markupToHtml.render(MarkupLanguage.Markdown, processedMarkdown, theme, renderOptions);
 				let html = renderResult.html;
 
 				// Apply preserved dimensions to the rendered HTML
