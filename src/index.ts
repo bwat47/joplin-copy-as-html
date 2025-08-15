@@ -1,5 +1,7 @@
 import joplin from 'api';
 import { SettingItemType, ToastType, MenuItemLocation } from 'api/types';
+import * as MarkdownIt from 'markdown-it';
+import { JSDOM } from 'jsdom';
 
 const SETTINGS = {
 	EMBED_IMAGES: 'embedImages',
@@ -568,7 +570,6 @@ joplin.plugins.register({
 				}
 
 				// Extract the final HTML using jsdom
-				const { JSDOM } = require('jsdom');
 				let fragment = html.trim();
 				try {
 					const dom = new JSDOM(html);
@@ -618,7 +619,6 @@ const preserveBold = await joplin.settings.value(SETTINGS.PRESERVE_BOLD);
 const preserveHeading = await joplin.settings.value(SETTINGS.PRESERVE_HEADING);
 
 // Use markdown-it to parse and render plain text
-const MarkdownIt = require('markdown-it');
 const md = new MarkdownIt();
 const tokens = md.parse(selection, {});
 
