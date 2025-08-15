@@ -33,6 +33,12 @@ interface MarkdownSegment {
     content: string;
 }
 
+interface PluginOptions {
+    sub?: { enabled: boolean };
+    sup?: { enabled: boolean };
+    mark?: { enabled: boolean };
+}
+
 // Constants for timeouts, formatting, and dimension keys
 const CONSTANTS = {
     BASE64_TIMEOUT_MS: 5000,
@@ -522,7 +528,7 @@ joplin.plugins.register({
 
 				// Create renderer with plugin options
 				const { MarkupToHtml, MarkupLanguage } = require('@joplin/renderer');
-				let pluginOptions: any = {};
+				let pluginOptions: PluginOptions = {};
 				if (!globalSubEnabled) pluginOptions.sub = { enabled: false };
 				if (!globalSupEnabled) pluginOptions.sup = { enabled: false };
 				if (!globalMarkEnabled) pluginOptions.mark = { enabled: false };
