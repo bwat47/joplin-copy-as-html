@@ -276,7 +276,9 @@ joplin.plugins.register({
 				let html = renderResult.html;
 
 				// Apply preserved dimensions to the rendered HTML
-				html = applyPreservedDimensions(html, dimensions);
+				if (embedImages) {
+					html = applyPreservedDimensions(html, dimensions);
+				}
 
 				// If embedding images, convert Joplin resource URLs to base64
 				if (embedImages) {
