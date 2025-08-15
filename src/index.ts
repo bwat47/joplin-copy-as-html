@@ -304,15 +304,13 @@ joplin.plugins.register({
 				// If embedding images, convert Joplin resource URLs to base64
 				if (embedImages) {
 					// Replace src attribute for Joplin resource images with base64 data
-					const srcRegex = /(<img[^>]*src=["'])(:\/([a-zA-Z0-9]+))(["'][^>]*>)/g;
-					html = await replaceAsync(html, srcRegex, async (match: string, pre: string, src: string, id: string, post: string) => {
+					const srcRegex = /(<img[^>]*src=["']):\/{1,2}([a-zA-Z0-9]+)(["'][^>]*>)/g;
+					html = await replaceAsync(html, srcRegex, async (match: string, pre: string, id: string, post: string) => {
 						if (!id) return match;
-						
 						const base64Result = await convertResourceToBase64(id);
 						if (base64Result.startsWith('data:image')) {
 							return `${pre}${base64Result}${post}`;
 						} else {
-							// Error case - return error span
 							return base64Result;
 						}
 					});
