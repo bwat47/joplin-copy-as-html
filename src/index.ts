@@ -10,6 +10,14 @@ const SETTINGS = {
 	PRESERVE_HEADING: 'preserveHeading',
 };
 
+// Regex patterns for Joplin resource and image handling
+const REGEX_PATTERNS = {
+	CODE_BLOCKS: /(```[\s\S]*?```|`[^`\n]*`)/g,
+	JOPLIN_RESOURCE: /:\/{1,2}[a-zA-Z0-9]+/gi,
+	HTML_IMG: /<img[^>]*>/gi,
+	MARKDOWN_IMG: /!\[[^\]]*\]\(:\/{1,2}[a-f0-9]{32}\)/gi,
+};
+
 // Extract width/height from HTML img tags before rendering (excluding code blocks)
 // Also remove images entirely if embedImages is false
 function extractImageDimensions(markdown: string, embedImages: boolean): { processedMarkdown: string, dimensions: Map<string, {width?: string, height?: string, style?: string}> } {
@@ -17,7 +25,7 @@ function extractImageDimensions(markdown: string, embedImages: boolean): { proce
 	let counter = 0;
 	
 	// Split markdown into code/non-code segments
-	const codeBlockRegex = /(```[\s\S]*?```|`[^`\n]*`)/g;
+	const codeBlockRegex = REGEX_PATTERNS.CODE_BLOCKS;
 	let segments: Array<{type: 'text' | 'code', content: string}> = [];
 	let lastIndex = 0;
 	let match;
@@ -47,12 +55,12 @@ function extractImageDimensions(markdown: string, embedImages: boolean): { proce
 		// If not embedding images, remove all image references
 		if (!embedImages) {
 			// Remove HTML img tags
-			processedContent = processedContent.replace(/<img[^>]*>/gi, '');
+			processedContent = processedContent.replace(REGEX_PATTERNS.HTML_IMG, '');
 			// Remove markdown image syntax for Joplin resources (more precise)
-			processedContent = processedContent.replace(/!\[[^\]]*\]\(:\/{1,2}[a-f0-9]{32}\)/gi, '');
+			processedContent = processedContent.replace(REGEX_PATTERNS.MARKDOWN_IMG, '');
 		} else {
 			// Only process HTML img tags that contain Joplin resource IDs in non-code segments
-			const htmlImgRegex = /<img([^>]*src=["']:\/([a-zA-Z0-9]+)["'][^>]*)>/gi;
+			const htmlImgRegex = /<img([^>]*src=["']:\/{1,2}([a-zA-Z0-9]+)["'][^>]*)>/gi;
 			
 			processedContent = processedContent.replace(htmlImgRegex, (match, attrs, resourceId) => {
 				// Extract width, height, and style attributes
@@ -297,7 +305,7 @@ joplin.plugins.register({
 					});
 
 					// Replace fallback [Image: :/resourceId] text with actual base64 image
-					const fallbackRegex = /\[Image: :\/([a-zA-Z0-9]+)\]/g;
+					const fallbackRegex = /\[Image: :\/{1,2}([a-zA-Z0-9]+)\]/g;
 					html = await replaceAsync(html, fallbackRegex, async (match: string, id: string) => {
 						if (!id) return match;
 						
