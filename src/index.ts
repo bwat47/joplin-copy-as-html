@@ -197,6 +197,194 @@ async function convertResourceToBase64(id: string): Promise<string> {
 	}
 }
 
+// Move these to module level, above joplin.plugins.register
+function unescape(text: string): string {
+    return text.replace(/\\([*_~^`#])/g, '$1');
+}
+
+function renderPlainText(tokens: any[], listContext: any = null, indentLevel: number = 0): string {
+    let result = '';
+    let orderedIndex = listContext && listContext.type === 'ordered' ? listContext.index : 1;
+    for (let i = 0; i < tokens.length; i++) {
+        const t = tokens[i];
+        if (t.type === 'table_open') {
+			// Collect all tokens until table_close
+			let tableTokens = [];
+			let depth = 1;
+			let j = i + 1;
+			while (j < tokens.length && depth > 0) {
+				if (tokens[j].type === 'table_open') depth++;
+				if (tokens[j].type === 'table_close') depth--;
+				tableTokens.push(tokens[j]);
+				j++;
+			}
+			// Parse table rows
+			let tableRows = [];
+			let currentRow = [];
+			let isHeaderRow = false;
+			for (let k = 0; k < tableTokens.length; k++) {
+				const tk = tableTokens[k];
+				if (tk.type === 'thead_open') isHeaderRow = true;
+				if (tk.type === 'thead_close') isHeaderRow = false;
+				if (tk.type === 'tr_open') currentRow = [];
+				if ((tk.type === 'th_open' || tk.type === 'td_open')) {
+					// Collect cell content
+					let cellContent = '';
+					let l = k + 1;
+					while (l < tableTokens.length && tableTokens[l].type !== 'th_close' && tableTokens[l].type !== 'td_close') {
+						if (tableTokens[l].type === 'inline' && tableTokens[l].children) {
+							cellContent += renderPlainText(tableTokens[l].children);
+						} else if (tableTokens[l].type === 'text') {
+							cellContent += tableTokens[l].content;
+						}
+						l++;
+					}
+					currentRow.push(cellContent.trim());
+				}
+				if (tk.type === 'tr_close') {
+					tableRows.push({ cells: currentRow.slice(), isHeader: isHeaderRow });
+				}
+			}
+			// Calculate max width for each column
+			let colWidths = [];
+			for (let r = 0; r < tableRows.length; r++) {
+				let cells = tableRows[r].cells;
+				for (let c = 0; c < cells.length; c++) {
+					colWidths[c] = Math.max(colWidths[c] || 0, cells[c].length);
+				}
+			}
+			// Helper to pad a cell
+			function padCell(cell, width) {
+				return cell + ' '.repeat(width - cell.length);
+			}
+			// Output table rows
+			let headerDone = false;
+			for (let r = 0; r < tableRows.length; r++) {
+				let paddedCells = tableRows[r].cells.map((c, i) => padCell(c, colWidths[i]));
+				result += paddedCells.join('  ') + '\n';
+				if (tableRows[r].isHeader && !headerDone && tableRows.length > 1) {
+					// Add separator after header
+					let sepCells = colWidths.map(w => '-'.repeat(Math.max(CONSTANTS.MIN_COLUMN_WIDTH, w)));
+					result += sepCells.join('  ') + '\n';
+					headerDone = true;
+				}
+			}
+			i = j - 1; // Skip all table tokens
+			continue;
+		}
+		if (t.type === 'fence' || t.type === 'code_block') {
+			// Output code block content only (no backticks)
+			result += t.content + '\n';
+		} else if (t.type === 'code_inline') {
+			// Output inline code content only (no backticks)
+			result += t.content;
+		} else if (t.type === 'inline' && t.children) {
+			result += renderPlainText(t.children, listContext, indentLevel);
+		} else if (t.type === 'heading_open') {
+			if (preserveHeading) {
+				result += '#'.repeat(parseInt(t.tag[1])) + ' ';
+			}
+		} else if (t.type === 'heading_close') {
+			result += '\n\n';
+		} else if (t.type === 'bullet_list_open') {
+            // Indent nested bullet lists by increasing indentLevel.
+            // Top-level lists (indentLevel === 1) have no indent.
+            // Nested lists (indentLevel > 1) are indented by one tab per level.
+            let subTokens = [];
+            let depth = 1;
+            for (let j = i + 1; j < tokens.length; j++) {
+                if (tokens[j].type === 'bullet_list_open') depth++;
+                if (tokens[j].type === 'bullet_list_close') depth--;
+                if (depth === 0) break;
+                subTokens.push(tokens[j]);
+            }
+            result += renderPlainText(subTokens, { type: 'bullet' }, indentLevel + 1);
+            i += subTokens.length;
+
+        } else if (t.type === 'ordered_list_open') {
+            // Indent nested ordered lists by increasing indentLevel.
+            // Top-level lists (indentLevel === 1) have no indent.
+            // Nested lists (indentLevel > 1) are indented by one tab per level.
+            let subTokens = [];
+            let depth = 1;
+            let start = 1;
+            if (t.attrs) {
+                const startAttr = t.attrs.find(attr => attr[0] === 'start');
+                if (startAttr) start = parseInt(startAttr[1]);
+            }
+            let idx = start;
+            for (let j = i + 1; j < tokens.length; j++) {
+                if (tokens[j].type === 'ordered_list_open') depth++;
+                if (tokens[j].type === 'ordered_list_close') depth--;
+                if (depth === 0) break;
+                if (tokens[j].type === 'bullet_list_open' && depth === 1) {
+                    let bulletDepth = 1;
+                    subTokens.push(tokens[j]);
+                    for (let k = j + 1; k < tokens.length; k++) {
+                        if (tokens[k].type === 'bullet_list_open') bulletDepth++;
+                        if (tokens[k].type === 'bullet_list_close') bulletDepth--;
+                        subTokens.push(tokens[k]);
+                        if (bulletDepth === 0) {
+                            j = k;
+                            break;
+                        }
+                    }
+                    continue;
+                }
+                if (tokens[j].type === 'list_item_open' && depth === 1) {
+                    tokens[j].orderedIndex = idx++;
+                }
+                subTokens.push(tokens[j]);
+            }
+            result += renderPlainText(subTokens, { type: 'ordered', index: start }, indentLevel + 1);
+            i += subTokens.length;
+
+        } else if (t.type === 'list_item_open') {
+            // Only indent if indentLevel > 1 (top-level lists have no indent)
+            const indent = indentLevel > 1 ? '\t'.repeat(indentLevel - 1) : '';
+            if (listContext && listContext.type === 'ordered' && typeof t.orderedIndex !== 'undefined') {
+                result += indent + t.orderedIndex + '. ';
+            } else {
+                result += indent + '- ';
+            }
+		} else if (t.type === 'em_open') {
+			if (preserveEmphasis) result += t.markup;
+		} else if (t.type === 'em_close') {
+			if (preserveEmphasis) result += t.markup;
+		} else if (t.type === 'strong_open') {
+			if (preserveBold) result += t.markup;
+		} else if (t.type === 'strong_close') {
+			if (preserveBold) result += t.markup;
+		} else if (t.type === 'text') {
+			let txt = t.content;
+
+			// Remove HTML <img> tags ONLY in text tokens
+    		txt = txt.replace(/<img[^>]*>/gi, '');
+
+			// Collapse 3+ consecutive newlines to 2 ONLY in text tokens
+    		txt = txt.replace(/\n{3,}/g, '\n\n');
+
+			if (preserveSuperscript) {
+				txt = txt.replace(/\^([^\^]+)\^/g, '^$1^');
+			} else {
+				txt = txt.replace(/\^([^\^]+)\^/g, '$1');
+			}
+			if (preserveSubscript) {
+				txt = txt.replace(/~([^~]+)~/g, '~$1~');
+			} else {
+				txt = txt.replace(/~([^~]+)~/g, '$1');
+			}
+			txt = unescape(txt);
+			result += txt;
+		} else if (t.type === 'softbreak' || t.type === 'hardbreak') {
+			result += '\n';
+		} else if (t.type === 'paragraph_close') {
+			result += '\n\n';
+		}
+	}
+	return result;
+}
+
 joplin.plugins.register({
 	onStart: async function() {
 		// Register settings (unchanged)
@@ -389,13 +577,8 @@ const MarkdownIt = require('markdown-it');
 const md = new MarkdownIt();
 const tokens = md.parse(selection, {});
 
-// Helper: Remove backslash escapes
-function unescape(text) {
-    return text.replace(/\\([*_~^`#])/g, '$1');
-}
-
 // Recursively process tokens for plain text extraction
-function renderPlainText(tokens, listContext = null, indentLevel = 0) {
+function renderPlainText(tokens: any[], listContext: any = null, indentLevel: number = 0): string {
     let result = '';
     let orderedIndex = listContext && listContext.type === 'ordered' ? listContext.index : 1;
     for (let i = 0; i < tokens.length; i++) {
