@@ -38,8 +38,13 @@ const CONSTANTS = {
     DIMENSION_KEY_PREFIX: 'DIMENSION_'
 };
 
-// Extract width/height from HTML img tags before rendering (excluding code blocks)
-// Also remove images entirely if embedImages is false
+/**
+ * Extracts width, height, and style from HTML <img> tags in markdown, preserving them in a map.
+ * Optionally removes all images if embedImages is false.
+ * @param markdown The markdown string to process.
+ * @param embedImages Whether to preserve images or remove them.
+ * @returns An object with processedMarkdown and a map of dimension info.
+ */
 function extractImageDimensions(markdown: string, embedImages: boolean): { processedMarkdown: string, dimensions: Map<string, ImageDimensions> } {
 	const dimensions = new Map<string, ImageDimensions>();
     let counter = 0;
@@ -112,7 +117,12 @@ function extractImageDimensions(markdown: string, embedImages: boolean): { proce
      return { processedMarkdown, dimensions };
 }
 
-// Apply preserved dimensions to rendered HTML
+/**
+ * Applies preserved width, height, and style attributes to <img> tags in HTML.
+ * @param html The HTML string to process.
+ * @param dimensions Map of dimension keys to attribute objects.
+ * @returns The HTML string with dimensions applied.
+ */
 function applyPreservedDimensions(html: string, dimensions: Map<string, any>): string {
 	for (const [dimensionKey, attrs] of dimensions) {
 		// Find img tags that were created from our dimension markers
@@ -155,7 +165,13 @@ function applyPreservedDimensions(html: string, dimensions: Map<string, any>): s
 	return html;
 }
 
-// Helper: async replace for regex  
+/**
+ * Asynchronously replaces matches of a regex in a string using an async function.
+ * @param str The input string.
+ * @param regex The regex to match.
+ * @param asyncFn The async function to apply to each match.
+ * @returns The processed string.
+ */
 async function replaceAsync(str: string, regex: RegExp, asyncFn: Function) {
 	const promises: Promise<string>[] = [];
 	str.replace(regex, (match, ...args) => {
@@ -166,7 +182,11 @@ async function replaceAsync(str: string, regex: RegExp, asyncFn: Function) {
 	return str.replace(regex, () => data.shift());
 }
 
-// Helper: Convert Joplin resource to base64
+/**
+ * Converts a Joplin resource (by ID) to a base64 data URL for embedding.
+ * @param id The Joplin resource ID.
+ * @returns A base64 data URL string or an error HTML span.
+ */
 async function convertResourceToBase64(id: string): Promise<string> {
 	try {
 		const resource = await joplin.data.get(['resources', id], { fields: ['id', 'mime'] });
@@ -197,7 +217,11 @@ async function convertResourceToBase64(id: string): Promise<string> {
 	}
 }
 
-// Helper: Remove backslash escapes
+/**
+ * Removes markdown backslash escapes from a string.
+ * @param text The input string.
+ * @returns The unescaped string.
+ */
 function unescape(text: string): string {
     return text.replace(/\\([*_~^`#])/g, '$1');
 }
@@ -210,6 +234,14 @@ interface PlainTextOptions {
     preserveSubscript: boolean;
 }
 
+/**
+ * Renders markdown-it tokens as plain text, with options for preserving formatting.
+ * @param tokens The markdown-it token array.
+ * @param listContext The current list context (for nested lists).
+ * @param indentLevel The current indentation level.
+ * @param options Formatting preservation options.
+ * @returns The rendered plain text string.
+ */
 function renderPlainText(
     tokens: any[],
     listContext: any = null,
