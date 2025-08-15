@@ -622,7 +622,6 @@ const MarkdownIt = require('markdown-it');
 const md = new MarkdownIt();
 const tokens = md.parse(selection, {});
 
-// Remove the inner renderPlainText function from the copyAsPlainText command
                  let plainText = renderPlainText(tokens, null, 0, {
                      preserveHeading,
                      preserveEmphasis,
