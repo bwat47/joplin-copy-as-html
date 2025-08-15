@@ -509,7 +509,7 @@ joplin.plugins.register({
 				// If embedding images, convert Joplin resource URLs to base64
 				if (embedImages) {
 					// Replace src attribute for Joplin resource images with base64 data
-					const srcRegex = /(<img[^>]*src=["']):\/{1,2}([a-zA-Z0-9]+)(["'][^>]*>)/g;
+					const srcRegex = /(<img[^>]*src=["']):\/{1,2}([a-f0-9]{32})(["'][^>]*>)/gi;
 					html = await replaceAsync(html, srcRegex, async (match: string, pre: string, id: string, post: string) => {
 						if (!id) return match;
 						const base64Result = await convertResourceToBase64(id);
@@ -521,7 +521,7 @@ joplin.plugins.register({
 					});
 
 					// Replace fallback [Image: :/resourceId] text with actual base64 image
-					const fallbackRegex = /\[Image: :\/{1,2}([a-zA-Z0-9]+)\]/g;
+					const fallbackRegex = /\[Image: :\/{1,2}([a-f0-9]{32})\]/gi;
 					html = await replaceAsync(html, fallbackRegex, async (match: string, id: string) => {
 						if (!id) return match;
 						
