@@ -148,10 +148,13 @@ async function convertResourceToBase64(id: string): Promise<string> {
 	try {
 		const resource = await joplin.data.get(['resources', id], { fields: ['id', 'mime'] });
 		if (!resource || !resource.mime.startsWith('image/')) {
-			return `<span style="color: red; font-style: italic;">Resource ID ":/${id}" could not be found.</span>`;
+			return `<span style="color: red; font-style: italic;">Resource ID ":/${id}" could not be found or is not an image.</span>`;
 		}
 
-		const fileObj = await joplin.data.get(['resources', id, 'file']);
+		const fileObj = await Promise.race([
+			joplin.data.get(['resources', id, 'file']),
+			new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout retrieving resource file')), 5000))
+		]);
 		let fileBuffer;
 		if (fileObj && fileObj.body) {
 			fileBuffer = fileObj.body;
@@ -166,7 +169,8 @@ async function convertResourceToBase64(id: string): Promise<string> {
 		const base64 = Buffer.from(fileBuffer).toString('base64');
 		return `data:${resource.mime};base64,${base64}`;
 	} catch (err) {
-		return `<span style="color: red; font-style: italic;">Resource ID ":/${id}" could not be found.</span>`;
+		const msg = err && err.message ? err.message : err;
+		return `<span style="color: red; font-style: italic;">Resource ID ":/${id}" could not be retrieved: ${msg}</span>`;
 	}
 }
 
