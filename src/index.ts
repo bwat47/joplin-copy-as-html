@@ -51,38 +51,71 @@ function createCustomRenderer(embedImages: boolean, globalSubEnabled: boolean, g
 	}
 }
 
-// Extract width/height from HTML img tags before rendering
+// Extract width/height from HTML img tags before rendering (excluding code blocks)
 function extractImageDimensions(markdown: string): { processedMarkdown: string, dimensions: Map<string, {width?: string, height?: string, style?: string}> } {
 	const dimensions = new Map();
 	let counter = 0;
 	
-	// Only process HTML img tags that contain Joplin resource IDs
+	// Split markdown into code/non-code segments
+	const codeBlockRegex = /(```[\s\S]*?```|`[^`\n]*`)/g;
+	let segments: Array<{type: 'text' | 'code', content: string}> = [];
+	let lastIndex = 0;
+	let match;
+	
+	while ((match = codeBlockRegex.exec(markdown)) !== null) {
+		// Add non-code segment before this code block
+		if (match.index > lastIndex) {
+			segments.push({ type: 'text', content: markdown.slice(lastIndex, match.index) });
+		}
+		// Add code block segment
+		segments.push({ type: 'code', content: match[0] });
+		lastIndex = codeBlockRegex.lastIndex;
+	}
+	// Add any remaining non-code segment
+	if (lastIndex < markdown.length) {
+		segments.push({ type: 'text', content: markdown.slice(lastIndex) });
+	}
+	
+	// Only process HTML img tags that contain Joplin resource IDs in non-code segments
 	const htmlImgRegex = /<img([^>]*src=["']:\/([a-zA-Z0-9]+)["'][^>]*)>/gi;
 	
-	const processedMarkdown = markdown.replace(htmlImgRegex, (match, attrs, resourceId) => {
-		// Extract width, height, and style attributes
-		const widthMatch = attrs.match(/\bwidth\s*=\s*["']?([^"'\s>]+)["']?/i);
-		const heightMatch = attrs.match(/\bheight\s*=\s*["']?([^"'\s>]+)["']?/i);
-		const styleMatch = attrs.match(/\bstyle\s*=\s*["']([^"']*)["']/i);
-		
-		if (widthMatch || heightMatch || styleMatch) {
-			const dimensionKey = `DIMENSION_${counter}`;
-			dimensions.set(dimensionKey, {
-				width: widthMatch ? widthMatch[1] : undefined,
-				height: heightMatch ? heightMatch[1] : undefined,
-				style: styleMatch ? styleMatch[1] : undefined,
-				resourceId: resourceId
-			});
-			
-			// Convert to markdown image syntax with dimension marker
-			const result = `![${dimensionKey}](://${resourceId})`;
-			counter++;
-			return result;
+	const processedSegments = segments.map(segment => {
+		if (segment.type === 'code') {
+			// Don't process code blocks - return as-is
+			return segment;
 		}
 		
-		// No dimensions to preserve, convert to standard markdown
-		return `![](://${resourceId})`;
+		// Process text segments
+		const processedContent = segment.content.replace(htmlImgRegex, (match, attrs, resourceId) => {
+			// Extract width, height, and style attributes
+			const widthMatch = attrs.match(/\bwidth\s*=\s*["']?([^"'\s>]+)["']?/i);
+			const heightMatch = attrs.match(/\bheight\s*=\s*["']?([^"'\s>]+)["']?/i);
+			const styleMatch = attrs.match(/\bstyle\s*=\s*["']([^"']*)["']/i);
+			
+			if (widthMatch || heightMatch || styleMatch) {
+				const dimensionKey = `DIMENSION_${counter}`;
+				dimensions.set(dimensionKey, {
+					width: widthMatch ? widthMatch[1] : undefined,
+					height: heightMatch ? heightMatch[1] : undefined,
+					style: styleMatch ? styleMatch[1] : undefined,
+					resourceId: resourceId
+				});
+				
+				// Convert to markdown image syntax with dimension marker
+				const result = `![${dimensionKey}](://${resourceId})`;
+				counter++;
+				return result;
+			}
+			
+			// No dimensions to preserve, convert to standard markdown
+			return `![](://${resourceId})`;
+		});
+		
+		return { ...segment, content: processedContent };
 	});
+	
+	// Recombine segments
+	const processedMarkdown = processedSegments.map(seg => seg.content).join('');
 	
 	return { processedMarkdown, dimensions };
 }
@@ -271,9 +304,10 @@ joplin.plugins.register({
 				// If embedding images, convert Joplin resource URLs to base64
 				if (embedImages) {
 					// Replace src attribute for Joplin resource images with base64 data
-					const srcRegex = /(<img[^>]*src=["']):\/{1,2}([a-zA-Z0-9]+)(["'][^>]*>)/g;
-					html = await replaceAsync(html, srcRegex, async (match: string, pre: string, id: string, post: string) => {
+					const srcRegex = /(<img[^>]*src=["'])(:\/([a-zA-Z0-9]+))(["'][^>]*>)/g;
+					html = await replaceAsync(html, srcRegex, async (match: string, pre: string, src: string, id: string, post: string) => {
 						if (!id) return match;
+						
 						const base64Result = await convertResourceToBase64(id);
 						if (base64Result.startsWith('data:image')) {
 							return `${pre}${base64Result}${post}`;
