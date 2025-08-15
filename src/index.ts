@@ -266,13 +266,15 @@ function renderPlainText(
     tokens: any[],
     listContext: any = null,
     indentLevel: number = 0,
-    options: PlainTextOptions
+    options: PlainTextOptions,
+    inCode: boolean = false
 ): string {
-     let result = '';
-     let orderedIndex = listContext && listContext.type === 'ordered' ? listContext.index : 1;
-     for (let i = 0; i < tokens.length; i++) {
-         const t = tokens[i];
-         if (t.type === 'table_open') {
+    let result = '';
+    let orderedIndex = listContext && listContext.type === 'ordered' ? listContext.index : 1;
+    let linkStack: { href: string, title: string }[] = [];
+    for (let i = 0; i < tokens.length; i++) {
+        const t = tokens[i];
+        if (t.type === 'table_open') {
 			// Collect all tokens until table_close
 			let tableTokens = [];
 			let depth = 1;
@@ -338,13 +340,20 @@ function renderPlainText(
 			continue;
 		}
 		if (t.type === 'fence' || t.type === 'code_block') {
-			// Output code block content only (no backticks)
+			// Output code block content only (no backticks or formatting)
 			result += t.content + '\n';
 		} else if (t.type === 'code_inline') {
-			// Output inline code content only (no backticks)
+			// Output inline code content only (no backticks or formatting)
 			result += t.content;
 		} else if (t.type === 'inline' && t.children) {
-			result += renderPlainText(t.children, listContext, indentLevel, options);
+			// If we're inside code, pass inCode=true to children
+			result += renderPlainText(
+                t.children,
+                listContext,
+                indentLevel,
+                options,
+                inCode
+            );
 		} else if (t.type === 'heading_open') {
 			if (options.preserveHeading) {
 				result += '#'.repeat(parseInt(t.tag[1])) + ' ';
@@ -412,66 +421,60 @@ function renderPlainText(
             } else {
                 result += indent + '- ';
             }
-		} else if (t.type === 'link_open') {
-			// Handle hyperlink behavior for external HTTP/HTTPS links
-			const href = t.attrGet('href');
-			if (href && isExternalHttpUrl(href)) {
+		} else if (!inCode && t.type === 'em_open') {
+            if (options.preserveEmphasis) result += t.markup;
+        } else if (!inCode && t.type === 'em_close') {
+            if (options.preserveEmphasis) result += t.markup;
+        } else if (!inCode && t.type === 'strong_open') {
+            if (options.preserveBold) result += t.markup;
+        } else if (!inCode && t.type === 'strong_close') {
+            if (options.preserveBold) result += t.markup;
+		} else if (!inCode && t.type === 'link_open') {
+			// Only handle external HTTP/HTTPS links for special behavior
+			const hrefAttr = t.attrs?.find((attr: any) => attr[0] === 'href');
+			const href = hrefAttr ? hrefAttr[1] : '';
+			if (isExternalHttpUrl(href)) {
+				linkStack.push({ href, title: '' });
+			} else {
+				linkStack.push({ href: '', title: '' });
+			}
+		} else if (!inCode && t.type === 'link_close') {
+			const link = linkStack.pop();
+			if (link && link.href && link.title) {
 				if (options.hyperlinkBehavior === 'url') {
-					// Show URL only, skip the link text
-					result += href;
-					// Skip to link_close by finding matching close token
-					let linkDepth = 1;
-					while (i + 1 < tokens.length && linkDepth > 0) {
-						i++;
-						if (tokens[i].type === 'link_open') linkDepth++;
-						if (tokens[i].type === 'link_close') linkDepth--;
-					}
+					result += link.href;
 				} else if (options.hyperlinkBehavior === 'markdown') {
-					// Show raw markdown format
-					result += '[';
-					// Continue processing normally to get link text, then add URL in link_close
+					result += `[${link.title}](${link.href})`;
 				}
-				// For 'title' behavior, continue processing normally (default behavior)
+				// For 'title', do nothing extra (title already added)
 			}
-		} else if (t.type === 'link_close') {
-			// Handle closing of hyperlinks for markdown format
-			const linkOpenIndex = tokens.slice(0, i).reverse().findIndex(token => token.type === 'link_open');
-			if (linkOpenIndex !== -1) {
-				const linkOpen = tokens[i - linkOpenIndex - 1];
-				const href = linkOpen.attrGet('href');
-				if (href && isExternalHttpUrl(href) && options.hyperlinkBehavior === 'markdown') {
-					result += `](${href})`;
-				}
-			}
-		} else if (t.type === 'em_open') {
-			if (options.preserveEmphasis) result += t.markup;
-		} else if (t.type === 'em_close') {
-			if (options.preserveEmphasis) result += t.markup;
-		} else if (t.type === 'strong_open') {
-			if (options.preserveBold) result += t.markup;
-		} else if (t.type === 'strong_close') {
-			if (options.preserveBold) result += t.markup;
 		} else if (t.type === 'text') {
 			let txt = t.content;
-
-			// Remove HTML <img> tags ONLY in text tokens
-			txt = txt.replace(/<img[^>]*>/gi, '');
-
-			// Collapse 3+ consecutive newlines to 2 ONLY in text tokens
-			txt = txt.replace(/\n{3,}/g, '\n\n');
-
-			if (options.preserveSuperscript) {
-				txt = txt.replace(/\^([^\^]+)\^/g, '^$1^');
+			if (!inCode && linkStack.length && linkStack[linkStack.length - 1].href) {
+				// If inside an external link, capture the title for later
+				linkStack[linkStack.length - 1].title += txt;
+				if (options.hyperlinkBehavior === 'title') {
+					result += txt;
+				}
+				// For 'url' and 'markdown', don't add title here (will be handled on link_close)
 			} else {
-				txt = txt.replace(/\^([^\^]+)\^/g, '$1');
+				// Remove HTML <img> tags ONLY in text tokens
+				txt = txt.replace(/<img[^>]*>/gi, '');
+				// Collapse 3+ consecutive newlines to 2 ONLY in text tokens
+				txt = txt.replace(/\n{3,}/g, '\n\n');
+				if (options.preserveSuperscript) {
+					txt = txt.replace(/\^([^\^]+)\^/g, '^$1^');
+				} else {
+					txt = txt.replace(/\^([^\^]+)\^/g, '$1');
+				}
+				if (options.preserveSubscript) {
+					txt = txt.replace(/~([^~]+)~/g, '~$1~');
+				} else {
+					txt = txt.replace(/~([^~]+)~/g, '$1');
+				}
+				txt = unescape(txt);
+				result += txt;
 			}
-			if (options.preserveSubscript) {
-				txt = txt.replace(/~([^~]+)~/g, '~$1~');
-			} else {
-				txt = txt.replace(/~([^~]+)~/g, '$1');
-			}
-			txt = unescape(txt);
-			result += txt;
 		} else if (t.type === 'softbreak' || t.type === 'hardbreak') {
 			result += '\n';
 		} else if (t.type === 'paragraph_close') {
