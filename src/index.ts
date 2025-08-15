@@ -18,56 +18,67 @@ const REGEX_PATTERNS = {
 	MARKDOWN_IMG: /!\[[^\]]*\]\(:\/{1,2}[a-f0-9]{32}\)/gi,
 };
 
+// TypeScript interfaces for type safety
+interface ImageDimensions {
+    width?: string;
+    height?: string;
+    style?: string;
+    resourceId?: string;
+}
+
+interface MarkdownSegment {
+    type: 'text' | 'code';
+    content: string;
+}
+
 // Extract width/height from HTML img tags before rendering (excluding code blocks)
 // Also remove images entirely if embedImages is false
-function extractImageDimensions(markdown: string, embedImages: boolean): { processedMarkdown: string, dimensions: Map<string, {width?: string, height?: string, style?: string}> } {
-	const dimensions = new Map();
-	let counter = 0;
-	
-	// Split markdown into code/non-code segments
+function extractImageDimensions(markdown: string, embedImages: boolean): { processedMarkdown: string, dimensions: Map<string, ImageDimensions> } {
+	const dimensions = new Map<string, ImageDimensions>();
+    let counter = 0;
+    
+    // Split markdown into code/non-code segments
 	const codeBlockRegex = REGEX_PATTERNS.CODE_BLOCKS;
-	let segments: Array<{type: 'text' | 'code', content: string}> = [];
-	let lastIndex = 0;
-	let match;
-	
-	while ((match = codeBlockRegex.exec(markdown)) !== null) {
-		// Add non-code segment before this code block
-		if (match.index > lastIndex) {
+	let segments: MarkdownSegment[] = [];
+    let lastIndex = 0;
+    let match;
+    
+    while ((match = codeBlockRegex.exec(markdown)) !== null) {
+        // Add non-code segment before this code block
+        if (match.index > lastIndex) {
 			segments.push({ type: 'text', content: markdown.slice(lastIndex, match.index) });
-		}
-		// Add code block segment
+        }
+        // Add code block segment
 		segments.push({ type: 'code', content: match[0] });
-		lastIndex = codeBlockRegex.lastIndex;
-	}
-	// Add any remaining non-code segment
-	if (lastIndex < markdown.length) {
+        lastIndex = codeBlockRegex.lastIndex;
+    }
+    // Add any remaining non-code segment
+    if (lastIndex < markdown.length) {
 		segments.push({ type: 'text', content: markdown.slice(lastIndex) });
-	}
-	
-	const processedSegments = segments.map(segment => {
-		if (segment.type === 'code') {
-			// Don't process code blocks - return as-is
-			return segment;
-		}
-		
-		let processedContent = segment.content;
-		
-		// If not embedding images, remove all image references
-		if (!embedImages) {
-			// Remove HTML img tags
-			processedContent = processedContent.replace(REGEX_PATTERNS.HTML_IMG, '');
-			// Remove markdown image syntax for Joplin resources (more precise)
-			processedContent = processedContent.replace(REGEX_PATTERNS.MARKDOWN_IMG, '');
-		} else {
-			// Only process HTML img tags that contain Joplin resource IDs in non-code segments
+    }
+    
+	const processedSegments: MarkdownSegment[] = segments.map(segment => {
+         if (segment.type === 'code') {
+             // Don't process code blocks - return as-is
+             return segment;
+         }
+         
+         let processedContent = segment.content;
+         
+         // If not embedding images, remove all image references
+         if (!embedImages) {
+             // Remove HTML img tags
+             processedContent = processedContent.replace(REGEX_PATTERNS.HTML_IMG, '');
+             // Remove markdown image syntax for Joplin resources (more precise)
+             processedContent = processedContent.replace(REGEX_PATTERNS.MARKDOWN_IMG, '');
+         } else {
+             // Only process HTML img tags that contain Joplin resource IDs in non-code segments
 			const htmlImgRegex = /<img([^>]*src=["']:\/{1,2}([a-zA-Z0-9]+)["'][^>]*)>/gi;
-			
 			processedContent = processedContent.replace(htmlImgRegex, (match, attrs, resourceId) => {
 				// Extract width, height, and style attributes
 				const widthMatch = attrs.match(/\bwidth\s*=\s*["']?([^"'\s>]+)["']?/i);
 				const heightMatch = attrs.match(/\bheight\s*=\s*["']?([^"'\s>]+)["']?/i);
 				const styleMatch = attrs.match(/\bstyle\s*=\s*["']([^"']*)["']/i);
-				
 				if (widthMatch || heightMatch || styleMatch) {
 					const dimensionKey = `DIMENSION_${counter}`;
 					dimensions.set(dimensionKey, {
@@ -76,25 +87,22 @@ function extractImageDimensions(markdown: string, embedImages: boolean): { proce
 						style: styleMatch ? styleMatch[1] : undefined,
 						resourceId: resourceId
 					});
-					
-					// Convert to markdown image syntax with dimension marker
 					const result = `![${dimensionKey}](://${resourceId})`;
 					counter++;
 					return result;
 				}
-				
 				// No dimensions to preserve, convert to standard markdown
 				return `![](://${resourceId})`;
 			});
-		}
-		
-		return { ...segment, content: processedContent };
-	});
-	
-	// Recombine segments
-	const processedMarkdown = processedSegments.map(seg => seg.content).join('');
-	
-	return { processedMarkdown, dimensions };
+         }
+         
+         return { ...segment, content: processedContent };
+     });
+     
+     // Recombine segments
+     const processedMarkdown = processedSegments.map(seg => seg.content).join('');
+     
+     return { processedMarkdown, dimensions };
 }
 
 // Apply preserved dimensions to rendered HTML
