@@ -13,9 +13,9 @@ const SETTINGS = {
 // Regex patterns for Joplin resource and image handling
 const REGEX_PATTERNS = {
 	CODE_BLOCKS: /(```[\s\S]*?```|`[^`\n]*`)/g,
-	JOPLIN_RESOURCE: /:\/{1,2}[a-zA-Z0-9]+/gi,
 	HTML_IMG: /<img[^>]*>/gi,
 	MARKDOWN_IMG: /!\[[^\]]*\]\(:\/{1,2}[a-f0-9]{32}\)/gi,
+	HTML_IMG_WITH_RESOURCE: /<img([^>]*src=["']:\/{1,2}([a-f0-9]{32})["'][^>]*)>/gi,
 };
 
 // TypeScript interfaces for type safety
@@ -30,6 +30,13 @@ interface MarkdownSegment {
     type: 'text' | 'code';
     content: string;
 }
+
+// Add near the top of your file
+const CONSTANTS = {
+    BASE64_TIMEOUT_MS: 5000,
+    MIN_COLUMN_WIDTH: 3,
+    DIMENSION_KEY_PREFIX: 'DIMENSION_'
+};
 
 // Extract width/height from HTML img tags before rendering (excluding code blocks)
 // Also remove images entirely if embedImages is false
@@ -73,14 +80,14 @@ function extractImageDimensions(markdown: string, embedImages: boolean): { proce
              processedContent = processedContent.replace(REGEX_PATTERNS.MARKDOWN_IMG, '');
          } else {
              // Only process HTML img tags that contain Joplin resource IDs in non-code segments
-			const htmlImgRegex = /<img([^>]*src=["']:\/{1,2}([a-zA-Z0-9]+)["'][^>]*)>/gi;
+			const htmlImgRegex = REGEX_PATTERNS.HTML_IMG_WITH_RESOURCE;
 			processedContent = processedContent.replace(htmlImgRegex, (match, attrs, resourceId) => {
 				// Extract width, height, and style attributes
 				const widthMatch = attrs.match(/\bwidth\s*=\s*["']?([^"'\s>]+)["']?/i);
 				const heightMatch = attrs.match(/\bheight\s*=\s*["']?([^"'\s>]+)["']?/i);
 				const styleMatch = attrs.match(/\bstyle\s*=\s*["']([^"']*)["']/i);
 				if (widthMatch || heightMatch || styleMatch) {
-					const dimensionKey = `DIMENSION_${counter}`;
+					const dimensionKey = `${CONSTANTS.DIMENSION_KEY_PREFIX}${counter}`;
 					dimensions.set(dimensionKey, {
 						width: widthMatch ? widthMatch[1] : undefined,
 						height: heightMatch ? heightMatch[1] : undefined,
@@ -169,7 +176,7 @@ async function convertResourceToBase64(id: string): Promise<string> {
 
 		const fileObj = await Promise.race([
 			joplin.data.get(['resources', id, 'file']),
-			new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout retrieving resource file')), 5000))
+			new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout retrieving resource file')), CONSTANTS.BASE64_TIMEOUT_MS))
 		]);
 		let fileBuffer;
 		if (fileObj && fileObj.body) {
@@ -450,7 +457,7 @@ function renderPlainText(tokens, listContext = null, indentLevel = 0) {
 				result += paddedCells.join('  ') + '\n';
 				if (tableRows[r].isHeader && !headerDone && tableRows.length > 1) {
 					// Add separator after header
-					let sepCells = colWidths.map(w => '-'.repeat(Math.max(3, w)));
+					let sepCells = colWidths.map(w => '-'.repeat(Math.max(CONSTANTS.MIN_COLUMN_WIDTH, w)));
 					result += sepCells.join('  ') + '\n';
 					headerDone = true;
 				}
