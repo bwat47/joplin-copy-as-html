@@ -255,12 +255,21 @@ interface PlainTextOptions {
 }
 
 /**
- * Renders markdown-it tokens as plain text, with options for preserving formatting.
- * @param tokens The markdown-it token array.
- * @param listContext The current list context (for nested lists).
- * @param indentLevel The current indentation level.
- * @param options Formatting preservation options.
- * @returns The rendered plain text string.
+ * Converts markdown-it tokens to plain text, with options to preserve or remove markdown formatting.
+ *
+ * Features:
+ * - Handles tables, lists, headings, emphasis, bold, superscript, subscript, and hyperlinks.
+ * - Honors user settings for preserving markdown formatting (e.g., headings, emphasis, bold, etc.).
+ * - Supports a user-configurable hyperlink behavior for external links: show title, URL, or markdown format.
+ * - Ensures all code blocks and inline code are output as-is, without formatting or link processing.
+ * - Recursively processes nested tokens and respects context (e.g., inside lists or code).
+ *
+ * @param tokens        The markdown-it token array to process.
+ * @param listContext   The current list context (for nested lists).
+ * @param indentLevel   The current indentation level for lists.
+ * @param options       Formatting preservation and hyperlink behavior options.
+ * @param inCode        True if currently inside a code block or inline code.
+ * @returns             The rendered plain text string.
  */
 function renderPlainText(
     tokens: any[],
