@@ -254,6 +254,83 @@ interface PlainTextOptions {
 	hyperlinkBehavior: 'title' | 'url' | 'markdown';
 }
 
+// Types for table helpers
+interface TableRow {
+    cells: string[];
+    isHeader: boolean;
+}
+interface TableData {
+    rows: TableRow[];
+}
+
+// Parses tokens into a TableData structure
+function parseTableTokens(tableTokens: any[], options: PlainTextOptions, listContext: any, indentLevel: number): TableData {
+    let tableRows: TableRow[] = [];
+    let currentRow: string[] = [];
+    let isHeaderRow = false;
+    for (let k = 0; k < tableTokens.length; k++) {
+        const tk = tableTokens[k];
+        if (tk.type === 'thead_open') isHeaderRow = true;
+        if (tk.type === 'thead_close') isHeaderRow = false;
+        if (tk.type === 'tr_open') currentRow = [];
+        if ((tk.type === 'th_open' || tk.type === 'td_open')) {
+            let cellContent = '';
+            let l = k + 1;
+            while (l < tableTokens.length && tableTokens[l].type !== 'th_close' && tableTokens[l].type !== 'td_close') {
+                if (tableTokens[l].type === 'inline' && tableTokens[l].children) {
+                    cellContent += renderPlainText(tableTokens[l].children, listContext, indentLevel, options);
+                } else if (tableTokens[l].type === 'text') {
+                    cellContent += tableTokens[l].content;
+                }
+                l++;
+            }
+            currentRow.push(cellContent.trim());
+        }
+        if (tk.type === 'tr_close') {
+            tableRows.push({ cells: currentRow.slice(), isHeader: isHeaderRow });
+        }
+    }
+    return { rows: tableRows };
+}
+
+// Calculates the max width for each column
+function calculateColumnWidths(tableData: TableData): number[] {
+    let colWidths: number[] = [];
+    for (let r = 0; r < tableData.rows.length; r++) {
+        let cells = tableData.rows[r].cells;
+        for (let c = 0; c < cells.length; c++) {
+            colWidths[c] = Math.max(colWidths[c] || 0, cells[c].length);
+        }
+    }
+    return colWidths;
+}
+
+// Formats the table as a string
+function formatTable(tableData: TableData, colWidths: number[]): string {
+    function padCell(cell: string, width: number) {
+        return cell + ' '.repeat(width - cell.length);
+    }
+    let result = '';
+    let headerDone = false;
+    for (let r = 0; r < tableData.rows.length; r++) {
+        let paddedCells = tableData.rows[r].cells.map((c, i) => padCell(c, colWidths[i]));
+        result += paddedCells.join('  ') + '\n';
+        if (tableData.rows[r].isHeader && !headerDone && tableData.rows.length > 1) {
+            let sepCells = colWidths.map(w => '-'.repeat(Math.max(CONSTANTS.MIN_COLUMN_WIDTH, w)));
+            result += sepCells.join('  ') + '\n';
+            headerDone = true;
+        }
+    }
+    return result + '\n';
+}
+
+// Main orchestrator for table rendering
+function renderTableFromTokens(tableTokens: any[], options: PlainTextOptions, listContext: any, indentLevel: number): string {
+    const tableData = parseTableTokens(tableTokens, options, listContext, indentLevel);
+    const colWidths = calculateColumnWidths(tableData);
+    return formatTable(tableData, colWidths);
+}
+
 /**
  * Converts markdown-it tokens to plain text, with options to preserve or remove markdown formatting.
  *
@@ -294,58 +371,8 @@ function renderPlainText(
 				tableTokens.push(tokens[j]);
 				j++;
 			}
-			// Parse table rows
-			let tableRows = [];
-			let currentRow = [];
-			let isHeaderRow = false;
-			for (let k = 0; k < tableTokens.length; k++) {
-				const tk = tableTokens[k];
-				if (tk.type === 'thead_open') isHeaderRow = true;
-				if (tk.type === 'thead_close') isHeaderRow = false;
-				if (tk.type === 'tr_open') currentRow = [];
-				if ((tk.type === 'th_open' || tk.type === 'td_open')) {
-					// Collect cell content
-					let cellContent = '';
-					let l = k + 1;
-					while (l < tableTokens.length && tableTokens[l].type !== 'th_close' && tableTokens[l].type !== 'td_close') {
-						if (tableTokens[l].type === 'inline' && tableTokens[l].children) {
-							cellContent += renderPlainText(tableTokens[l].children, listContext, indentLevel, options);
-						} else if (tableTokens[l].type === 'text') {
-							cellContent += tableTokens[l].content;
-						}
-						l++;
-					}
-					currentRow.push(cellContent.trim());
-				}
-				if (tk.type === 'tr_close') {
-					tableRows.push({ cells: currentRow.slice(), isHeader: isHeaderRow });
-				}
-			}
-			// Calculate max width for each column
-			let colWidths = [];
-			for (let r = 0; r < tableRows.length; r++) {
-				let cells = tableRows[r].cells;
-				for (let c = 0; c < cells.length; c++) {
-					colWidths[c] = Math.max(colWidths[c] || 0, cells[c].length);
-				}
-			}
-			// Helper to pad a cell
-			function padCell(cell, width) {
-				return cell + ' '.repeat(width - cell.length);
-			}
-			// Output table rows
-			let headerDone = false;
-			for (let r = 0; r < tableRows.length; r++) {
-				let paddedCells = tableRows[r].cells.map((c, i) => padCell(c, colWidths[i]));
-				result += paddedCells.join('  ') + '\n';
-				if (tableRows[r].isHeader && !headerDone && tableRows.length > 1) {
-					// Add separator after header
-					let sepCells = colWidths.map(w => '-'.repeat(Math.max(CONSTANTS.MIN_COLUMN_WIDTH, w)));
-					result += sepCells.join('  ') + '\n';
-					headerDone = true;
-				}
-			}
-			i = j - 1; // Skip all table tokens
+			result += renderTableFromTokens(tableTokens, options, listContext, indentLevel);
+			i = j - 1;
 			continue;
 		}
 		if (t.type === 'fence' || t.type === 'code_block') {
