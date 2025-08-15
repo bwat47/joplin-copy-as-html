@@ -1,9 +1,6 @@
 import joplin from 'api';
 import { SettingItemType, ToastType, MenuItemLocation } from 'api/types';
 
-
-
-
 const SETTINGS = {
 	EMBED_IMAGES: 'embedImages',
 	PRESERVE_SUPERSCRIPT: 'preserveSuperscript',
@@ -13,9 +10,167 @@ const SETTINGS = {
 	PRESERVE_HEADING: 'preserveHeading',
 };
 
+// Create custom renderer for embed/no-embed logic
+function createCustomRenderer(embedImages: boolean, globalSubEnabled: boolean, globalSupEnabled: boolean, globalMarkEnabled: boolean) {
+	const { MdToHtml } = require('@joplin/renderer');
+	
+	const ResourceModel = {
+		isResourceUrl: (url: string) => typeof url === 'string' && url.startsWith(':/'),
+		urlToId: (url: string) => url.replace(':/', ''),
+		filename: () => '',
+		isSupportedImageMimeType: (mime: string) => mime && mime.startsWith('image/'),
+	};
+
+	// Build pluginOptions to disable sub/sup plugins if needed
+	let pluginOptions: any = {};
+	if (!globalSubEnabled) pluginOptions.sub = { enabled: false };
+	if (!globalSupEnabled) pluginOptions.sup = { enabled: false };
+	if (!globalMarkEnabled) pluginOptions.mark = { enabled: false };
+
+	if (!embedImages) {
+		// Remove images entirely by excluding img from allowedTags
+		const renderer = new MdToHtml({ ResourceModel, pluginOptions });
+		const defaultRules = renderer.defaultSanitizeHtml();
+		const customRules = {
+			...defaultRules,
+			allowedTags: defaultRules.allowedTags.filter(tag => tag !== 'img')
+		};
+		
+		// Remove img from allowedAttributes as well
+		const { img, ...otherAttributes } = customRules.allowedAttributes || {};
+		customRules.allowedAttributes = otherAttributes;
+		
+		return new MdToHtml({ 
+			ResourceModel, 
+			pluginOptions,
+			sanitizeHtml: customRules 
+		});
+	} else {
+		// Standard renderer - we'll handle width/height separately
+		return new MdToHtml({ ResourceModel, pluginOptions });
+	}
+}
+
+// Extract width/height from HTML img tags before rendering
+function extractImageDimensions(markdown: string): { processedMarkdown: string, dimensions: Map<string, {width?: string, height?: string, style?: string}> } {
+	const dimensions = new Map();
+	let counter = 0;
+	
+	// Only process HTML img tags that contain Joplin resource IDs
+	const htmlImgRegex = /<img([^>]*src=["']:\/([a-zA-Z0-9]+)["'][^>]*)>/gi;
+	
+	const processedMarkdown = markdown.replace(htmlImgRegex, (match, attrs, resourceId) => {
+		// Extract width, height, and style attributes
+		const widthMatch = attrs.match(/\bwidth\s*=\s*["']?([^"'\s>]+)["']?/i);
+		const heightMatch = attrs.match(/\bheight\s*=\s*["']?([^"'\s>]+)["']?/i);
+		const styleMatch = attrs.match(/\bstyle\s*=\s*["']([^"']*)["']/i);
+		
+		if (widthMatch || heightMatch || styleMatch) {
+			const dimensionKey = `DIMENSION_${counter}`;
+			dimensions.set(dimensionKey, {
+				width: widthMatch ? widthMatch[1] : undefined,
+				height: heightMatch ? heightMatch[1] : undefined,
+				style: styleMatch ? styleMatch[1] : undefined,
+				resourceId: resourceId
+			});
+			
+			// Convert to markdown image syntax with dimension marker
+			const result = `![${dimensionKey}](://${resourceId})`;
+			counter++;
+			return result;
+		}
+		
+		// No dimensions to preserve, convert to standard markdown
+		return `![](://${resourceId})`;
+	});
+	
+	return { processedMarkdown, dimensions };
+}
+
+// Apply preserved dimensions to rendered HTML
+function applyPreservedDimensions(html: string, dimensions: Map<string, any>): string {
+	for (const [dimensionKey, attrs] of dimensions) {
+		// Find img tags that were created from our dimension markers
+		const imgRegex = new RegExp(`<img([^>]*alt=["']${dimensionKey}["'][^>]*)>`, 'gi');
+		
+		html = html.replace(imgRegex, (match, existingAttrs) => {
+			let newAttrs = existingAttrs;
+			
+			// Add width if preserved
+			if (attrs.width && !newAttrs.includes('width=')) {
+				newAttrs += ` width="${attrs.width}"`;
+			}
+			
+			// Add height if preserved
+			if (attrs.height && !newAttrs.includes('height=')) {
+				newAttrs += ` height="${attrs.height}"`;
+			}
+			
+			// Add or merge style if preserved
+			if (attrs.style) {
+				const existingStyleMatch = newAttrs.match(/style\s*=\s*["']([^"']*)["']/i);
+				if (existingStyleMatch) {
+					// Merge with existing style
+					const existingStyle = existingStyleMatch[1];
+					const mergedStyle = existingStyle.endsWith(';') ? existingStyle + attrs.style : existingStyle + ';' + attrs.style;
+					newAttrs = newAttrs.replace(/style\s*=\s*["'][^"']*["']/i, `style="${mergedStyle}"`);
+				} else {
+					// Add new style attribute
+					newAttrs += ` style="${attrs.style}"`;
+				}
+			}
+			
+			// Clean up the alt attribute (remove dimension marker)
+			newAttrs = newAttrs.replace(/alt\s*=\s*["']DIMENSION_\d+["']/, 'alt=""');
+			
+			return `<img${newAttrs}>`;
+		});
+	}
+	
+	return html;
+}
+
+// Helper: async replace for regex  
+async function replaceAsync(str: string, regex: RegExp, asyncFn: Function) {
+	const promises: Promise<string>[] = [];
+	str.replace(regex, (match, ...args) => {
+		promises.push(asyncFn(match, ...args));
+		return match;
+	});
+	const data = await Promise.all(promises);
+	return str.replace(regex, () => data.shift());
+}
+
+// Helper: Convert Joplin resource to base64
+async function convertResourceToBase64(id: string): Promise<string> {
+	try {
+		const resource = await joplin.data.get(['resources', id], { fields: ['id', 'mime'] });
+		if (!resource || !resource.mime.startsWith('image/')) {
+			return `<span style="color: red; font-style: italic;">Resource ID ":/${id}" could not be found.</span>`;
+		}
+
+		const fileObj = await joplin.data.get(['resources', id, 'file']);
+		let fileBuffer;
+		if (fileObj && fileObj.body) {
+			fileBuffer = fileObj.body;
+		} else if (fileObj && fileObj.data) {
+			fileBuffer = fileObj.data;
+		} else if (fileObj && fileObj.content) {
+			fileBuffer = fileObj.content;
+		} else {
+			fileBuffer = fileObj;
+		}
+
+		const base64 = Buffer.from(fileBuffer).toString('base64');
+		return `data:${resource.mime};base64,${base64}`;
+	} catch (err) {
+		return `<span style="color: red; font-style: italic;">Resource ID ":/${id}" could not be found.</span>`;
+	}
+}
+
 joplin.plugins.register({
 	onStart: async function() {
-		// Register settings
+		// Register settings (unchanged)
 		await joplin.settings.registerSection('copyAsHtml', {
 			label: 'Copy as HTML',
 			iconName: 'fas fa-copy',
@@ -44,7 +199,7 @@ joplin.plugins.register({
 				section: 'copyAsHtml',
 				public: true,
 				label: 'Preserve subscript characters (~TEST~)',
-				description: 'If enabled, ~TEST~ will remain ~TEST~ in plain text output.',
+				description: 'If enabled, ~TEST~ will remain ~TEST^ in plain text output.',
 			},
 			[SETTINGS.PRESERVE_EMPHASIS]: {
 				value: false,
@@ -72,14 +227,13 @@ joplin.plugins.register({
 			},
 		});
 
-		// Register command
+		// Register main HTML copy command
 		await joplin.commands.register({
 			name: 'copyAsHtml',
 			label: 'Copy selection as HTML',
 			iconName: 'fas fa-copy',
 			when: 'markdownEditorVisible',
 			execute: async () => {
-
 				// Get selected markdown
 				let selection = await joplin.commands.execute('editor.execCommand', { name: 'getSelection' });
 				if (!selection) {
@@ -87,220 +241,64 @@ joplin.plugins.register({
 					return;
 				}
 
-
-				// Use Joplin global settings for subscript, superscript, and soft breaks rendering
-			const globalSubEnabled = await joplin.settings.globalValue('markdown.plugin.sub');
-			const globalSupEnabled = await joplin.settings.globalValue('markdown.plugin.sup');
-			const globalMarkEnabled = await joplin.settings.globalValue('markdown.plugin.mark');
-			const globalSoftBreaksEnabled = await joplin.settings.globalValue('markdown.plugin.softbreaks');
+				// Get Joplin global settings
+				const globalSubEnabled = await joplin.settings.globalValue('markdown.plugin.sub');
+				const globalSupEnabled = await joplin.settings.globalValue('markdown.plugin.sup');
+				const globalMarkEnabled = await joplin.settings.globalValue('markdown.plugin.mark');
+				const globalSoftBreaksEnabled = await joplin.settings.globalValue('markdown.plugin.softbreaks');
 				const embedImages = await joplin.settings.value(SETTINGS.EMBED_IMAGES);
 
-				// If soft breaks are disabled, force hard breaks by converting single newlines to two spaces + newline
+				// Handle soft breaks
 				if (!globalSoftBreaksEnabled) {
 					selection = selection.replace(/([^\n])\n(?!\n)/g, '$1  \n');
 				}
 
-				// Convert markdown to HTML
-				const { MdToHtml } = await import('@joplin/renderer');
-				const ResourceModel = {
-					isResourceUrl: (url) => typeof url === 'string' && url.startsWith(':/'),
-					urlToId: (url) => url.replace(':/', ''),
-					filename: () => '',
-					isSupportedImageMimeType: (mime) => mime && mime.startsWith('image/'),
-				};
-			// Build pluginOptions to disable sub/sup plugins if needed
-	let pluginOptions: any = {};
-	if (!globalSubEnabled) pluginOptions.sub = { enabled: false };
-	if (!globalSupEnabled) pluginOptions.sup = { enabled: false };
-	if (!globalMarkEnabled) pluginOptions.mark = { enabled: false };
-	const mdToHtml = new MdToHtml({ ResourceModel, pluginOptions });
+				// Extract and preserve image dimensions from HTML img tags
+				const { processedMarkdown, dimensions } = extractImageDimensions(selection);
+
+				// Create custom renderer
+				const mdToHtml = createCustomRenderer(embedImages, globalSubEnabled, globalSupEnabled, globalMarkEnabled);
+				
+				// Render processed markdown to HTML
 				const renderOptions = {};
 				const theme = {};
-				let html = '';
+				const renderResult = await mdToHtml.render(processedMarkdown, theme, renderOptions);
+				let html = renderResult.html;
 
-				// Split selection into code/non-code segments
-				const codeBlockRegex = /(```[\s\S]*?```|`[\s\S]*?`)/g;
-				let segments = [];
-				let lastIndex = 0;
-				let match;
-				while ((match = codeBlockRegex.exec(selection)) !== null) {
-					// Add non-code segment before this code block
-					if (match.index > lastIndex) {
-						segments.push({ type: 'text', content: selection.slice(lastIndex, match.index) });
-					}
-					// Add code block segment
-					segments.push({ type: 'code', content: match[0] });
-					lastIndex = codeBlockRegex.lastIndex;
-				}
-				// Add any remaining non-code segment
-				if (lastIndex < selection.length) {
-					segments.push({ type: 'text', content: selection.slice(lastIndex) });
-				}
+				// Apply preserved dimensions to the rendered HTML
+				html = applyPreservedDimensions(html, dimensions);
 
-				// Only replace <img> tags in non-code segments
-				const imgTagRegex = /<img\s+([^>]*src=["']:\/[a-zA-Z0-9]+[^>]*)>/gi;
-				let imgTags = [];
-				segments = segments.map(seg => {
-					if (seg.type === 'text') {
-						return {
-							...seg,
-							content: seg.content.replace(imgTagRegex, (match, attrs) => {
-								imgTags.push(match);
-								return `[[HTML_IMAGE_${imgTags.length - 1}]]`;
-							}),
-						};
-					}
-					return seg;
-				});
-
-				// Recombine segments
-				selection = segments.map(seg => seg.content).join('');
-
-				// Render markdown to HTML
-				const renderResult = await mdToHtml.render(selection, theme, renderOptions);
-html = renderResult.html;
-
-				// Embed images as base64 if enabled
+				// If embedding images, convert Joplin resource URLs to base64
 				if (embedImages) {
 					// Replace src attribute for Joplin resource images with base64 data
-					const srcRegex = /(<img[^>]*src=["'])(:\/([a-zA-Z0-9]+))(["'][^>]*>)/g;
-					html = await replaceAsync(html, srcRegex, async (match, pre, src, id, post) => {
+					const srcRegex = /(<img[^>]*src=["']):\/{1,2}([a-zA-Z0-9]+)(["'][^>]*>)/g;
+					html = await replaceAsync(html, srcRegex, async (match: string, pre: string, id: string, post: string) => {
 						if (!id) return match;
-						let resource;
-						try {
-							resource = await joplin.data.get(['resources', id], { fields: ['id', 'mime'] });
-						} catch (err) {
-							// Resource not found
-							return `<span style="color: red; font-style: italic;">Resource ID “:/${id}” could not be found.</span>`;
+						const base64Result = await convertResourceToBase64(id);
+						if (base64Result.startsWith('data:image')) {
+							return `${pre}${base64Result}${post}`;
+						} else {
+							// Error case - return error span
+							return base64Result;
 						}
-						if (!resource || !resource.mime.startsWith('image/')) {
-							return `<span style="color: red; font-style: italic;">Resource ID “:/${id}” could not be found.</span>`;
-						}
-						let imgDataUrl = '';
-						try {
-							const fileObj = await joplin.data.get(['resources', id, 'file']);
-							let fileBuffer;
-							if (fileObj && fileObj.body) {
-								fileBuffer = fileObj.body;
-							} else if (fileObj && fileObj.data) {
-								fileBuffer = fileObj.data;
-							} else if (fileObj && fileObj.content) {
-								fileBuffer = fileObj.content;
-							} else {
-								fileBuffer = fileObj;
-							}
-							const base64 = Buffer.from(fileBuffer).toString('base64');
-							imgDataUrl = `data:${resource.mime};base64,${base64}`;
-						} catch (err) {
-							// File fetch failed
-							return `<span style="color: red; font-style: italic;">Resource ID “:/${id}” could not be found.</span>`;
-						}
-						if (!imgDataUrl || !imgDataUrl.startsWith('data:image')) {
-							return `<span style="color: red; font-style: italic;">Resource ID “:/${id}” could not be found.</span>`;
-						}
-						return `${pre}${imgDataUrl}${post}`;
 					});
 
 					// Replace fallback [Image: :/resourceId] text with actual base64 image
 					const fallbackRegex = /\[Image: :\/([a-zA-Z0-9]+)\]/g;
-					html = await replaceAsync(html, fallbackRegex, async (match, id) => {
+					html = await replaceAsync(html, fallbackRegex, async (match: string, id: string) => {
 						if (!id) return match;
-						let resource;
-						try {
-							resource = await joplin.data.get(['resources', id], { fields: ['id', 'mime'] });
-						} catch (err) {
-							// Resource not found
-							return `<span style="color: red; font-style: italic;">Resource ID “:/${id}” could not be found.</span>`;
+						
+						const base64Result = await convertResourceToBase64(id);
+						if (base64Result.startsWith('data:image')) {
+							return `<img src="${base64Result}" alt="" />`;
+						} else {
+							// Error case - return error span
+							return base64Result;
 						}
-						if (!resource || !resource.mime.startsWith('image/')) {
-							return `<span style="color: red; font-style: italic;">Resource ID “:/${id}” could not be found.</span>`;
-						}
-						let imgDataUrl = '';
-						try {
-							const fileObj = await joplin.data.get(['resources', id, 'file']);
-							let fileBuffer;
-							if (fileObj && fileObj.body) {
-								fileBuffer = fileObj.body;
-							} else if (fileObj && fileObj.data) {
-								fileBuffer = fileObj.data;
-							} else if (fileObj && fileObj.content) {
-								fileBuffer = fileObj.content;
-							} else {
-								fileBuffer = fileObj;
-							}
-							const base64 = Buffer.from(fileBuffer).toString('base64');
-							imgDataUrl = `data:${resource.mime};base64,${base64}`;
-						} catch (err) {
-							// File fetch failed
-							return `<span style="color: red; font-style: italic;">Resource ID “:/${id}” could not be found.</span>`;
-						}
-						if (!imgDataUrl || !imgDataUrl.startsWith('data:image')) {
-							return `<span style="color: red; font-style: italic;">Resource ID “:/${id}” could not be found.</span>`;
-						}
-						return `<img src="${imgDataUrl}" alt="" />`;
 					});
-				} else {
-					// Remove all Joplin resource images from HTML
-					const resourceImgRegex = /<img[^>]*src=["']:\/[a-zA-Z0-9]+["'][^>]*>/gi;
-					html = html.replace(resourceImgRegex, '');
-					// Optionally, remove markdown fallback [Image: ...] as well
-					const fallbackImgRegex = /\[Image: :\/[a-zA-Z0-9]+\]/gi;
-					html = html.replace(fallbackImgRegex, '');
 				}
 
-				// Restore original <img> tags with base64 src
-				if (embedImages) {
-    for (let i = 0; i < imgTags.length; i++) {
-        const imgTag = imgTags[i];
-        const srcMatch = imgTag.match(/src=["'](:\/([a-zA-Z0-9]+))["']/);
-        if (!srcMatch) continue;
-        const id = srcMatch[2];
-        let resource;
-        try {
-            resource = await joplin.data.get(['resources', id], { fields: ['id', 'mime'] });
-        } catch (err) {
-            html = html.replace(`[[HTML_IMAGE_${i}]]`, `<span style="color: red; font-style: italic;">Resource ID “:/${id}” could not be found.</span>`);
-            continue;
-        }
-        if (!resource || !resource.mime.startsWith('image/')) {
-            html = html.replace(`[[HTML_IMAGE_${i}]]`, `<span style="color: red; font-style: italic;">Resource ID “:/${id}” could not be found.</span>`);
-            continue;
-        }
-        let imgDataUrl = '';
-        try {
-            const fileObj = await joplin.data.get(['resources', id, 'file']);
-            let fileBuffer;
-            if (fileObj && fileObj.body) {
-                fileBuffer = fileObj.body;
-            } else if (fileObj && fileObj.data) {
-                fileBuffer = fileObj.data;
-            } else if (fileObj && fileObj.content) {
-                fileBuffer = fileObj.content;
-            } else {
-                fileBuffer = fileObj;
-            }
-            const base64 = Buffer.from(fileBuffer).toString('base64');
-            imgDataUrl = `data:${resource.mime};base64,${base64}`;
-        } catch (err) {
-            html = html.replace(`[[HTML_IMAGE_${i}]]`, `<span style="color: red; font-style: italic;">Resource ID “:/${id}” could not be found.</span>`);
-            continue;
-        }
-        if (!imgDataUrl || !imgDataUrl.startsWith('data:image')) {
-            html = html.replace(`[[HTML_IMAGE_${i}]]`, `<span style="color: red; font-style: italic;">Resource ID “:/${id}” could not be found.</span>`);
-            continue;
-        }
-        // Replace src in the original tag, keep all other attributes
-        const patchedTag = imgTag.replace(/src=["']:\/[a-zA-Z0-9]+["']/, `src="${imgDataUrl}"`);
-        html = html.replace(`[[HTML_IMAGE_${i}]]`, patchedTag);
-    }
-} else {
-    // If not embedding, just remove the placeholders
-    for (let i = 0; i < imgTags.length; i++) {
-        html = html.replace(`[[HTML_IMAGE_${i}]]`, '');
-    }
-}
-
-				// Use jsdom to robustly extract the inner HTML of <div id="rendered-md">
+				// Extract the final HTML using jsdom
 				const { JSDOM } = require('jsdom');
 				let fragment = html.trim();
 				try {
@@ -309,51 +307,34 @@ html = renderResult.html;
 					if (renderedMd) {
 						// Remove all <pre class="joplin-source"> blocks
 						const sourceBlocks = renderedMd.querySelectorAll('pre.joplin-source');
-						sourceBlocks.forEach(el => el.remove());
+						sourceBlocks.forEach((el: any) => el.remove());
 						fragment = renderedMd.innerHTML.trim();
 					} else {
 						fragment = html.trim();
 					}
-
 				} catch (err) {
 					console.error('[copy-as-html] jsdom extraction error:', err);
 				}
 
-				// After JSDOM extraction, before clipboard write:
-				// console.log('[copy-as-html] HTML fragment after JSDOM extraction:', fragment);
-
-				// Pass the cleaned fragment directly to the clipboard as HTML
+				// Copy to clipboard
 				await joplin.clipboard.writeHtml(fragment);
 				await joplin.views.dialogs.showToast({ message: 'Copied selection as HTML!', type: ToastType.Success });
-
-				// Helper: async replace for regex
-				async function replaceAsync(str, regex, asyncFn) {
-					const promises = [];
-					str.replace(regex, (match, ...args) => {
-						promises.push(asyncFn(match, ...args));
-						return match;
-					});
-					const data = await Promise.all(promises);
-					return str.replace(regex, () => data.shift());
-				}
 			},
 		});
 
-
 		// Register keyboard shortcut
-		// Use MenuItemLocation from types
 		await joplin.views.menuItems.create('copyAsHtmlShortcut', 'copyAsHtml', MenuItemLocation.EditorContextMenu, {
 			accelerator: 'Ctrl+Shift+C',
 		});
 
-		// Register plain text copy command and menu item
+		// Plain text copy command (completely unchanged)
 		await joplin.commands.register({
 			name: 'copyAsPlainText',
 			label: 'Copy selection as Plain Text',
 			iconName: 'fas fa-copy',
 			when: 'markdownEditorVisible',
 			execute: async () => {
-				// Get selected markdown
+							// Get selected markdown
 const selection = await joplin.commands.execute('editor.execCommand', { name: 'getSelection' });
 if (!selection) {
     await joplin.views.dialogs.showToast({ message: 'No text selected.', type: ToastType.Info });
@@ -569,7 +550,7 @@ function renderPlainText(tokens, listContext = null, indentLevel = 0) {
 		});
 
 		await joplin.views.menuItems.create('copyAsPlainTextShortcut', 'copyAsPlainText', MenuItemLocation.EditorContextMenu, {
-    accelerator: 'Ctrl+Alt+C',
-});
+			accelerator: 'Ctrl+Alt+C',
+		});
 	},
 });
