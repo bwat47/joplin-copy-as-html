@@ -49,6 +49,17 @@
 			"label": "Preserve heading characters (## TEST)",
 			"description": "If enabled, ## TEST will remain as-is in plain text output.",
 			"value": false
+		},
+		"hyperlinkBehavior": {
+			"type": "enum",
+			"label": "Plain Text hyperlink behavior",
+			"description": "How external hyperlinks should be displayed in plain text output.",
+			"options": {
+				"title": "Link Title",
+				"url": "Link URL",
+				"markdown": "Markdown Format"
+			},
+			"value": "title"
 		}
 	}
 }

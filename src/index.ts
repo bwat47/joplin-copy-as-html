@@ -10,6 +10,7 @@ const SETTINGS = {
 	PRESERVE_EMPHASIS: 'preserveEmphasis',
 	PRESERVE_BOLD: 'preserveBold',
 	PRESERVE_HEADING: 'preserveHeading',
+	HYPERLINK_BEHAVIOR: 'hyperlinkBehavior',
 };
 
 // Regex patterns for Joplin resource and image handling
@@ -235,12 +236,22 @@ function unescape(text: string): string {
     return text.replace(/\\([*_~^`#])/g, '$1');
 }
 
+/**
+ * Checks if a URL is an external HTTP/HTTPS link.
+ * @param url The URL to check.
+ * @returns True if the URL is an external HTTP/HTTPS link.
+ */
+function isExternalHttpUrl(url: string): boolean {
+    return /^https?:\/\//i.test(url);
+}
+
 interface PlainTextOptions {
     preserveHeading: boolean;
     preserveEmphasis: boolean;
     preserveBold: boolean;
     preserveSuperscript: boolean;
     preserveSubscript: boolean;
+	hyperlinkBehavior: 'title' | 'url' | 'markdown';
 }
 
 /**
@@ -401,6 +412,37 @@ function renderPlainText(
             } else {
                 result += indent + '- ';
             }
+		} else if (t.type === 'link_open') {
+			// Handle hyperlink behavior for external HTTP/HTTPS links
+			const href = t.attrGet('href');
+			if (href && isExternalHttpUrl(href)) {
+				if (options.hyperlinkBehavior === 'url') {
+					// Show URL only, skip the link text
+					result += href;
+					// Skip to link_close by finding matching close token
+					let linkDepth = 1;
+					while (i + 1 < tokens.length && linkDepth > 0) {
+						i++;
+						if (tokens[i].type === 'link_open') linkDepth++;
+						if (tokens[i].type === 'link_close') linkDepth--;
+					}
+				} else if (options.hyperlinkBehavior === 'markdown') {
+					// Show raw markdown format
+					result += '[';
+					// Continue processing normally to get link text, then add URL in link_close
+				}
+				// For 'title' behavior, continue processing normally (default behavior)
+			}
+		} else if (t.type === 'link_close') {
+			// Handle closing of hyperlinks for markdown format
+			const linkOpenIndex = tokens.slice(0, i).reverse().findIndex(token => token.type === 'link_open');
+			if (linkOpenIndex !== -1) {
+				const linkOpen = tokens[i - linkOpenIndex - 1];
+				const href = linkOpen.attrGet('href');
+				if (href && isExternalHttpUrl(href) && options.hyperlinkBehavior === 'markdown') {
+					result += `](${href})`;
+				}
+			}
 		} else if (t.type === 'em_open') {
 			if (options.preserveEmphasis) result += t.markup;
 		} else if (t.type === 'em_close') {
@@ -495,6 +537,20 @@ joplin.plugins.register({
 				public: true,
 				label: 'Preserve heading characters (## TEST)',
 				description: 'If enabled, ## TEST will remain as-is in plain text output.',
+			},
+			[SETTINGS.HYPERLINK_BEHAVIOR]: {
+				value: 'title',
+				type: SettingItemType.String,
+				isEnum: true,
+				options: {
+					'title': 'Link Title',
+					'url': 'Link URL', 
+					'markdown': 'Markdown Format'
+				},
+				section: 'copyAsHtml',
+				public: true,
+				label: 'Plain text hyperlink behavior',
+				description: 'How external HTTP/HTTPS links should appear in plain text output.',
 			},
 		});
 
@@ -624,6 +680,7 @@ const preserveSubscript = await joplin.settings.value(SETTINGS.PRESERVE_SUBSCRIP
 const preserveEmphasis = await joplin.settings.value(SETTINGS.PRESERVE_EMPHASIS);
 const preserveBold = await joplin.settings.value(SETTINGS.PRESERVE_BOLD);
 const preserveHeading = await joplin.settings.value(SETTINGS.PRESERVE_HEADING);
+const hyperlinkBehavior = await joplin.settings.value(SETTINGS.HYPERLINK_BEHAVIOR) as 'title' | 'url' | 'markdown';
 
 // Use markdown-it to parse and render plain text
 const md = new MarkdownIt();
@@ -634,7 +691,8 @@ const tokens = md.parse(selection, {});
                      preserveEmphasis,
                      preserveBold,
                      preserveSuperscript,
-                     preserveSubscript
+                     preserveSubscript,
+                     hyperlinkBehavior
                  });
 
 				// Copy to clipboard as plain text
