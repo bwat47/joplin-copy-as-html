@@ -165,7 +165,8 @@ function applyPreservedDimensions(html: string, dimensions: Map<string, any>): s
 			}
 			
 			// Clean up the alt attribute (remove dimension marker)
-			newAttrs = newAttrs.replace(/alt\s*=\s*["']DIMENSION_\d+["']/, 'alt=""');
+			const escapedPrefix = CONSTANTS.DIMENSION_KEY_PREFIX.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+			newAttrs = newAttrs.replace(new RegExp(`alt\\s*=\\s*["']${escapedPrefix}\\d+["']`), 'alt=""');
 			
 			return `<img${newAttrs}>`;
 		});
