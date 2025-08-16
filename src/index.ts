@@ -399,32 +399,59 @@ function parseListTokens(listTokens: any[], listContext: any, indentLevel: numbe
  */
 function formatList(listItems: (ListItem & { hasNestedList?: boolean })[], options: PlainTextOptions): string {
     let lines: string[] = [];
-    // Check if any top-level item has a nested list
     const anyTopLevelHasNested = listItems.some(item => item.indentLevel === 1 && item.hasNestedList);
+
+    let prevIndent = listItems.length > 0 ? listItems[0].indentLevel : 1;
+    let prevHadNested = false;
 
     for (let i = 0; i < listItems.length; i++) {
         const item = listItems[i];
         const indent = item.indentLevel > 1 ? '\t'.repeat(item.indentLevel - 1) : '';
         const prefix = item.ordered ? `${item.index}. ` : '- ';
+
+        // Add a blank line before this item if:
+        // - indent decreases (moving up a level)
+        // - OR previous item at the same level had a nested list
+        if (
+            i > 0 &&
+            (
+                item.indentLevel < prevIndent ||
+                (item.indentLevel === prevIndent && prevHadNested)
+            )
+        ) {
+            // Only add if previous line isn't already blank
+            if (lines.length > 0 && lines[lines.length - 1] !== '') {
+                lines.push('');
+            }
+        }
+
         lines.push(indent + prefix + item.content);
 
         const isTopLevel = item.indentLevel === 1;
         const isLast = i === listItems.length - 1;
 
-        // If any top-level item has a nested list, add a blank line after every top-level item except the last
+        // Add a blank line after every top-level item if any top-level has a nested list (except last)
         if (isTopLevel && anyTopLevelHasNested && !isLast) {
-            lines.push('');
+            if (lines.length > 0 && lines[lines.length - 1] !== '') {
+                lines.push('');
+            }
         }
-        // Always add a blank line after the last item
+        // Always add a blank line after the last top-level item
         if (isTopLevel && isLast) {
-            lines.push('');
+            if (lines.length > 0 && lines[lines.length - 1] !== '') {
+                lines.push('');
+            }
         }
+
+        prevIndent = item.indentLevel;
+        prevHadNested = !!item.hasNestedList;
     }
     // Remove trailing blank lines
     while (lines.length > 1 && lines[lines.length - 1] === '' && lines[lines.length - 2] === '') {
         lines.pop();
     }
-    return lines.join('\n');
+    // Collapse any double blank lines in the output (defensive, in case)
+    return lines.join('\n').replace(/\n{3,}/g, '\n\n');
 }
 /**
  * Parses and formats a list from markdown-it tokens using the configured options.
