@@ -181,7 +181,11 @@ joplin.plugins.register({
 					if (renderedMd) {
 						// Remove all <pre class="joplin-source"> blocks
 						const sourceBlocks = renderedMd.querySelectorAll('pre.joplin-source');
-						sourceBlocks.forEach((el: any) => el.remove());
+						sourceBlocks.forEach((el) => {
+							if (el && typeof el.remove === 'function') {
+								el.remove();
+							}
+						});
 						fragment = renderedMd.innerHTML.trim();
 					} else {
 						fragment = html.trim();
