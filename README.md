@@ -56,6 +56,14 @@ If enabled, `**TEST*`* or `__TEST__` will remain as-is in plain text output.
 - Preserve heading characters `(## TEST)`
 If enabled, `## TEST` will remain as-is in plain text output.
 
+As of version 1.0.15, the following options are provided for external hyperlinks (only impacts markdown links containing http/https URL):
+
+- Title - Displays link title only (default).
+
+- URL - Displays link URL only.
+
+- Markdown Format - Displays full markdown link formatting with title and URL.
+
 ## Known Issues
 
 - The context menu options appear in the rich text editor's context menu (but aren't functional, the plugin is only intended for the markdown editor).
