@@ -364,9 +364,17 @@ function parseListTokens(listTokens: any[], listContext: any, indentLevel: numbe
             let itemTokens = [];
             let depth = 1;
             let j = i + 1;
+            let hasNestedList = false;
             while (j < listTokens.length && depth > 0) {
                 if (listTokens[j].type === 'list_item_open') depth++;
                 if (listTokens[j].type === 'list_item_close') depth--;
+                // Detect nested list
+                if (
+                    listTokens[j].type === 'bullet_list_open' ||
+                    listTokens[j].type === 'ordered_list_open'
+                ) {
+                    hasNestedList = true;
+                }
                 if (depth > 0) itemTokens.push(listTokens[j]);
                 j++;
             }
@@ -376,8 +384,9 @@ function parseListTokens(listTokens: any[], listContext: any, indentLevel: numbe
                 content: content.trim(),
                 ordered,
                 index: ordered ? index : undefined,
-                indentLevel
-            });
+                indentLevel,
+                hasNestedList, // <-- add this property
+            } as ListItem & { hasNestedList: boolean });
             if (ordered) index++;
             i = j - 1;
         }
@@ -388,21 +397,35 @@ function parseListTokens(listTokens: any[], listContext: any, indentLevel: numbe
 /**
  * Formats the list items as a human-readable plain text string.
  */
-function formatList(listItems: ListItem[], options: PlainTextOptions): string {
+function formatList(listItems: (ListItem & { hasNestedList?: boolean })[], options: PlainTextOptions): string {
     let lines: string[] = [];
-    for (const item of listItems) {
+    // Check if any top-level item has a nested list
+    const anyTopLevelHasNested = listItems.some(item => item.indentLevel === 1 && item.hasNestedList);
+
+    for (let i = 0; i < listItems.length; i++) {
+        const item = listItems[i];
         const indent = item.indentLevel > 1 ? '\t'.repeat(item.indentLevel - 1) : '';
         const prefix = item.ordered ? `${item.index}. ` : '- ';
         lines.push(indent + prefix + item.content);
-        lines.push(''); // Always add a blank line after every list item
+
+        const isTopLevel = item.indentLevel === 1;
+        const isLast = i === listItems.length - 1;
+
+        // If any top-level item has a nested list, add a blank line after every top-level item except the last
+        if (isTopLevel && anyTopLevelHasNested && !isLast) {
+            lines.push('');
+        }
+        // Always add a blank line after the last item
+        if (isTopLevel && isLast) {
+            lines.push('');
+        }
     }
-    // Remove trailing blank lines (to avoid extra newlines at the end)
+    // Remove trailing blank lines
     while (lines.length > 1 && lines[lines.length - 1] === '' && lines[lines.length - 2] === '') {
         lines.pop();
     }
     return lines.join('\n');
 }
-
 /**
  * Parses and formats a list from markdown-it tokens using the configured options.
  */
