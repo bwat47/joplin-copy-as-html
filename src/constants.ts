@@ -14,6 +14,7 @@ export const REGEX_PATTERNS = {
 	HTML_IMG: /<img[^>]*>/gi,
 	MARKDOWN_IMG: /!\[[^\]]*\]\(:\/{1,2}[a-f0-9]{32}\)/gi,
 	HTML_IMG_WITH_RESOURCE: /<img([^>]*src=["']:\/{1,2}([a-f0-9]{32})["'][^>]*)>/gi,
+	IMG_TAG_WITH_RESOURCE: /<img[^>]*src=["']:?\/{1,2}([^"'>]+)["'][^>]*>/gi,
 };
 
 // Constants for timeouts, formatting, and dimension keys

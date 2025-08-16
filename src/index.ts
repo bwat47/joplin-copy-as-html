@@ -6,6 +6,7 @@ import { JSDOM } from 'jsdom';
 
 // Import from your new files
 import { SETTINGS } from './constants';
+import { REGEX_PATTERNS } from './constants';
 import { PluginOptions, PlainTextOptions } from './types';
 import {
     extractImageDimensions,
@@ -140,13 +141,18 @@ joplin.plugins.register({
 				// If embedding images, convert Joplin resource URLs to base64
 				if (embedImages) {
 					// Replace src attribute for Joplin resource images with base64 data
-					const srcRegex = /(<img[^>]*src=["']):\/{1,2}([a-f0-9]{32})(["'][^>]*>)/gi;
-					html = await replaceAsync(html, srcRegex, async (match: string, pre: string, id: string, post: string) => {
+					html = await replaceAsync(html, REGEX_PATTERNS.IMG_TAG_WITH_RESOURCE, async (match: string, id: string) => {
 						if (!id) return match;
+						// If the ID is not 32 characters, treat as invalid and show error span
+						if (id.length !== 32) {
+							return `<span style="color: red;">Resource ID “:/${id}” could not be found</span>`;
+						}
 						const base64Result = await convertResourceToBase64(id);
 						if (base64Result.startsWith('data:image')) {
-							return `${pre}${base64Result}${post}`;
+							// Replace just the src attribute
+							return match.replace(/src=["'][^"']+["']/, `src="${base64Result}"`);
 						} else {
+							// Replace the entire <img> tag with the error span
 							return base64Result;
 						}
 					});
