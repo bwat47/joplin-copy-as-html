@@ -1,6 +1,7 @@
 import joplin from 'api';
 import { SettingItemType, ToastType, MenuItemLocation } from 'api/types';
 import * as MarkdownIt from 'markdown-it';
+import Token from 'markdown-it/lib/token'; // Add this import
 import { JSDOM } from 'jsdom';
 
 const SETTINGS = {
@@ -268,7 +269,7 @@ interface TableData {
  * Parses table-related tokens into a structured TableData object.
  * Handles header and body rows, and extracts cell content using renderPlainText for nested formatting.
  */
-function parseTableTokens(tableTokens: any[], options: PlainTextOptions, listContext: any, indentLevel: number): TableData {
+function parseTableTokens(tableTokens: Token[], options: PlainTextOptions, listContext: any, indentLevel: number): TableData {
     let tableRows: TableRow[] = [];
     let currentRow: string[] = [];
     let isHeaderRow = false;
@@ -334,7 +335,7 @@ function formatTable(tableData: TableData, colWidths: number[]): string {
 }
 
 // Main orchestrator for table rendering
-function renderTableFromTokens(tableTokens: any[], options: PlainTextOptions, listContext: any, indentLevel: number): string {
+function renderTableFromTokens(tableTokens: Token[], options: PlainTextOptions, listContext: any, indentLevel: number): string {
     const tableData = parseTableTokens(tableTokens, options, listContext, indentLevel);
     const colWidths = calculateColumnWidths(tableData);
     return formatTable(tableData, colWidths);
@@ -353,7 +354,7 @@ interface ListItem {
 /**
  * Parses list-related tokens into a structured array of ListItem objects.
  */
-function parseListTokens(listTokens: any[], listContext: any, indentLevel: number, options: PlainTextOptions): ListItem[] {
+function parseListTokens(listTokens: Token[], listContext: any, indentLevel: number, options: PlainTextOptions): ListItem[] {
     let items: ListItem[] = [];
     let ordered = listContext && listContext.type === 'ordered';
     let index = listContext && listContext.index ? listContext.index : 1;
@@ -406,7 +407,7 @@ function formatList(listItems: ListItem[], options: PlainTextOptions): string {
 /**
  * Parses and formats a list from markdown-it tokens using the configured options.
  */
-function renderListFromTokens(listTokens: any[], listContext: any, indentLevel: number, options: PlainTextOptions): string {
+function renderListFromTokens(listTokens: Token[], listContext: any, indentLevel: number, options: PlainTextOptions): string {
     const listItems = parseListTokens(listTokens, listContext, indentLevel, options);
     return formatList(listItems, options);
 }
@@ -505,7 +506,7 @@ function handleTextToken(
  * @returns             The rendered plain text string.
  */
 function renderPlainText(
-    tokens: any[],
+    tokens: Token[],
     listContext: any = null,
     indentLevel: number = 0,
     options: PlainTextOptions,
