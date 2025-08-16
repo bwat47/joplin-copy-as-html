@@ -1,7 +1,7 @@
 import joplin from 'api';
 import { SettingItemType, ToastType, MenuItemLocation } from 'api/types';
 import * as MarkdownIt from 'markdown-it';
-import Token from 'markdown-it/lib/token'; // Add this import
+import Token from 'markdown-it/lib/token';
 import { JSDOM } from 'jsdom';
 
 const SETTINGS = {
