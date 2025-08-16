@@ -4,6 +4,17 @@ import { CONSTANTS, REGEX_PATTERNS } from './constants';
 import { ImageDimensions, MarkdownSegment } from './types';
 
 /**
+ * Creates a consistent error HTML span for resource errors.
+ * @param message The error message to display.
+ * @param italic Whether to italicize the message.
+ * @returns HTML span string.
+ */
+function createErrorSpan(message: string, italic: boolean = false): string {
+    const style = `color: red;${italic ? ' font-style: italic;' : ''}`;
+    return `<span style="${style}">${message}</span>`;
+}
+
+/**
  * Extracts width, height, and style from HTML <img> tags in markdown, preserving them in a map.
  * Optionally removes all images if embedImages is false.
  * @param markdown The markdown string to process.
@@ -171,7 +182,7 @@ export async function convertResourceToBase64(id: string): Promise<string> {
     try {
         const resource = await joplin.data.get(['resources', id], { fields: ['id', 'mime'] });
         if (!resource || !resource.mime.startsWith('image/')) {
-            return `<span style="color: red; font-style: italic;">Resource ID ":/${id}" could not be found or is not an image.</span>`;
+            return createErrorSpan(`Resource ID ":/${id}" could not be found or is not an image.`);
         }
 
         const fileObj = await Promise.race([
@@ -183,13 +194,13 @@ export async function convertResourceToBase64(id: string): Promise<string> {
 			fileBuffer = extractFileBuffer(fileObj);
 		} catch (err) {
 			const msg = err && err.message ? err.message : String(err);
-			return `<span style="color: red; font-style: italic;">Resource ID ":/${id}" could not be retrieved: ${msg}</span>`;
+			return createErrorSpan(`Resource ID ":/${id}" could not be retrieved: ${msg}`);
 		}
 		const base64 = fileBuffer.toString('base64');
         return `data:${resource.mime};base64,${base64}`;
     } catch (err) {
         console.error(`[copy-as-html] Failed to convert resource :/${id} to base64:`, err);
         const msg = err && err.message ? err.message : err;
-        return `<span style="color: red; font-style: italic;">Resource ID ":/${id}" could not be retrieved: ${msg}</span>`;
+        return createErrorSpan(`Resource ID ":/${id}" could not be retrieved: ${msg}`);
     }
 }
