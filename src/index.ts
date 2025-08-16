@@ -410,6 +410,77 @@ function renderListFromTokens(listTokens: any[], listContext: any, indentLevel: 
     return formatList(listItems, options);
 }
 
+// Link handling helper
+function handleLinkToken(
+    t: any,
+    linkStack: { href: string, title: string }[],
+    options: PlainTextOptions,
+    result: string
+): string {
+    // Only handle external HTTP/HTTPS links for special behavior
+    const hrefAttr = t.attrs?.find((attr: any) => attr[0] === 'href');
+    const href = hrefAttr ? hrefAttr[1] : '';
+    if (isExternalHttpUrl(href)) {
+        linkStack.push({ href, title: '' });
+    } else {
+        linkStack.push({ href: '', title: '' });
+    }
+    return result;
+}
+
+function handleLinkCloseToken(
+    linkStack: { href: string, title: string }[],
+    options: PlainTextOptions,
+    result: string
+): string {
+    const link = linkStack.pop();
+    if (link && link.href && link.title) {
+        if (options.hyperlinkBehavior === 'url') {
+            result += link.href;
+        } else if (options.hyperlinkBehavior === 'markdown') {
+            result += `[${link.title}](${link.href})`;
+        }
+        // For 'title', do nothing extra (title already added)
+    }
+    return result;
+}
+
+function handleTextToken(
+    t: any,
+    linkStack: { href: string, title: string }[],
+    options: PlainTextOptions,
+    inCode: boolean,
+    result: string
+): string {
+    let txt = t.content;
+    if (!inCode && linkStack.length && linkStack[linkStack.length - 1].href) {
+        // If inside an external link, capture the title for later
+        linkStack[linkStack.length - 1].title += txt;
+        if (options.hyperlinkBehavior === 'title') {
+            result += txt;
+        }
+        // For 'url' and 'markdown', don't add title here (will be handled on link_close)
+    } else {
+        // Remove HTML <img> tags ONLY in text tokens
+        txt = txt.replace(/<img[^>]*>/gi, '');
+        // Collapse 3+ consecutive newlines to 2 ONLY in text tokens
+        txt = txt.replace(/\n{3,}/g, '\n\n');
+        if (options.preserveSuperscript) {
+            txt = txt.replace(/\^([^\^]+)\^/g, '^$1^');
+        } else {
+            txt = txt.replace(/\^([^\^]+)\^/g, '$1');
+        }
+        if (options.preserveSubscript) {
+            txt = txt.replace(/~([^~]+)~/g, '~$1~');
+        } else {
+            txt = txt.replace(/~([^~]+)~/g, '$1');
+        }
+        txt = unescape(txt);
+        result += txt;
+    }
+    return result;
+}
+
 /**
  * Converts markdown-it tokens to plain text, with options to preserve or remove markdown formatting.
  *
@@ -517,52 +588,12 @@ function renderPlainText(
         } else if (!inCode && t.type === 'strong_close') {
             if (options.preserveBold) result += t.markup;
 		} else if (!inCode && t.type === 'link_open') {
-			// Only handle external HTTP/HTTPS links for special behavior
-			const hrefAttr = t.attrs?.find((attr: any) => attr[0] === 'href');
-			const href = hrefAttr ? hrefAttr[1] : '';
-			if (isExternalHttpUrl(href)) {
-				linkStack.push({ href, title: '' });
-			} else {
-				linkStack.push({ href: '', title: '' });
-			}
-		} else if (!inCode && t.type === 'link_close') {
-			const link = linkStack.pop();
-			if (link && link.href && link.title) {
-				if (options.hyperlinkBehavior === 'url') {
-					result += link.href;
-				} else if (options.hyperlinkBehavior === 'markdown') {
-					result += `[${link.title}](${link.href})`;
-				}
-				// For 'title', do nothing extra (title already added)
-			}
-		} else if (t.type === 'text') {
-			let txt = t.content;
-			if (!inCode && linkStack.length && linkStack[linkStack.length - 1].href) {
-				// If inside an external link, capture the title for later
-				linkStack[linkStack.length - 1].title += txt;
-				if (options.hyperlinkBehavior === 'title') {
-					result += txt;
-				}
-				// For 'url' and 'markdown', don't add title here (will be handled on link_close)
-			} else {
-				// Remove HTML <img> tags ONLY in text tokens
-				txt = txt.replace(/<img[^>]*>/gi, '');
-				// Collapse 3+ consecutive newlines to 2 ONLY in text tokens
-				txt = txt.replace(/\n{3,}/g, '\n\n');
-				if (options.preserveSuperscript) {
-					txt = txt.replace(/\^([^\^]+)\^/g, '^$1^');
-				} else {
-					txt = txt.replace(/\^([^\^]+)\^/g, '$1');
-				}
-				if (options.preserveSubscript) {
-					txt = txt.replace(/~([^~]+)~/g, '~$1~');
-				} else {
-					txt = txt.replace(/~([^~]+)~/g, '$1');
-				}
-				txt = unescape(txt);
-				result += txt;
-			}
-		} else if (t.type === 'softbreak' || t.type === 'hardbreak') {
+			result = handleLinkToken(t, linkStack, options, result);
+        } else if (!inCode && t.type === 'link_close') {
+			result = handleLinkCloseToken(linkStack, options, result);
+        } else if (t.type === 'text') {
+			result = handleTextToken(t, linkStack, options, inCode, result);
+        } else if (t.type === 'softbreak' || t.type === 'hardbreak') {
 			result += '\n';
 		} else if (t.type === 'paragraph_close') {
 			result += '\n\n';
