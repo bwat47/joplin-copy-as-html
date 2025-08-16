@@ -435,7 +435,6 @@ function renderPlainText(
     inCode: boolean = false
 ): string {
     let result = '';
-    let orderedIndex = listContext && listContext.type === 'ordered' ? listContext.index : 1;
     let linkStack: { href: string, title: string }[] = [];
     for (let i = 0; i < tokens.length; i++) {
         const t = tokens[i];
