@@ -149,7 +149,11 @@ export function applyPreservedDimensions(html: string, dimensions: Map<string, I
  * @param asyncFn The async function to apply to each match.
  * @returns The processed string.
  */
-export async function replaceAsync(str: string, regex: RegExp, asyncFn: Function): Promise<string> {
+export async function replaceAsync(
+	str: string,
+	regex: RegExp,
+	asyncFn: (match: string, ...args: any[]) => Promise<string>
+): Promise<string> {
 	const promises: Promise<string>[] = [];
 	str.replace(regex, (match, ...args) => {
 		promises.push(asyncFn(match, ...args));
