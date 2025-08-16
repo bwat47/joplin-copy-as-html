@@ -2,6 +2,9 @@ import Token from 'markdown-it/lib/token';
 import { PlainTextOptions, TableData, TableRow, ListItem } from './types';
 import { CONSTANTS } from './constants';
 
+type LinkStackItem = { href: string, title: string };
+type ListContext = { type: 'ordered', index: number } | { type: 'bullet' } | null;
+
 /**
  * Removes markdown backslash escapes from a string.
  * @param text The input string.
@@ -24,7 +27,7 @@ export function isExternalHttpUrl(url: string): boolean {
  * Parses table-related tokens into a structured TableData object.
  * Handles header and body rows, and extracts cell content using renderPlainText for nested formatting.
  */
-export function parseTableTokens(tableTokens: Token[], options: PlainTextOptions, listContext: any, indentLevel: number): TableData {
+export function parseTableTokens(tableTokens: Token[], options: PlainTextOptions, listContext: ListContext, indentLevel: number): TableData {
     let tableRows: TableRow[] = [];
     let currentRow: string[] = [];
     let isHeaderRow = false;
@@ -90,7 +93,7 @@ export function formatTable(tableData: TableData, colWidths: number[]): string {
 }
 
 // Main orchestrator for table rendering
-export function renderTableFromTokens(tableTokens: Token[], options: PlainTextOptions, listContext: any, indentLevel: number): string {
+export function renderTableFromTokens(tableTokens: Token[], options: PlainTextOptions, listContext: ListContext, indentLevel: number): string {
     const tableData = parseTableTokens(tableTokens, options, listContext, indentLevel);
     const colWidths = calculateColumnWidths(tableData);
     return formatTable(tableData, colWidths);
@@ -99,10 +102,12 @@ export function renderTableFromTokens(tableTokens: Token[], options: PlainTextOp
 /**
  * Parses list-related tokens into a structured array of ListItem objects.
  */
-export function parseListTokens(listTokens: Token[], listContext: any, indentLevel: number, options: PlainTextOptions): ListItem[] {
+export function parseListTokens(listTokens: Token[], listContext: ListContext, indentLevel: number, options: PlainTextOptions): ListItem[] {
     let items: ListItem[] = [];
     let ordered = listContext && listContext.type === 'ordered';
-    let index = listContext && listContext.index ? listContext.index : 1;
+    let index = (listContext && listContext.type === 'ordered' && typeof listContext.index === 'number')
+        ? listContext.index
+        : 1;
     for (let i = 0; i < listTokens.length; i++) {
         const t = listTokens[i];
         if (t.type === 'list_item_open') {
@@ -152,7 +157,7 @@ export function formatList(listItems: ListItem[], options: PlainTextOptions): st
 /**
  * Parses and formats a list from markdown-it tokens using the configured options.
  */
-export function renderListFromTokens(listTokens: Token[], listContext: any, indentLevel: number, options: PlainTextOptions): string {
+export function renderListFromTokens(listTokens: Token[], listContext: ListContext, indentLevel: number, options: PlainTextOptions): string {
     const listItems = parseListTokens(listTokens, listContext, indentLevel, options);
     return formatList(listItems, options);
 }
@@ -162,7 +167,7 @@ export function renderListFromTokens(listTokens: Token[], listContext: any, inde
  */
 export function handleLinkToken(
     t: Token,
-    linkStack: { href: string, title: string }[],
+    linkStack: LinkStackItem[],
     options: PlainTextOptions,
     result: string
 ): string {
@@ -181,7 +186,7 @@ export function handleLinkToken(
  * Handles closing of a markdown link token, popping from the stack and appending link text as needed.
  */
 export function handleLinkCloseToken(
-    linkStack: { href: string, title: string }[],
+    linkStack: LinkStackItem[],
     options: PlainTextOptions,
     result: string
 ): string {
@@ -202,7 +207,7 @@ export function handleLinkCloseToken(
  */
 export function handleTextToken(
     t: Token,
-    linkStack: { href: string, title: string }[],
+    linkStack: LinkStackItem[],
     options: PlainTextOptions,
     inCode: boolean,
     result: string
@@ -260,13 +265,13 @@ export function extractBlockTokens(tokens: Token[], startIndex: number): { block
  */
 export function renderPlainText(
     tokens: Token[],
-    listContext: any = null,
+    listContext: ListContext = null,
     indentLevel: number = 0,
     options: PlainTextOptions,
     inCode: boolean = false
 ): string {
     let result = '';
-    let linkStack: { href: string, title: string }[] = [];
+    let linkStack: LinkStackItem[] = [];
     for (let i = 0; i < tokens.length; i++) {
         const t = tokens[i];
 
