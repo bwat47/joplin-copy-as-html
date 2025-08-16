@@ -7,6 +7,7 @@ import { JSDOM } from 'jsdom';
 // Import from your new files
 import { SETTINGS } from './constants';
 import { REGEX_PATTERNS } from './constants';
+import { JOPLIN_RESOURCE_ID_LENGTH } from './constants';
 import { PluginOptions, PlainTextOptions } from './types';
 import {
     extractImageDimensions,
@@ -144,7 +145,7 @@ joplin.plugins.register({
 					html = await replaceAsync(html, REGEX_PATTERNS.IMG_TAG_WITH_RESOURCE, async (match: string, id: string) => {
 						if (!id) return match;
 						// If the ID is not 32 characters, treat as invalid and show error span
-						if (id.length !== 32) {
+						if (id.length !== JOPLIN_RESOURCE_ID_LENGTH) {
 							return `<span style="color: red;">Resource ID “:/${id}” could not be found</span>`;
 						}
 						const base64Result = await convertResourceToBase64(id);

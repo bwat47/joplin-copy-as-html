@@ -28,3 +28,6 @@ export const CONSTANTS = {
     MIN_COLUMN_WIDTH: 3,
     DIMENSION_KEY_PREFIX: 'DIMENSION_'
 };
+
+// Constant for Joplin Resource ID character length
+export const JOPLIN_RESOURCE_ID_LENGTH = 32;
