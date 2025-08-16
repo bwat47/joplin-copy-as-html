@@ -2,6 +2,7 @@ import joplin from 'api';
 import { SettingItemType, ToastType, MenuItemLocation } from 'api/types';
 import * as MarkdownIt from 'markdown-it';
 import { JSDOM } from 'jsdom';
+import Token from 'markdown-it/lib/token';
 
 const SETTINGS = {
 	EMBED_IMAGES: 'embedImages',
@@ -268,7 +269,7 @@ interface TableData {
  * Parses table-related tokens into a structured TableData object.
  * Handles header and body rows, and extracts cell content using renderPlainText for nested formatting.
  */
-function parseTableTokens(tableTokens: any[], options: PlainTextOptions, listContext: any, indentLevel: number): TableData {
+function parseTableTokens(tableTokens: Token[], options: PlainTextOptions, listContext: any, indentLevel: number): TableData {
     let tableRows: TableRow[] = [];
     let currentRow: string[] = [];
     let isHeaderRow = false;
@@ -334,7 +335,7 @@ function formatTable(tableData: TableData, colWidths: number[]): string {
 }
 
 // Main orchestrator for table rendering
-function renderTableFromTokens(tableTokens: any[], options: PlainTextOptions, listContext: any, indentLevel: number): string {
+function renderTableFromTokens(tableTokens: Token[], options: PlainTextOptions, listContext: any, indentLevel: number): string {
     const tableData = parseTableTokens(tableTokens, options, listContext, indentLevel);
     const colWidths = calculateColumnWidths(tableData);
     return formatTable(tableData, colWidths);
@@ -353,7 +354,7 @@ interface ListItem {
 /**
  * Parses list-related tokens into a structured array of ListItem objects.
  */
-function parseListTokens(listTokens: any[], listContext: any, indentLevel: number, options: PlainTextOptions): ListItem[] {
+function parseListTokens(listTokens: Token[], listContext: any, indentLevel: number, options: PlainTextOptions): ListItem[] {
     let items: ListItem[] = [];
     let ordered = listContext && listContext.type === 'ordered';
     let index = listContext && listContext.index ? listContext.index : 1;
@@ -399,7 +400,8 @@ function parseListTokens(listTokens: any[], listContext: any, indentLevel: numbe
  */
 function formatList(listItems: (ListItem & { hasNestedList?: boolean })[], options: PlainTextOptions): string {
     let lines: string[] = [];
-    const anyTopLevelHasNested = listItems.some(item => item.indentLevel === 1 && item.hasNestedList);
+    const topLevelItems = listItems.filter(item => item.indentLevel === 1);
+    const isSimpleTopLevel = topLevelItems.length > 0 && topLevelItems.every(item => !item.hasNestedList);
 
     let prevIndent = listItems.length > 0 ? listItems[0].indentLevel : 1;
     let prevHadNested = false;
@@ -419,7 +421,6 @@ function formatList(listItems: (ListItem & { hasNestedList?: boolean })[], optio
                 (item.indentLevel === prevIndent && prevHadNested)
             )
         ) {
-            // Only add if previous line isn't already blank
             if (lines.length > 0 && lines[lines.length - 1] !== '') {
                 lines.push('');
             }
@@ -430,16 +431,28 @@ function formatList(listItems: (ListItem & { hasNestedList?: boolean })[], optio
         const isTopLevel = item.indentLevel === 1;
         const isLast = i === listItems.length - 1;
 
-        // Add a blank line after every top-level item if any top-level has a nested list (except last)
-        if (isTopLevel && anyTopLevelHasNested && !isLast) {
+        // --- NEW: For simple top-level lists, always add a blank line after each top-level item except the last ---
+        if (isSimpleTopLevel && isTopLevel && !isLast) {
             if (lines.length > 0 && lines[lines.length - 1] !== '') {
                 lines.push('');
             }
         }
-        // Always add a blank line after the last top-level item
-        if (isTopLevel && isLast) {
-            if (lines.length > 0 && lines[lines.length - 1] !== '') {
-                lines.push('');
+        // --- END NEW ---
+
+        // For complex lists, keep your previous logic:
+        if (!isSimpleTopLevel) {
+            // Add a blank line after every top-level item if any top-level has a nested list (except last)
+            const anyTopLevelHasNested = topLevelItems.some(item => item.hasNestedList);
+            if (isTopLevel && anyTopLevelHasNested && !isLast) {
+                if (lines.length > 0 && lines[lines.length - 1] !== '') {
+                    lines.push('');
+                }
+            }
+            // Always add a blank line after the last top-level item
+            if (isTopLevel && isLast) {
+                if (lines.length > 0 && lines[lines.length - 1] !== '') {
+                    lines.push('');
+                }
             }
         }
 
@@ -456,7 +469,7 @@ function formatList(listItems: (ListItem & { hasNestedList?: boolean })[], optio
 /**
  * Parses and formats a list from markdown-it tokens using the configured options.
  */
-function renderListFromTokens(listTokens: any[], listContext: any, indentLevel: number, options: PlainTextOptions): string {
+function renderListFromTokens(listTokens: Token[], listContext: any, indentLevel: number, options: PlainTextOptions): string {
     const listItems = parseListTokens(listTokens, listContext, indentLevel, options);
     return formatList(listItems, options);
 }
@@ -555,7 +568,7 @@ function handleTextToken(
  * @returns             The rendered plain text string.
  */
 function renderPlainText(
-    tokens: any[],
+    tokens: Token[],
     listContext: any = null,
     indentLevel: number = 0,
     options: PlainTextOptions,
@@ -616,7 +629,7 @@ function renderPlainText(
 				j++;
 			}
 			result += renderListFromTokens(subTokens, t.type === 'ordered_list_open' ? { type: 'ordered', index: 1 } : { type: 'bullet' }, indentLevel + 1, options);
-			// Ensure a blank line after lists if the next block is a paragraph, heading, list, or code block.
+			// Ensure two blank lines after lists if the next block is a paragraph, heading, list, or code block.
 			// This matches markdown's expected spacing between lists and other blocks.
 			const nextToken = tokens[j];
 			if (
@@ -629,10 +642,10 @@ function renderPlainText(
 					nextToken.type === 'ordered_list_open' ||
 					nextToken.type === 'fence' ||
 					nextToken.type === 'code_block'
-				) &&
-				!result.endsWith('\n\n')
+				)
 			) {
-				result += '\n';
+				// Ensure exactly two newlines at the end
+				result = result.replace(/\n*$/, '\n\n');
 			}
 			i = j - 1;
 			continue;
