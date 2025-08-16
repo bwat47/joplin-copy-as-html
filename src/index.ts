@@ -578,7 +578,8 @@ function renderPlainText(
 					nextToken.type === 'bullet_list_open' ||
 					nextToken.type === 'ordered_list_open' ||
 					nextToken.type === 'fence' ||
-					nextToken.type === 'code_block'
+					nextToken.type === 'code_block' ||
+					nextToken.type === 'blockquote_open'
 				) &&
 				!result.endsWith('\n\n')
 			) {
@@ -605,7 +606,28 @@ function renderPlainText(
 			result += '\n';
 		} else if (t.type === 'paragraph_close') {
 			result += '\n\n';
-		}
+		} else if (t.type === 'blockquote_close') {
+            result += '\n\n';
+            // Look ahead for the next non-break, non-paragraph token
+            let k = i + 1;
+            while (
+                k < tokens.length &&
+                (
+                    tokens[k].type === 'paragraph_open' ||
+                    tokens[k].type === 'paragraph_close' ||
+                    tokens[k].type === 'softbreak' ||
+                    tokens[k].type === 'hardbreak'
+                )
+            ) {
+                k++;
+            }
+            if (k < tokens.length && tokens[k].type === 'blockquote_open') {
+                // Ensure exactly two newlines between blockquotes
+                result = result.replace(/\n*$/, '\n\n');
+            }
+            // Defensive: collapse any triple newlines to double
+            result = result.replace(/\n{3,}/g, '\n\n');
+        }
 	}
 	return result;
 }
