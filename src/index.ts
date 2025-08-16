@@ -340,6 +340,77 @@ function renderTableFromTokens(tableTokens: any[], options: PlainTextOptions, li
 }
 
 /**
+ * Represents a parsed list item.
+ */
+interface ListItem {
+    content: string;
+    ordered: boolean;
+    index?: number;
+    indentLevel: number;
+}
+
+/**
+ * Parses list-related tokens into a structured array of ListItem objects.
+ */
+function parseListTokens(listTokens: any[], listContext: any, indentLevel: number, options: PlainTextOptions): ListItem[] {
+    let items: ListItem[] = [];
+    let ordered = listContext && listContext.type === 'ordered';
+    let index = listContext && listContext.index ? listContext.index : 1;
+    for (let i = 0; i < listTokens.length; i++) {
+        const t = listTokens[i];
+        if (t.type === 'list_item_open') {
+            // Collect all tokens for this list item
+            let itemTokens = [];
+            let depth = 1;
+            let j = i + 1;
+            while (j < listTokens.length && depth > 0) {
+                if (listTokens[j].type === 'list_item_open') depth++;
+                if (listTokens[j].type === 'list_item_close') depth--;
+                if (depth > 0) itemTokens.push(listTokens[j]);
+                j++;
+            }
+            // Render the content of the list item
+            let content = renderPlainText(itemTokens, listContext, indentLevel, options);
+            items.push({
+                content: content.trim(),
+                ordered,
+                index: ordered ? index : undefined,
+                indentLevel
+            });
+            if (ordered) index++;
+            i = j - 1;
+        }
+    }
+    return items;
+}
+
+/**
+ * Formats the list items as a human-readable plain text string.
+ */
+function formatList(listItems: ListItem[], options: PlainTextOptions): string {
+    let lines: string[] = [];
+    for (const item of listItems) {
+        const indent = item.indentLevel > 1 ? '\t'.repeat(item.indentLevel - 1) : '';
+        const prefix = item.ordered ? `${item.index}. ` : '- ';
+        lines.push(indent + prefix + item.content);
+        lines.push(''); // Always add a blank line after every list item
+    }
+    // Remove trailing blank lines (to avoid extra newlines at the end)
+    while (lines.length > 1 && lines[lines.length - 1] === '' && lines[lines.length - 2] === '') {
+        lines.pop();
+    }
+    return lines.join('\n');
+}
+
+/**
+ * Orchestrates list rendering by parsing tokens and formatting the list.
+ */
+function renderListFromTokens(listTokens: any[], listContext: any, indentLevel: number, options: PlainTextOptions): string {
+    const listItems = parseListTokens(listTokens, listContext, indentLevel, options);
+    return formatList(listItems, options);
+}
+
+/**
  * Converts markdown-it tokens to plain text, with options to preserve or remove markdown formatting.
  *
  * Features:
@@ -404,67 +475,40 @@ function renderPlainText(
 			}
 		} else if (t.type === 'heading_close') {
 			result += '\n\n';
-		} else if (t.type === 'bullet_list_open') {
-            // Indent nested bullet lists by increasing indentLevel.
-            // Top-level lists (indentLevel === 1) have no indent.
-            // Nested lists (indentLevel > 1) are indented by one tab per level.
-            let subTokens = [];
-            let depth = 1;
-            for (let j = i + 1; j < tokens.length; j++) {
-                if (tokens[j].type === 'bullet_list_open') depth++;
-                if (tokens[j].type === 'bullet_list_close') depth--;
-                if (depth === 0) break;
-                subTokens.push(tokens[j]);
-            }
-            result += renderPlainText(subTokens, { type: 'bullet' }, indentLevel + 1, options);
-            i += subTokens.length;
-
-        } else if (t.type === 'ordered_list_open') {
-            // Indent nested ordered lists by increasing indentLevel.
-            // Top-level lists (indentLevel === 1) have no indent.
-            // Nested lists (indentLevel > 1) are indented by one tab per level.
-            let subTokens = [];
-            let depth = 1;
-            let start = 1;
-            if (t.attrs) {
-                const startAttr = t.attrs.find(attr => attr[0] === 'start');
-                if (startAttr) start = parseInt(startAttr[1]);
-            }
-            let idx = start;
-            for (let j = i + 1; j < tokens.length; j++) {
-                if (tokens[j].type === 'ordered_list_open') depth++;
-                if (tokens[j].type === 'ordered_list_close') depth--;
-                if (depth === 0) break;
-                if (tokens[j].type === 'bullet_list_open' && depth === 1) {
-                    let bulletDepth = 1;
-                    subTokens.push(tokens[j]);
-                    for (let k = j + 1; k < tokens.length; k++) {
-                        if (tokens[k].type === 'bullet_list_open') bulletDepth++;
-                        if (tokens[k].type === 'bullet_list_close') bulletDepth--;
-                        subTokens.push(tokens[k]);
-                        if (bulletDepth === 0) {
-                            j = k;
-                            break;
-                        }
-                    }
-                    continue;
-                }
-                if (tokens[j].type === 'list_item_open' && depth === 1) {
-                    tokens[j].orderedIndex = idx++;
-                }
-                subTokens.push(tokens[j]);
-            }
-            result += renderPlainText(subTokens, { type: 'ordered', index: start }, indentLevel + 1, options);
-            i += subTokens.length;
-
-        } else if (t.type === 'list_item_open') {
-            // Only indent if indentLevel > 1 (top-level lists have no indent)
-            const indent = indentLevel > 1 ? '\t'.repeat(indentLevel - 1) : '';
-            if (listContext && listContext.type === 'ordered' && typeof t.orderedIndex !== 'undefined') {
-                result += indent + t.orderedIndex + '. ';
-            } else {
-                result += indent + '- ';
-            }
+		} else if (t.type === 'bullet_list_open' || t.type === 'ordered_list_open') {
+			// Collect all tokens until the matching list_close
+			let subTokens = [];
+			let depth = 1;
+			let j = i + 1;
+			while (j < tokens.length && depth > 0) {
+				if (tokens[j].type === t.type) depth++;
+				if (
+					(t.type === 'bullet_list_open' && tokens[j].type === 'bullet_list_close') ||
+					(t.type === 'ordered_list_open' && tokens[j].type === 'ordered_list_close')
+				) depth--;
+				if (depth > 0) subTokens.push(tokens[j]);
+				j++;
+			}
+			result += renderListFromTokens(subTokens, t.type === 'ordered_list_open' ? { type: 'ordered', index: 1 } : { type: 'bullet' }, indentLevel + 1, options);
+			const nextToken = tokens[j];
+			if (
+				nextToken &&
+				(
+					nextToken.type === 'paragraph_open' ||
+					nextToken.type === 'heading_open' ||
+					nextToken.type === 'text' ||
+					nextToken.type === 'bullet_list_open' ||
+					nextToken.type === 'ordered_list_open' ||
+					nextToken.type === 'fence' ||
+					nextToken.type === 'code_block'
+				) &&
+				!result.endsWith('\n\n')
+			) {
+				result += '\n';
+			}
+			i = j - 1;
+			continue;
+		
 		} else if (!inCode && t.type === 'em_open') {
             if (options.preserveEmphasis) result += t.markup;
         } else if (!inCode && t.type === 'em_close') {
