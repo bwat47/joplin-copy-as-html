@@ -382,12 +382,12 @@ function parseListTokens(listTokens: Token[], listContext: any, indentLevel: num
             // Render the content of the list item
             let content = renderPlainText(itemTokens, listContext, indentLevel, options);
             items.push({
-                content: content.trim(),
-                ordered,
-                index: ordered ? index : undefined,
-                indentLevel,
-                hasNestedList, // <-- add this property
-            } as ListItem & { hasNestedList: boolean });
+			content: content.trim(),
+			ordered,
+			index: ordered ? index : undefined,
+			indentLevel,
+			hasNestedList,
+		} as ListItem & { hasNestedList: boolean });
             if (ordered) index++;
             i = j - 1;
         }
@@ -668,7 +668,27 @@ function renderPlainText(
 			result += '\n';
 		} else if (t.type === 'paragraph_close') {
 			result += '\n\n';
-		}
+		} else if (t.type === 'blockquote_close') {
+            result += '\n\n';
+            // Ensure blank line between consecutive blockquotes (even with paragraph in between)
+            let k = i + 1;
+            // Skip over any paragraph_open/close or softbreak/hardbreak tokens
+            while (
+                k < tokens.length &&
+                (
+                    tokens[k].type === 'paragraph_open' ||
+                    tokens[k].type === 'paragraph_close' ||
+                    tokens[k].type === 'softbreak' ||
+                    tokens[k].type === 'hardbreak'
+                )
+            ) {
+                k++;
+            }
+            if (k < tokens.length && tokens[k].type === 'blockquote_open') {
+                // Ensure exactly two newlines between blockquotes
+                result = result.replace(/\n*$/, '\n\n');
+            }
+        }
 	}
 	return result;
 }
