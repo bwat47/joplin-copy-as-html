@@ -182,7 +182,8 @@ export async function convertResourceToBase64(id: string): Promise<string> {
 		try {
 			fileBuffer = extractFileBuffer(fileObj);
 		} catch (err) {
-			return `<span style="color: red; font-style: italic;">Resource ID ":/${id}" could not be retrieved: ${err}</span>`;
+			const msg = err && err.message ? err.message : String(err);
+			return `<span style="color: red; font-style: italic;">Resource ID ":/${id}" could not be retrieved: ${msg}</span>`;
 		}
 		const base64 = fileBuffer.toString('base64');
         return `data:${resource.mime};base64,${base64}`;
