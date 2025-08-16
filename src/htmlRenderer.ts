@@ -1,7 +1,7 @@
 import joplin from 'api';
 import { JSDOM } from 'jsdom';
 import { CONSTANTS, REGEX_PATTERNS } from './constants';
-import { ImageDimensions, MarkdownSegment } from './types';
+import { ImageDimensions, MarkdownSegment, JoplinFileData, JoplinResource } from './types';
 
 /**
  * Creates a consistent error HTML span for resource errors.
@@ -99,7 +99,7 @@ export function extractImageDimensions(markdown: string, embedImages: boolean): 
  * @param dimensions Map of dimension keys to attribute objects.
  * @returns The HTML string with dimensions applied.
  */
-export function applyPreservedDimensions(html: string, dimensions: Map<string, any>): string {
+export function applyPreservedDimensions(html: string, dimensions: Map<string, ImageDimensions>): string {
 	for (const [dimensionKey, attrs] of dimensions) {
 		// Find img tags that were created from our dimension markers
 		const imgRegex = new RegExp(`<img([^>]*alt=["']${dimensionKey}["'][^>]*)>`, 'gi');
@@ -164,7 +164,7 @@ export async function replaceAsync(str: string, regex: RegExp, asyncFn: Function
  * @param id The Joplin resource ID.
  * @returns A base64 data URL string or an error HTML span.
  */
-function extractFileBuffer(fileObj: any): Buffer {
+function extractFileBuffer(fileObj: JoplinFileData): Buffer {
 	if (!fileObj) {
 		throw new Error('No file object provided');
 	}
@@ -192,7 +192,7 @@ export async function convertResourceToBase64(id: string): Promise<string> {
         return createErrorSpan(`Resource ID ":/${id}" is not a valid Joplin resource ID.`);
     }
     try {
-        const resource = await joplin.data.get(['resources', id], { fields: ['id', 'mime'] });
+        const resource = await joplin.data.get(['resources', id], { fields: ['id', 'mime'] }) as JoplinResource;
         if (!resource || !resource.mime.startsWith('image/')) {
             return createErrorSpan(`Resource ID ":/${id}" could not be found or is not an image.`);
         }
@@ -200,7 +200,7 @@ export async function convertResourceToBase64(id: string): Promise<string> {
         const fileObj = await Promise.race([
             joplin.data.get(['resources', id, 'file']),
             new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout retrieving resource file')), CONSTANTS.BASE64_TIMEOUT_MS))
-        ]);
+        ]) as JoplinFileData;
         let fileBuffer: Buffer;
         try {
             fileBuffer = extractFileBuffer(fileObj);
