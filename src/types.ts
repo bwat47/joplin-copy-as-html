@@ -40,3 +40,14 @@ export interface ListItem {
     index?: number;
     indentLevel: number;
 }
+
+export interface JoplinResource {
+    id: string;
+    mime: string;
+}
+
+export interface JoplinFileData {
+    body?: Buffer | Uint8Array;
+    data?: Buffer | Uint8Array;
+    content?: Buffer | Uint8Array;
+}
