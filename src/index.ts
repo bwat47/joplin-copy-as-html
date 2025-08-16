@@ -16,6 +16,7 @@ import {
     replaceAsync
 } from './htmlRenderer';
 import { renderPlainText } from './plainTextRenderer';
+import { validatePlainTextSettings, validateEmbedImagesSetting } from './utils';
 
 joplin.plugins.register({
 	onStart: async function() {
@@ -109,7 +110,7 @@ joplin.plugins.register({
 				const globalSupEnabled = await joplin.settings.globalValue('markdown.plugin.sup');
 				const globalMarkEnabled = await joplin.settings.globalValue('markdown.plugin.mark');
 				const globalSoftBreaksEnabled = await joplin.settings.globalValue('markdown.plugin.softbreaks');
-				const embedImages = await joplin.settings.value(SETTINGS.EMBED_IMAGES);
+				const embedImages = validateEmbedImagesSetting(await joplin.settings.value(SETTINGS.EMBED_IMAGES));
 
 				// Handle soft breaks
 				if (!globalSoftBreaksEnabled) {
@@ -217,6 +218,17 @@ joplin.plugins.register({
             iconName: 'fas fa-copy',
             when: 'markdownEditorVisible',
             execute: async () => {
+                // Gather settings
+                const plainTextSettings = {
+                    preserveSuperscript: await joplin.settings.value(SETTINGS.PRESERVE_SUPERSCRIPT),
+                    preserveSubscript: await joplin.settings.value(SETTINGS.PRESERVE_SUBSCRIPT),
+                    preserveEmphasis: await joplin.settings.value(SETTINGS.PRESERVE_EMPHASIS),
+                    preserveBold: await joplin.settings.value(SETTINGS.PRESERVE_BOLD),
+                    preserveHeading: await joplin.settings.value(SETTINGS.PRESERVE_HEADING),
+                    hyperlinkBehavior: await joplin.settings.value(SETTINGS.HYPERLINK_BEHAVIOR),
+                };
+                const plainTextOptions = validatePlainTextSettings(plainTextSettings);
+
                 // Get selected markdown
                 const selection = await joplin.commands.execute('editor.execCommand', { name: 'getSelection' });
                 if (!selection) {
@@ -224,25 +236,12 @@ joplin.plugins.register({
                     return;
                 }
 
-                // Get preservation settings
-                const preserveSuperscript = await joplin.settings.value(SETTINGS.PRESERVE_SUPERSCRIPT);
-                const preserveSubscript = await joplin.settings.value(SETTINGS.PRESERVE_SUBSCRIPT);
-                const preserveEmphasis = await joplin.settings.value(SETTINGS.PRESERVE_EMPHASIS);
-                const preserveBold = await joplin.settings.value(SETTINGS.PRESERVE_BOLD);
-                const preserveHeading = await joplin.settings.value(SETTINGS.PRESERVE_HEADING);
-                const hyperlinkBehavior = await joplin.settings.value(SETTINGS.HYPERLINK_BEHAVIOR) as 'title' | 'url' | 'markdown';
-
                 // Use markdown-it to parse and render plain text
                 const md = new MarkdownIt();
                 const tokens = md.parse(selection, {});
 
                 let plainText = renderPlainText(tokens, null, 0, {
-                    preserveHeading,
-                    preserveEmphasis,
-                    preserveBold,
-                    preserveSuperscript,
-                    preserveSubscript,
-                    hyperlinkBehavior
+                    ...plainTextOptions
                 });
 
 				// Copy to clipboard as plain text with error handling
