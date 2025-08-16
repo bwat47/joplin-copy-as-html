@@ -517,79 +517,62 @@ function renderPlainText(
     for (let i = 0; i < tokens.length; i++) {
         const t = tokens[i];
         if (t.type === 'table_open') {
-			// Collect all tokens until table_close
-			let tableTokens = [];
-			let depth = 1;
-			let j = i + 1;
-			while (j < tokens.length && depth > 0) {
-				if (tokens[j].type === 'table_open') depth++;
-				if (tokens[j].type === 'table_close') depth--;
-				tableTokens.push(tokens[j]);
-				j++;
-			}
-			result += renderTableFromTokens(tableTokens, options, listContext, indentLevel);
-			i = j - 1;
-			continue;
-		}
-		if (t.type === 'fence' || t.type === 'code_block') {
-			// Output code block content only (no backticks or formatting)
-			result += t.content + '\n';
-		} else if (t.type === 'code_inline') {
-			// Output inline code content only (no backticks or formatting)
-			result += t.content;
-		} else if (t.type === 'inline' && t.children) {
-			// If we're inside code, pass inCode=true to children
-			result += renderPlainText(
+            const { blockTokens: tableTokens, endIndex } = extractBlockTokens(tokens, i);
+            result += renderTableFromTokens(tableTokens, options, listContext, indentLevel);
+            i = endIndex;
+            continue;
+        }
+        if (t.type === 'fence' || t.type === 'code_block') {
+            // Output code block content only (no backticks or formatting)
+            result += t.content + '\n';
+        } else if (t.type === 'code_inline') {
+            // Output inline code content only (no backticks or formatting)
+            result += t.content;
+        } else if (t.type === 'inline' && t.children) {
+            // If we're inside code, pass inCode=true to children
+            result += renderPlainText(
                 t.children,
                 listContext,
                 indentLevel,
                 options,
                 inCode
             );
-		} else if (t.type === 'heading_open') {
-			if (options.preserveHeading) {
-				result += '#'.repeat(parseInt(t.tag[1])) + ' ';
-			}
-		} else if (t.type === 'heading_close') {
-			result += '\n\n';
-		} else if (t.type === 'bullet_list_open' || t.type === 'ordered_list_open') {
-			// Collect all tokens until the matching list_close
-			let subTokens = [];
-			let depth = 1;
-			let j = i + 1;
-			while (j < tokens.length && depth > 0) {
-				if (tokens[j].type === t.type) depth++;
-				if (
-					(t.type === 'bullet_list_open' && tokens[j].type === 'bullet_list_close') ||
-					(t.type === 'ordered_list_open' && tokens[j].type === 'ordered_list_close')
-				) depth--;
-				if (depth > 0) subTokens.push(tokens[j]);
-				j++;
-			}
-			result += renderListFromTokens(subTokens, t.type === 'ordered_list_open' ? { type: 'ordered', index: 1 } : { type: 'bullet' }, indentLevel + 1, options);
-			// Ensure a blank line after lists if the next block is a paragraph, heading, list, or code block.
-			// This matches markdown's expected spacing between lists and other blocks.
-			const nextToken = tokens[j];
-			if (
-				nextToken &&
-				(
-					nextToken.type === 'paragraph_open' ||
-					nextToken.type === 'heading_open' ||
-					nextToken.type === 'text' ||
-					nextToken.type === 'bullet_list_open' ||
-					nextToken.type === 'ordered_list_open' ||
-					nextToken.type === 'fence' ||
-					nextToken.type === 'code_block' ||
-					nextToken.type === 'blockquote_open'
-				) &&
-				!result.endsWith('\n\n')
-			) {
-				result += '\n';
-			}
-			i = j - 1;
-			continue;
-		
-		} else if (!inCode && t.type === 'em_open') {
+        } else if (t.type === 'heading_open') {
+            if (options.preserveHeading) {
+                result += '#'.repeat(parseInt(t.tag[1])) + ' ';
+            }
+        } else if (t.type === 'heading_close') {
+            result += '\n\n';
+        } else if (t.type === 'bullet_list_open' || t.type === 'ordered_list_open') {
+            const { blockTokens: subTokens, endIndex } = extractBlockTokens(tokens, i);
+            result += renderListFromTokens(
+                subTokens,
+                t.type === 'ordered_list_open' ? { type: 'ordered', index: 1 } : { type: 'bullet' },
+                indentLevel + 1,
+                options
+            );
+            // Ensure a blank line after lists if the next block is a paragraph, heading, list, or code block.
+            // This matches markdown's expected spacing between lists and other blocks.
+            const nextToken = tokens[endIndex + 1];
+            if (
+                nextToken &&
+                (
+                    nextToken.type === 'paragraph_open' ||
+                    nextToken.type === 'heading_open' ||
+                    nextToken.type === 'text' ||
+                    nextToken.type === 'bullet_list_open' ||
+                    nextToken.type === 'ordered_list_open' ||
+                    nextToken.type === 'fence' ||
+                    nextToken.type === 'code_block' ||
+                    nextToken.type === 'blockquote_open'
+                ) &&
+                !result.endsWith('\n\n')
+            ) {
+                result += '\n';
+            }
+            i = endIndex;
+            continue;
+        } else if (!inCode && t.type === 'em_open') {
             if (options.preserveEmphasis) result += t.markup;
         } else if (!inCode && t.type === 'em_close') {
             if (options.preserveEmphasis) result += t.markup;
@@ -597,17 +580,17 @@ function renderPlainText(
             if (options.preserveBold) result += t.markup;
         } else if (!inCode && t.type === 'strong_close') {
             if (options.preserveBold) result += t.markup;
-		} else if (!inCode && t.type === 'link_open') {
-			result = handleLinkToken(t, linkStack, options, result);
+        } else if (!inCode && t.type === 'link_open') {
+            result = handleLinkToken(t, linkStack, options, result);
         } else if (!inCode && t.type === 'link_close') {
-			result = handleLinkCloseToken(linkStack, options, result);
+            result = handleLinkCloseToken(linkStack, options, result);
         } else if (t.type === 'text') {
-			result = handleTextToken(t, linkStack, options, inCode, result);
+            result = handleTextToken(t, linkStack, options, inCode, result);
         } else if (t.type === 'softbreak' || t.type === 'hardbreak') {
-			result += '\n';
-		} else if (t.type === 'paragraph_close') {
-			result += '\n\n';
-		} else if (t.type === 'blockquote_close') {
+            result += '\n';
+        } else if (t.type === 'paragraph_close') {
+            result += '\n\n';
+        } else if (t.type === 'blockquote_close') {
             result += '\n\n';
             // Look ahead for the next non-break, non-paragraph token
             let k = i + 1;
@@ -629,8 +612,27 @@ function renderPlainText(
             // Defensive: collapse any triple newlines to double
             result = result.replace(/\n{3,}/g, '\n\n');
         }
-	}
-	return result;
+    }
+    return result;
+}
+
+/**
+ * Extracts a slice of tokens from an opening token to its corresponding closing token.
+ */
+function extractBlockTokens(tokens: Token[], startIndex: number): { blockTokens: Token[], endIndex: number } {
+    const startToken = tokens[startIndex];
+    const closeType = startToken.type.replace('_open', '_close');
+    const blockTokens: Token[] = [];
+    let depth = 1;
+    let i = startIndex + 1;
+    while (i < tokens.length && depth > 0) {
+        const currentToken = tokens[i];
+        if (currentToken.type === startToken.type) depth++;
+        if (currentToken.type === closeType) depth--;
+        if (depth > 0) blockTokens.push(currentToken);
+        i++;
+    }
+    return { blockTokens, endIndex: i - 1 };
 }
 
 joplin.plugins.register({
