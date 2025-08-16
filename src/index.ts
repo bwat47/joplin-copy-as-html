@@ -403,14 +403,15 @@ function formatList(listItems: ListItem[], options: PlainTextOptions): string {
 }
 
 /**
- * Orchestrates list rendering by parsing tokens and formatting the list.
+ * Parses and formats a list from markdown-it tokens using the configured options.
  */
 function renderListFromTokens(listTokens: any[], listContext: any, indentLevel: number, options: PlainTextOptions): string {
     const listItems = parseListTokens(listTokens, listContext, indentLevel, options);
     return formatList(listItems, options);
 }
-
-// Link handling helper
+/**
+ * Handles opening of a markdown link token, pushing link info onto the stack.
+ */
 function handleLinkToken(
     t: any,
     linkStack: { href: string, title: string }[],
@@ -427,7 +428,9 @@ function handleLinkToken(
     }
     return result;
 }
-
+/**
+ * Handles closing of a markdown link token, popping from the stack and appending link text as needed.
+ */
 function handleLinkCloseToken(
     linkStack: { href: string, title: string }[],
     options: PlainTextOptions,
@@ -444,7 +447,9 @@ function handleLinkCloseToken(
     }
     return result;
 }
-
+/**
+ * Handles a text token, including link title capture and formatting options.
+ */
 function handleTextToken(
     t: any,
     linkStack: { href: string, title: string }[],
@@ -560,6 +565,8 @@ function renderPlainText(
 				j++;
 			}
 			result += renderListFromTokens(subTokens, t.type === 'ordered_list_open' ? { type: 'ordered', index: 1 } : { type: 'bullet' }, indentLevel + 1, options);
+			// Ensure a blank line after lists if the next block is a paragraph, heading, list, or code block.
+			// This matches markdown's expected spacing between lists and other blocks.
 			const nextToken = tokens[j];
 			if (
 				nextToken &&
