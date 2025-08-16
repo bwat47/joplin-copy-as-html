@@ -178,7 +178,19 @@ function extractFileBuffer(fileObj: any): Buffer {
 	return Buffer.isBuffer(buffer) ? buffer : Buffer.from(buffer);
 }
 
+/**
+ * Validates that a string is a valid Joplin resource ID (32 hex characters).
+ * @param id The resource ID to validate.
+ * @returns True if valid, false otherwise.
+ */
+function validateResourceId(id: string): boolean {
+    return !!id && typeof id === 'string' && /^[a-f0-9]{32}$/i.test(id);
+}
+
 export async function convertResourceToBase64(id: string): Promise<string> {
+    if (!validateResourceId(id)) {
+        return createErrorSpan(`Resource ID ":/${id}" is not a valid Joplin resource ID.`);
+    }
     try {
         const resource = await joplin.data.get(['resources', id], { fields: ['id', 'mime'] });
         if (!resource || !resource.mime.startsWith('image/')) {
@@ -189,14 +201,14 @@ export async function convertResourceToBase64(id: string): Promise<string> {
             joplin.data.get(['resources', id, 'file']),
             new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout retrieving resource file')), CONSTANTS.BASE64_TIMEOUT_MS))
         ]);
-		let fileBuffer: Buffer;
-		try {
-			fileBuffer = extractFileBuffer(fileObj);
-		} catch (err) {
-			const msg = err && err.message ? err.message : String(err);
-			return createErrorSpan(`Resource ID ":/${id}" could not be retrieved: ${msg}`);
-		}
-		const base64 = fileBuffer.toString('base64');
+        let fileBuffer: Buffer;
+        try {
+            fileBuffer = extractFileBuffer(fileObj);
+        } catch (err) {
+            const msg = err && err.message ? err.message : String(err);
+            return createErrorSpan(`Resource ID ":/${id}" could not be retrieved: ${msg}`);
+        }
+        const base64 = fileBuffer.toString('base64');
         return `data:${resource.mime};base64,${base64}`;
     } catch (err) {
         console.error(`[copy-as-html] Failed to convert resource :/${id} to base64:`, err);
