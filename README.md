@@ -57,10 +57,10 @@ If enabled, `**TEST*`* or `__TEST__` will remain as-is in plain text output.
 If enabled, `## TEST` will remain as-is in plain text output.
 
 - Preserve highlight characters `(==TEST==)`
-If enabled, `==mark==` will remain as-is in plain text output.
+If enabled, `==TEST==` will remain as-is in plain text output.
 
 - Preserve insert characters `(++TEST++)`
-If enabled, `++insert++` will remain as-is in plain text output.
+If enabled, `++TEST++` will remain as-is in plain text output.
 
 As of version 1.0.15, the following options are provided for external hyperlinks (only impacts markdown links containing http/https URL):
 
