@@ -315,6 +315,9 @@ export async function processHtmlConversion(selection: string): Promise<string> 
                     el.remove();
                 }
             });
+            // Remove Joplin-specific onclick attributes from all <a> tags
+            const links = renderedMd.querySelectorAll('a[onclick]');
+            links.forEach(link => link.removeAttribute('onclick'));
             fragment = renderedMd.innerHTML.trim();
         } else {
             console.warn('[copy-as-html] #rendered-md not found, using full HTML');
