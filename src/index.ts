@@ -1,17 +1,11 @@
 import joplin from 'api';
 import { SettingItemType, ToastType, MenuItemLocation } from 'api/types';
-import * as MarkdownIt from 'markdown-it';
-import Token from 'markdown-it/lib/token';
-import { JSDOM } from 'jsdom';
+import { convertMarkdownToPlainText } from './plainTextRenderer';
 
 // Import from your new files
 import { SETTINGS } from './constants';
-import { REGEX_PATTERNS } from './constants';
-import { JOPLIN_RESOURCE_ID_LENGTH } from './constants';
-import { PluginOptions, PlainTextOptions } from './types';
 import { processHtmlConversion } from './htmlRenderer';
-import { renderPlainText } from './plainTextRenderer';
-import { validatePlainTextSettings, validateEmbedImagesSetting } from './utils';
+import { validatePlainTextSettings } from './utils';
 
 joplin.plugins.register({
 	onStart: async function() {
@@ -139,22 +133,16 @@ joplin.plugins.register({
                     return;
                 }
 
-                // Use markdown-it to parse and render plain text
-                const md = new MarkdownIt();
-                const tokens = md.parse(selection, {});
+                const plainText = convertMarkdownToPlainText(selection, plainTextOptions);
 
-                let plainText = renderPlainText(tokens, null, 0, {
-                    ...plainTextOptions
-                });
-
-				// Copy to clipboard as plain text with error handling
-				try {
-					await joplin.clipboard.writeText(plainText);
-					await joplin.views.dialogs.showToast({ message: 'Copied selection as Plain Text!', type: ToastType.Success });
-				} catch (err) {
-					console.error('[copy-as-html] Clipboard writeText error:', err);
-					await joplin.views.dialogs.showToast({ message: 'Failed to copy as Plain Text: ' + (err?.message || err), type: ToastType.Error });
-				}
+                // Copy to clipboard as plain text with error handling
+                try {
+                    await joplin.clipboard.writeText(plainText);
+                    await joplin.views.dialogs.showToast({ message: 'Copied selection as Plain Text!', type: ToastType.Success });
+                } catch (err) {
+                    console.error('[copy-as-html] Clipboard writeText error:', err);
+                    await joplin.views.dialogs.showToast({ message: 'Failed to copy as Plain Text: ' + (err?.message || err), type: ToastType.Error });
+                }
             },
         });
 
