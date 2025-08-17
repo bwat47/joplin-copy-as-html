@@ -293,7 +293,9 @@ export async function processHtmlConversion(selection: string): Promise<string> 
         });
     }
 
-    // Extract the final HTML using jsdom
+    // Use JSDOM to reliably extract #rendered-md content to get clean semantic HTML fragment
+	// Regex parsing proved unreliable due to nested HTML complexity
+	// Also remove source blocks (to prevent duplicate code blocks when pasting)
     let fragment = html.trim();
     try {
         const dom = new JSDOM(html);
