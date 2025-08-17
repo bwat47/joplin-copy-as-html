@@ -203,6 +203,7 @@ export async function convertResourceToBase64(id: string): Promise<string> {
             return createErrorSpan(`Resource ID ":/${id}" could not be found or is not an image.`);
         }
 
+		// Timeout handling- underlying request is not cancelled, but doesn't seem to cause any issues
         const fileObj = await Promise.race([
             joplin.data.get(['resources', id, 'file']),
             new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout retrieving resource file')), CONSTANTS.BASE64_TIMEOUT_MS))
