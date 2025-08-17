@@ -244,17 +244,6 @@ export async function processHtmlConversion(selection: string): Promise<string> 
     const globalSoftBreaksEnabled = await joplin.settings.globalValue('markdown.plugin.softbreaks');
     const embedImages = validateEmbedImagesSetting(await joplin.settings.value(SETTINGS.EMBED_IMAGES));
 
-    // DEBUG
-    console.log('Joplin global plugin settings:', {
-        sub: globalSubEnabled,
-        sup: globalSupEnabled,
-        mark: globalMarkEnabled,
-        ins: globalInsEnabled,
-        softbreaks: globalSoftBreaksEnabled,
-        embedImages,
-    });
-    // DEBUG
-
     // Handle soft breaks
     let processedSelection = selection;
     if (!globalSoftBreaksEnabled) {
@@ -271,9 +260,6 @@ export async function processHtmlConversion(selection: string): Promise<string> 
     if (!globalSupEnabled) pluginOptions.sup = { enabled: false };
     if (!globalMarkEnabled) pluginOptions.mark = { enabled: false };
     if (!globalInsEnabled) pluginOptions.insert = { enabled: false };
-
-    // DEBUG
-    console.log('pluginOptions passed to MarkupToHtml:', pluginOptions);
 
     const markupToHtml = new MarkupToHtml({ pluginOptions });
 
