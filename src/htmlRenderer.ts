@@ -3,7 +3,7 @@ import { JSDOM } from 'jsdom';
 import { CONSTANTS, REGEX_PATTERNS } from './constants';
 import { ImageDimensions, MarkdownSegment, JoplinFileData, JoplinResource } from './types';
 import { validateEmbedImagesSetting } from './utils';
-import { SETTINGS, JOPLIN_RESOURCE_ID_LENGTH } from './constants';
+import { SETTINGS } from './constants';
 
 /**
  * Creates a consistent error HTML span for resource errors.
@@ -269,8 +269,7 @@ export async function processHtmlConversion(selection: string): Promise<string> 
     if (embedImages) {
         // Replace src attribute for Joplin resource images with base64 data
         html = await replaceAsync(html, REGEX_PATTERNS.IMG_TAG_WITH_RESOURCE, async (match: string, id: string) => {
-            if (!id) return match;
-            if (id.length !== JOPLIN_RESOURCE_ID_LENGTH) {
+            if (!validateResourceId(id)) {
                 return `<span style="color: red;">Resource ID “:/${id}” could not be found</span>`;
             }
             const base64Result = await convertResourceToBase64(id);
