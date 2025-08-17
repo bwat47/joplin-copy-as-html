@@ -4,11 +4,11 @@
 	"app_min_version": "3.3",
 	"version": "1.0.19",
 	"name": "Copy as HTML",
-	"description": "Allows you to copy text with HTML (rich text) formatting from the markdown editor without excess styling.",
+	"description": "Allows you to copy text with HTML (rich text) formatting from the markdown editor (including images). Also allows you to copy as plain text (without markdown formatting)",
 	"author": "bwat47",
 	"homepage_url": "https://github.com/bwat47/joplin-copy-as-html",
 	"repository_url": "https://github.com/bwat47/joplin-copy-as-html",
-	"keywords": ["Copy", "HTML", "Text"],
+	"keywords": ["Copy", "HTML", "Text", "Images", "Image"],
 	"categories": ["productivity"],
 	"screenshots": [
 		{ "src": "images/copy-as-html1.png", "label": "Copy as HTML example 1" },
