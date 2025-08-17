@@ -315,31 +315,6 @@ export function renderPlainText(
 
         if (t.type === 'fence' || t.type === 'code_block') {
             result += t.content + '\n';
-
-            // Look ahead past any list/item closes to the next significant block
-            let k = i + 1;
-            while (
-                k < tokens.length &&
-                (
-                    tokens[k].type === 'list_item_close' ||
-                    tokens[k].type === 'bullet_list_close' ||
-                    tokens[k].type === 'ordered_list_close'
-                )
-            ) {
-                k++;
-            }
-            const nextToken = tokens[k];
-            if (
-                nextToken &&
-                (
-                    nextToken.type === 'heading_open' ||
-                    nextToken.type === 'hr' ||
-                    nextToken.type === 'thematic_break'
-                )
-            ) {
-                // Ensure two newlines before heading or horizontal rule
-                if (!result.endsWith('\n\n')) result = result.replace(/\n*$/, '\n\n');
-            }
         } else if (t.type === 'code_inline') {
             result += t.content;
         } else if (t.type === 'inline' && t.children) {
