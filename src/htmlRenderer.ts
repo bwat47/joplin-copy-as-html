@@ -310,10 +310,12 @@ export async function processHtmlConversion(selection: string): Promise<string> 
             });
             fragment = renderedMd.innerHTML.trim();
         } else {
+            console.warn('[copy-as-html] #rendered-md not found, using full HTML');
             fragment = html.trim();
         }
     } catch (err) {
-        console.error('[copy-as-html] jsdom extraction error:', err);
+        console.error('[copy-as-html] JSDOM parsing failed:', err);
+        fragment = html.trim();
     }
 
     return fragment;
