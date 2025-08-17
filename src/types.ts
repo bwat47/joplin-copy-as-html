@@ -14,7 +14,7 @@ export interface PluginOptions {
     sub?: { enabled: boolean };
     sup?: { enabled: boolean };
     mark?: { enabled: boolean };
-    ins?: { enabled: boolean };
+    insert?: { enabled: boolean };
 }
 
 export interface PlainTextOptions {
