@@ -5,9 +5,9 @@ export const SETTINGS = {
 	PRESERVE_EMPHASIS: 'preserveEmphasis',
 	PRESERVE_BOLD: 'preserveBold',
 	PRESERVE_HEADING: 'preserveHeading',
-	HYPERLINK_BEHAVIOR: 'hyperlinkBehavior',
 	PRESERVE_MARK: 'preserveMark',
 	PRESERVE_INSERT: 'preserveInsert',
+	HYPERLINK_BEHAVIOR: 'hyperlinkBehavior',
 };
 
 // Regex patterns for Joplin resource and image handling
