@@ -66,13 +66,13 @@
 		},
 		"preserveMark": {
 			"type": "bool",
-			"label": "Preserve ==mark== in plain text",
+			"label": "Preserve highlight characters",
 			"description": "If enabled, ==mark== will remain as-is in plain text output.",
 			"value": false
 		},
 		"preserveInsert": {
 			"type": "bool",
-			"label": "Preserve ++insert++ in plain text",
+			"label": "Preserve insert characters",
 			"description": "If enabled, ++insert++ will remain as-is in plain text output.",
 			"value": false
 		},

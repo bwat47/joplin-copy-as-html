@@ -69,7 +69,7 @@ joplin.plugins.register({
 				type: SettingItemType.Bool,
 				section: 'copyAsHtml',
 				public: true,
-				label: 'Preserve ==mark== in plain text',
+				label: 'Preserve highlight characters',
 				description: 'If enabled, ==mark== will remain as-is in plain text output.',
 			},
 			[SETTINGS.PRESERVE_INSERT]: {
@@ -77,7 +77,7 @@ joplin.plugins.register({
 				type: SettingItemType.Bool,
 				section: 'copyAsHtml',
 				public: true,
-				label: 'Preserve ++insert++ in plain text',
+				label: 'Preserve insert characters',
 				description: 'If enabled, ++insert++ will remain as-is in plain text output.',
 			},
 			[SETTINGS.HYPERLINK_BEHAVIOR]: {
