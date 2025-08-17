@@ -1,11 +1,13 @@
 export const SETTINGS = {
 	EMBED_IMAGES: 'embedImages',
 	PRESERVE_SUPERSCRIPT: 'preserveSuperscript',
-	PRESERVE_SUBSCRIPT: 'preserveSubscript',
+	PRESERVE_SUBSCRIPT: 'preserveSubScript',
 	PRESERVE_EMPHASIS: 'preserveEmphasis',
 	PRESERVE_BOLD: 'preserveBold',
 	PRESERVE_HEADING: 'preserveHeading',
 	HYPERLINK_BEHAVIOR: 'hyperlinkBehavior',
+	PRESERVE_MARK: 'preserveMark',
+	PRESERVE_INSERT: 'preserveInsert',
 };
 
 // Regex patterns for Joplin resource and image handling

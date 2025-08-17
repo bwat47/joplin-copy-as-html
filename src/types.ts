@@ -22,7 +22,9 @@ export interface PlainTextOptions {
     preserveBold: boolean;
     preserveSuperscript: boolean;
     preserveSubscript: boolean;
-	hyperlinkBehavior: 'title' | 'url' | 'markdown';
+    preserveMark: boolean;
+    preserveInsert: boolean;
+    hyperlinkBehavior: 'title' | 'url' | 'markdown';
 }
 
 export interface TableRow {

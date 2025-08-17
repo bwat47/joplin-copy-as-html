@@ -64,6 +64,22 @@ joplin.plugins.register({
 				label: 'Preserve heading characters (## TEST)',
 				description: 'If enabled, ## TEST will remain as-is in plain text output.',
 			},
+			[SETTINGS.PRESERVE_MARK]: {
+				value: false,
+				type: SettingItemType.Bool,
+				section: 'copyAsHtml',
+				public: true,
+				label: 'Preserve ==mark== in plain text',
+				description: 'If enabled, ==mark== will remain as-is in plain text output.',
+			},
+			[SETTINGS.PRESERVE_INSERT]: {
+				value: false,
+				type: SettingItemType.Bool,
+				section: 'copyAsHtml',
+				public: true,
+				label: 'Preserve ++insert++ in plain text',
+				description: 'If enabled, ++insert++ will remain as-is in plain text output.',
+			},
 			[SETTINGS.HYPERLINK_BEHAVIOR]: {
 				value: 'title',
 				type: SettingItemType.String,
@@ -124,6 +140,8 @@ joplin.plugins.register({
                         preserveBold: await joplin.settings.value(SETTINGS.PRESERVE_BOLD),
                         preserveHeading: await joplin.settings.value(SETTINGS.PRESERVE_HEADING),
                         hyperlinkBehavior: await joplin.settings.value(SETTINGS.HYPERLINK_BEHAVIOR),
+                        preserveMark: await joplin.settings.value(SETTINGS.PRESERVE_MARK),
+                        preserveInsert: await joplin.settings.value(SETTINGS.PRESERVE_INSERT),
                     };
                     const plainTextOptions = validatePlainTextSettings(plainTextSettings);
 

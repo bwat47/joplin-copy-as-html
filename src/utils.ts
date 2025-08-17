@@ -8,6 +8,8 @@ export function validatePlainTextSettings(settings: unknown): PlainTextOptions {
         preserveEmphasis: Boolean(s.preserveEmphasis),
         preserveBold: Boolean(s.preserveBold),
         preserveHeading: Boolean(s.preserveHeading),
+        preserveMark: Boolean(s.preserveMark),
+        preserveInsert: Boolean(s.preserveInsert),
         hyperlinkBehavior: ['title', 'url', 'markdown'].includes(String(s.hyperlinkBehavior))
             ? String(s.hyperlinkBehavior) as 'title' | 'url' | 'markdown'
             : 'title',

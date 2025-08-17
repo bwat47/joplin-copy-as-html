@@ -1,5 +1,7 @@
 import Token from 'markdown-it/lib/token';
 import * as MarkdownIt from 'markdown-it';
+import * as markdownItMark from 'markdown-it-mark';
+import * as markdownItIns from 'markdown-it-ins';
 import { PlainTextOptions, TableData, TableRow, ListItem } from './types';
 import { CONSTANTS } from './constants';
 
@@ -339,6 +341,14 @@ export function renderPlainText(
             if (options.preserveBold) result += t.markup;
         } else if (!inCode && t.type === 'strong_close') {
             if (options.preserveBold) result += t.markup;
+        } else if (!inCode && t.type === 'mark_open') {
+            if (options.preserveMark) result += '==';
+        } else if (!inCode && t.type === 'mark_close') {
+            if (options.preserveMark) result += '==';
+        } else if (!inCode && t.type === 'ins_open') {
+            if (options.preserveInsert) result += '++';
+        } else if (!inCode && t.type === 'ins_close') {
+            if (options.preserveInsert) result += '++';
         } else if (!inCode && t.type === 'link_open') {
             result = handleLinkToken(t, linkStack, options, result);
         } else if (!inCode && t.type === 'link_close') {
@@ -383,6 +393,8 @@ export function convertMarkdownToPlainText(
     options: PlainTextOptions
 ): string {
     const md = new MarkdownIt();
+    md.use(markdownItMark);
+    md.use(markdownItIns);
     const tokens = md.parse(markdown, {});
     return renderPlainText(tokens, null, 0, options);
 }
