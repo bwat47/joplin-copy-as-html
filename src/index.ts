@@ -70,7 +70,7 @@ joplin.plugins.register({
 				section: 'copyAsHtml',
 				public: true,
 				label: 'Preserve highlight characters',
-				description: 'If enabled, ==mark== will remain as-is in plain text output.',
+				description: 'If enabled, ==TEST== will remain as-is in plain text output.',
 			},
 			[SETTINGS.PRESERVE_INSERT]: {
 				value: false,
@@ -78,7 +78,7 @@ joplin.plugins.register({
 				section: 'copyAsHtml',
 				public: true,
 				label: 'Preserve insert characters',
-				description: 'If enabled, ++insert++ will remain as-is in plain text output.',
+				description: 'If enabled, ++TEST++ will remain as-is in plain text output.',
 			},
 			[SETTINGS.HYPERLINK_BEHAVIOR]: {
 				value: 'title',
