@@ -240,6 +240,7 @@ export async function processHtmlConversion(selection: string): Promise<string> 
     const globalSubEnabled = await joplin.settings.globalValue('markdown.plugin.sub');
     const globalSupEnabled = await joplin.settings.globalValue('markdown.plugin.sup');
     const globalMarkEnabled = await joplin.settings.globalValue('markdown.plugin.mark');
+    const globalInsEnabled = await joplin.settings.globalValue('markdown.plugin.ins');
     const globalSoftBreaksEnabled = await joplin.settings.globalValue('markdown.plugin.softbreaks');
     const embedImages = validateEmbedImagesSetting(await joplin.settings.value(SETTINGS.EMBED_IMAGES));
 
@@ -258,6 +259,7 @@ export async function processHtmlConversion(selection: string): Promise<string> 
     if (!globalSubEnabled) pluginOptions.sub = { enabled: false };
     if (!globalSupEnabled) pluginOptions.sup = { enabled: false };
     if (!globalMarkEnabled) pluginOptions.mark = { enabled: false };
+    if (!globalInsEnabled) pluginOptions.ins = { enabled: false };
 
     const markupToHtml = new MarkupToHtml({ pluginOptions });
 
