@@ -39,7 +39,7 @@ This will strip markdown formatting characters, backslash escapes, and image emb
 
 List leaders and nested list indentation will be maintained (these are normally lost when copying from the markdown viewer or rich text editor).
 
-As of version 1.0.8, the following options are provided to preserve specific markdown formatting in the text/plain output:
+The following options are provided to preserve specific markdown formatting in the text/plain output:
 
 - Preserve superscript characters `(^TEST^)`
 If enabled, `^TEST^` will remain `^TEST^` in plain text output.
@@ -55,6 +55,12 @@ If enabled, `**TEST*`* or `__TEST__` will remain as-is in plain text output.
 
 - Preserve heading characters `(## TEST)`
 If enabled, `## TEST` will remain as-is in plain text output.
+
+- Preserve ==mark== in plain text
+If enabled, ==mark== will remain as-is in plain text output.
+
+- Preserve ++insert++ in plain text
+If enabled, ++insert++ will remain as-is in plain text output.
 
 As of version 1.0.15, the following options are provided for external hyperlinks (only impacts markdown links containing http/https URL):
 
