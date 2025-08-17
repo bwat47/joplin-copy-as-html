@@ -8,11 +8,25 @@
 	"author": "bwat47",
 	"homepage_url": "https://github.com/bwat47/joplin-copy-as-html",
 	"repository_url": "https://github.com/bwat47/joplin-copy-as-html",
-	"keywords": [],
-	"categories": [],
-	"screenshots": [],
-	"icons": {},
-	"promo_tile": {},
+	"keywords": ["Copy", "HTML", "Text"],
+	"categories": ["productivity"],
+	"screenshots": [
+		{ "src": "images/copy-as-html1.png", "label": "Copy as HTML example 1" },
+		{ "src": "images/copy-as-html2.png", "label": "Copy as HTML example 2" },
+		{ "src": "images/copy-as-plain1.png", "label": "Copy as Plain Text example 1" },
+		{ "src": "images/copy-as-plain2.png", "label": "Copy as Plain Text example 2" }
+	],
+	"icons": {
+		"128": "images/128.png",
+		"64": "images/64.png",
+		"48": "images/48.png",
+		"32": "images/32.png",
+		"16": "images/16.png"
+	},
+	"promo_tile": {
+		"src": "images/copyashtml_promo_tile.png",
+		"label": "Copy as HTML Promo Tile"
+	},
 	"settings": {
 		"embedImages": {
 			"type": "bool",
