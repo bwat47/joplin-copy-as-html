@@ -17,6 +17,13 @@ function createErrorSpan(message: string, italic: boolean = false): string {
 }
 
 /**
+ * Creates a standardized error span for resource errors.
+ */
+function createResourceError(id: string, reason: string): string {
+    return createErrorSpan(`Resource ":/${id}" ${reason}`);
+}
+
+/**
  * Extracts width, height, and style from HTML <img> tags in markdown, preserving them in a map.
  * Optionally removes all images if embedImages is false.
  * @param markdown The markdown string to process.
@@ -195,15 +202,15 @@ function validateResourceId(id: string): boolean {
 
 export async function convertResourceToBase64(id: string): Promise<string> {
     if (!validateResourceId(id)) {
-        return createErrorSpan(`Resource ID ":/${id}" is not a valid Joplin resource ID.`);
+        return createResourceError(id, 'is not a valid Joplin resource ID.');
     }
     try {
         const resource = await joplin.data.get(['resources', id], { fields: ['id', 'mime'] }) as JoplinResource;
         if (!resource || !resource.mime.startsWith('image/')) {
-            return createErrorSpan(`Resource ID ":/${id}" could not be found or is not an image.`);
+            return createResourceError(id, 'could not be found or is not an image.');
         }
 
-		// Timeout handling- underlying request is not cancelled, but doesn't seem to cause any issues
+        // Timeout handling- underlying request is not cancelled, but doesn't seem to cause any issues
         const fileObj = await Promise.race([
             joplin.data.get(['resources', id, 'file']),
             new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout retrieving resource file')), CONSTANTS.BASE64_TIMEOUT_MS))
@@ -213,14 +220,14 @@ export async function convertResourceToBase64(id: string): Promise<string> {
             fileBuffer = extractFileBuffer(fileObj);
         } catch (err) {
             const msg = err && err.message ? err.message : String(err);
-            return createErrorSpan(`Resource ID ":/${id}" could not be retrieved: ${msg}`);
+            return createResourceError(id, `could not be retrieved: ${msg}`);
         }
         const base64 = fileBuffer.toString('base64');
         return `data:${resource.mime};base64,${base64}`;
     } catch (err) {
         console.error(`[copy-as-html] Failed to convert resource :/${id} to base64:`, err);
         const msg = err && err.message ? err.message : err;
-        return createErrorSpan(`Resource ID ":/${id}" could not be retrieved: ${msg}`);
+        return createResourceError(id, `could not be retrieved: ${msg}`);
     }
 }
 
@@ -270,7 +277,7 @@ export async function processHtmlConversion(selection: string): Promise<string> 
         // Replace src attribute for Joplin resource images with base64 data
         html = await replaceAsync(html, REGEX_PATTERNS.IMG_TAG_WITH_RESOURCE, async (match: string, id: string) => {
             if (!validateResourceId(id)) {
-                return `<span style="color: red;">Resource ID “:/${id}” could not be found</span>`;
+                return createResourceError(id, 'could not be found');
             }
             const base64Result = await convertResourceToBase64(id);
             if (base64Result.startsWith('data:image')) {
