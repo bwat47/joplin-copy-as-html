@@ -1,77 +1,198 @@
 # Joplin Copy as HTML Plugin: Code Documentation
 
 ## Overview
-This plugin allows users to copy selected markdown from the Joplin editor as HTML (with minimal styling and embedded images) or as plain text. It provides two commands:
-- **Copy as HTML**: Converts markdown to HTML, embeds images as base64, and copies to clipboard.
-- **Copy as Plain Text**: Converts markdown to plain text, preserving code blocks and inline code, and copies to clipboard.
+This plugin enables users to copy selected markdown from the Joplin editor in two formats:
+- **Copy as HTML**: Converts markdown to clean HTML with embedded images and minimal styling
+- **Copy as Plain Text**: Converts markdown to human-readable plain text with customizable formatting preservation
+
+The plugin is designed for seamless integration with external applications like email clients, word processors, and other text editors.
 
 ## Main Features and Design Choices
-- **Minimal HTML Styling**: Uses Joplin's renderer with minimal theme, and extracts only the rendered HTML fragment for clean output.
-- **Image Embedding**: Optionally embeds Joplin resource images as base64 data URLs in the HTML output.
-- **Global Markdown Settings**: Honors Joplin's global settings for subscript, superscript, and mark syntax.
-- **Clipboard API**: Uses Joplin's clipboard API to write both HTML and plain text formats.
-- **Error Handling**: Gracefully handles missing resources by inserting a placeholder message instead of failing.
-- **Plain Text Output**: Uses a custom markdown-it based renderer for robust plain text extraction. Removes images and links, preserves line breaks, paragraph spacing, indentation and list leaders. Offers settings to preserve specific markdown features (superscript, subscript, emphasis, bold, heading) in plain text output. All preservation options default to off for clean plain text.
-- **User Feedback**: Uses toast notifications for success and info messages.
-- **Context Menu Integration**: Adds commands to the markdown editor context menu with keyboard shortcuts.
 
-## File-by-File Documentation
+### HTML Output Features
+- **Clean HTML Generation**: Uses Joplin's `@joplin/renderer` with minimal theme to produce semantic HTML
+- **Image Embedding**: Optionally converts Joplin resource images to base64 data URLs for portability
+- **Dimension Preservation**: Maintains original image dimensions (width, height, style) from HTML `<img>` tags
+- **Global Settings Compliance**: Honors Joplin's markdown plugin settings (subscript, superscript, mark)
+- **Fragment Extraction**: Uses JSDOM to extract clean HTML fragments, removing Joplin-specific wrapper elements
+- **Link Cleaning**: Removes Joplin-specific onclick attributes from links for external compatibility
 
-### src/index.ts
-This is the main entry point for the plugin. It registers settings, commands, and menu items.
+### Plain Text Output Features
+- **Robust Markdown Parsing**: Uses markdown-it with custom plugins for comprehensive markdown support
+- **Selective Format Preservation**: Configurable preservation of markdown characters (bold, italic, headings, etc.)
+- **Table Formatting**: Converts markdown tables to aligned plain text with proper spacing
+- **List Handling**: Preserves list structure with proper indentation and numbering
+- **External Link Processing**: Configurable behavior for HTTP/HTTPS links (title, URL, or markdown format)
+- **Code Block Preservation**: Maintains code blocks and inline code in plain text output
 
-#### Settings Registration
-- Registers a section and a setting (`embedImages`) to control whether images are embedded as base64 in HTML output. Other settings are: `PRESERVE_SUPERSCRIPT`, `PRESERVE_SUBSCRIPT`, `PRESERVE_EMPHASIS`, `PRESERVE_BOLD`, `PRESERVE_HEADING` which control the markdown characters that are preserved in the plain text output.
+### User Experience
+- **Toast Notifications**: Non-intrusive feedback for all operations
+- **Context Menu Integration**: Commands accessible via right-click with keyboard shortcuts
+- **Graceful Error Handling**: Missing resources display as red error messages instead of breaking
+- **No Selection Fallback**: Informative messages when no text is selected
 
-#### Command: copyAsHtml
-- Gets the selected markdown from the editor.
-- If nothing is selected, shows an info toast.
-- Reads Joplin's global markdown settings to configure the renderer.
-- Converts markdown to HTML using `@joplin/renderer`.
-- If image embedding is enabled, replaces Joplin resource image links with base64 data URLs. If a resource is missing, inserts a red italic placeholder message.
-- Uses `jsdom` to extract the inner HTML fragment from the rendered output, removing Joplin source blocks.
-- Copies the cleaned HTML fragment to the clipboard and shows a success toast.
+## Architecture and File Structure
 
-#### Command: copyAsPlainText
-- Gets the selected markdown from the editor.
-- If nothing is selected, shows an info toast.
-- Uses markdown-it to parse and recursively render plain text from the selected markdown.
-- Removes all images and markdown image embeds from the output.
-- Preserves line breaks, paragraph spacing, indentation and list leaders for readable plain text.
-- Honors user settings to optionally preserve superscript (^TEST^), subscript (~TEST~), emphasis (*TEST* or _TEST_), bold (**TEST** or __TEST__), and heading (## TEST) markdown in plain text output.
-- All preservation options default to off for clean plain text.
-- Copies the result to the clipboard and shows a success toast.
+### Core Files
 
-#### Menu Items
-- Adds both commands to the markdown editor context menu with keyboard shortcuts (`Ctrl+Shift+C` for HTML, `Ctrl+Alt+C` for plain text).
+#### `src/constants.ts`
+Centralized configuration and regex patterns:
+- **SETTINGS**: String constants for all plugin settings to prevent typos
+- **REGEX_PATTERNS**: Documented regex patterns for Joplin resource handling and image processing
+- **CONSTANTS**: Timeout values, formatting constants, and dimension key prefixes
 
-#### Helper Functions
-- `replaceAsync`: Utility for performing asynchronous regex replacements (used for image embedding).
+#### `src/types.ts`
+TypeScript interfaces for type safety:
+- **PlainTextOptions**: Configuration for plain text formatting preservation
+- **ImageDimensions**: Structure for preserving HTML image attributes
+- **JoplinResource/JoplinFileData**: Interfaces for Joplin API data structures
+- **TableData/ListItem**: Structures for plain text table and list formatting
 
-### src/manifest.json
-Defines plugin metadata and settings.
+#### `src/utils.ts`
+Validation and utility functions:
+- **validatePlainTextSettings**: Type-safe validation of user settings with fallbacks
+- **validateEmbedImagesSetting**: Boolean validation for image embedding setting
 
-### webpack.config.js
-Standard Joplin plugin build config. No custom logic relevant to plugin features.
+### Feature Modules
 
-### Error Handling and User Experience
-- All user-facing errors (e.g., no selection, missing resources) are handled with toast notifications for a smooth experience.
-- The plugin never fails silently or throws unhandled errors to the user.
+#### `src/htmlRenderer.ts`
+Complete HTML processing pipeline:
 
-## Why These Approaches?
--  **Minimal HTML Extraction**: Using Joplin's renderer and extracting only the rendered fragment ensures compatibility with webmail and other rich text editors, avoiding excess styling and wrapper tags.
--  **Base64 Image Embedding**: Embedding images as base64 ensures portability and compatibility when pasting into other apps.
--  **Graceful Error Handling**: Replacing missing resources with a visible placeholder prevents silent failures and makes issues clear to the user.
--  **Plain Text Robustness**: The markdown-it based renderer ensures technical content, list leaders, and paragraph structure are preserved in plain text output. User settings allow optional preservation of markdown features for more control over output.
--  **Global Settings Compliance**: Respecting Joplin's global markdown settings ensures the plugin behaves consistently with the user's preferences.
--  **Async Regex Replacement**: The `replaceAsync` helper is necessary for embedding images, since resource fetching is asynchronous.
-- **Toast Notifications**: Using toasts for feedback is less disruptive than modal dialogs and fits Joplin's UX conventions.
+**Key Functions:**
+- **`extractImageDimensions`**: Preserves image dimensions while converting HTML `<img>` tags to markdown
+- **`applyPreservedDimensions`**: Restores preserved dimensions to rendered HTML `<img>` tags
+- **`convertResourceToBase64`**: Async conversion of Joplin resources to base64 data URLs with timeout handling
+- **`processHtmlConversion`**: Main orchestrator that coordinates the entire HTML conversion process
 
-## Code Comments Review
-- The code is already well-commented for each major logic block and helper function.
-- Comments explain why global settings are read, why hard breaks are forced, and why placeholders are used for code blocks.
-- Error handling comments clarify what happens when resources are missing.
-- If you want even more detailed inline comments, let me know which areas to expand!
+**Processing Flow:**
+1. Read Joplin global markdown settings
+2. Handle soft breaks based on global settings
+3. Extract and preserve image dimensions from HTML tags
+4. Render markdown to HTML using Joplin's renderer
+5. Re-apply preserved image dimensions
+6. Convert resource URLs to base64 (if enabled)
+7. Extract clean HTML fragment using JSDOM
+8. Remove Joplin-specific elements and attributes
+
+#### `src/plainTextRenderer.ts`
+Comprehensive plain text conversion system:
+
+**Core Functions:**
+- **`renderPlainText`**: Main recursive token processor with formatting options
+- **`convertMarkdownToPlainText`**: Entry point that initializes markdown-it and processes tokens
+- **`parseTableTokens`/`formatTable`**: Table processing with aligned columns and headers
+- **`parseListTokens`/`formatList`**: List processing with proper indentation and numbering
+- **`handleLinkToken`/`handleLinkCloseToken`**: External link processing with configurable output
+
+**Token Processing:**
+- Recursive processing of markdown-it token trees
+- Context-aware formatting (respects code blocks, preserves structure)
+- Block-level element spacing management
+- Selective markdown preservation based on user settings
+
+#### `src/index.ts`
+Plugin registration and command implementation:
+
+**Settings Registration:**
+- Comprehensive settings with descriptions and default values
+- Boolean settings for markdown preservation options
+- Enum setting for hyperlink behavior in plain text
+
+**Command Implementation:**
+- **copyAsHtml**: Selection → HTML processing → clipboard → user feedback
+- **copyAsPlainText**: Selection → plain text processing → clipboard → user feedback
+- Consistent error handling with toast notifications
+- Context menu integration with keyboard shortcuts
+
+## Technical Implementation Details
+
+### Image Handling Strategy
+The plugin uses a sophisticated multi-step process for image handling:
+
+1. **Dimension Extraction**: Parse HTML `<img>` tags and extract width/height/style attributes
+2. **Markdown Conversion**: Convert `<img>` tags to markdown with dimension keys as alt text
+3. **HTML Rendering**: Let Joplin render the markdown normally
+4. **Dimension Restoration**: Use the dimension keys to restore original attributes
+5. **Base64 Conversion**: Replace Joplin resource URLs with base64 data
+
+This approach ensures compatibility with Joplin's renderer while preserving user-defined image dimensions.
+
+### Error Handling Philosophy
+- **Graceful Degradation**: Operations continue even when individual resources fail
+- **User Visibility**: Errors are displayed as red text in output rather than hidden
+- **Logging**: Console logging for debugging while maintaining user experience
+- **Timeout Protection**: Resource fetching has timeout limits to prevent hanging
+
+### Performance Considerations
+- **Async Resource Processing**: Uses `Promise.all()` for concurrent resource fetching
+- **Timeout Handling**: 5-second timeout for resource operations to prevent blocking
+- **Memory Management**: Processes resources individually rather than loading all at once - **Not yet implemented**
+- **Regex Optimization**: Pre-compiled regex patterns stored in constants **Not yet implemented**
+
+## Configuration and Settings
+
+### HTML-Specific Settings
+- **embedImages** (default: true): Controls base64 image embedding in HTML output
+
+### Plain Text Settings
+All preservation settings default to `false` for clean plain text output:
+- **preserveSuperscript**: Maintains `^text^` in output
+- **preserveSubscript**: Maintains `~text~` in output  
+- **preserveEmphasis**: Maintains `*text*` or `_text_` in output
+- **preserveBold**: Maintains `**text**` or `__text__` in output
+- **preserveHeading**: Maintains `## text` in output
+- **preserveMark**: Maintains `==text==` in output (requires markdown-it-mark)
+- **preserveInsert**: Maintains `++text++` in output (requires markdown-it-ins)
+- **hyperlinkBehavior**: Controls external link output ('title', 'url', 'markdown')
+
+## Why These Design Choices?
+
+### JSDOM for HTML Processing
+- **Reliability**: Regex parsing of HTML proved unreliable for nested structures
+- **Maintainability**: DOM queries are more readable and robust than complex regex
+- **Future-Proofing**: Adapts better to changes in Joplin's HTML structure
+
+### Base64 Image Embedding
+- **Portability**: Embedded images work in any application that supports HTML
+- **Self-Contained**: No dependency on Joplin resources when pasting elsewhere
+- **Email Compatibility**: Works well with email clients and web interfaces
+
+### Modular Architecture
+- **Testability**: Pure functions can be unit tested independently
+- **Maintainability**: Clear separation of concerns makes debugging easier
+- **Reusability**: Components can be used independently or extended
+
+### Conservative Plain Text Defaults
+- **Clean Output**: All preservation options off by default ensures readable plain text
+- **User Control**: Users can selectively enable markdown preservation as needed
+- **Compatibility**: Clean plain text works in any text editor or system
+
+### Comprehensive Error Handling
+- **User Experience**: Never fails silently; always provides feedback
+- **Debugging**: Console logging helps with troubleshooting
+- **Robustness**: Handles edge cases like missing resources or network timeouts
+
+## Extension Points
+
+The plugin's modular design makes it easy to extend:
+
+1. **New Output Formats**: Add new renderer modules following the same pattern
+2. **Additional Settings**: Extend the settings interfaces and validation functions
+3. **Custom Processing**: Add new token processors to the plain text renderer
+4. **Resource Types**: Extend resource handling beyond images
+
+## Dependencies
+
+### Runtime Dependencies
+- **@joplin/renderer**: Joplin's markdown rendering engine
+- **markdown-it**: Extensible markdown parser for plain text processing
+- **markdown-it-mark**: Plugin for `==highlight==` syntax
+- **markdown-it-ins**: Plugin for `++insert++` syntax
+- **jsdom**: DOM manipulation for HTML fragment extraction
+
+### Development Dependencies
+- Standard Joplin plugin build tools and TypeScript compiler
 
 ---
-This documentation file can be updated as the plugin evolves. For further details or deeper technical explanations, just ask!
+
+This documentation reflects the current implementation and can be updated as the plugin evolves. The modular architecture and comprehensive error handling make the plugin robust and maintainable for future development.
