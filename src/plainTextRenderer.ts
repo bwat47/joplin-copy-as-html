@@ -2,6 +2,7 @@ import Token from 'markdown-it/lib/token';
 import * as MarkdownIt from 'markdown-it';
 import * as markdownItMark from 'markdown-it-mark';
 import * as markdownItIns from 'markdown-it-ins';
+import * as markdownItEmoji from 'markdown-it-emoji';
 import { PlainTextOptions, TableData, TableRow, ListItem } from './types';
 import { CONSTANTS } from './constants';
 
@@ -353,6 +354,8 @@ export function renderPlainText(
             result = handleLinkToken(t, linkStack, options, result);
         } else if (!inCode && t.type === 'link_close') {
             result = handleLinkCloseToken(linkStack, options, result);
+        } else if (t.type === 'emoji') {
+            result += t.content;
         } else if (t.type === 'text') {
             result = handleTextToken(t, linkStack, options, inCode, result);
         } else if (t.type === 'softbreak' || t.type === 'hardbreak') {
@@ -395,6 +398,7 @@ export function convertMarkdownToPlainText(
     const md = new MarkdownIt();
     md.use(markdownItMark);
     md.use(markdownItIns);
+    md.use(markdownItEmoji);
     const tokens = md.parse(markdown, {});
     return renderPlainText(tokens, null, 0, options);
 }
