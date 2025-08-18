@@ -5,6 +5,7 @@ import * as markdownItIns from 'markdown-it-ins';
 import * as markdownItEmoji from 'markdown-it-emoji';
 import { PlainTextOptions, TableData, TableRow, ListItem } from './types';
 import { CONSTANTS } from './constants';
+import stringWidth from 'string-width';
 
 type LinkStackItem = { href: string, title: string };
 type ListContext = { type: 'ordered', index: number } | { type: 'bullet' } | null;
@@ -68,7 +69,7 @@ export function calculateColumnWidths(tableData: TableData): number[] {
     for (let r = 0; r < tableData.rows.length; r++) {
         let cells = tableData.rows[r].cells;
         for (let c = 0; c < cells.length; c++) {
-            colWidths[c] = Math.max(colWidths[c] || 0, cells[c].length);
+            colWidths[c] = Math.max(colWidths[c] || 0, stringWidth(cells[c]));
         }
     }
     return colWidths;
@@ -80,7 +81,8 @@ export function calculateColumnWidths(tableData: TableData): number[] {
  */
 export function formatTable(tableData: TableData, colWidths: number[]): string {
     function padCell(cell: string, width: number) {
-        return cell + ' '.repeat(width - cell.length);
+        const pad = width - stringWidth(cell);
+        return cell + ' '.repeat(pad > 0 ? pad : 0);
     }
     let result = '';
     let headerDone = false;
