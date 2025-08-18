@@ -317,7 +317,14 @@ export function renderPlainText(
         }
 
         if (t.type === 'fence' || t.type === 'code_block') {
-            result += t.content + '\n';
+            // If the code block content is wrapped in fences, strip them
+            // This handles indented fenced code blocks that markdown-it may parse as code_block
+            const fenceMatch = t.content.match(/^[ \t]*```[a-z]*\n([\s\S]*?)^[ \t]*```[ \t]*$/m);
+            if (fenceMatch) {
+                result += fenceMatch[1] + '\n';
+            } else {
+                result += t.content + '\n';
+            }
         } else if (t.type === 'code_inline') {
             result += t.content;
         } else if (t.type === 'inline' && t.children) {
