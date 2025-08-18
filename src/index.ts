@@ -1,10 +1,10 @@
 import joplin from 'api';
 import { SettingItemType, ToastType, MenuItemLocation } from 'api/types';
-import { convertMarkdownToPlainText } from './plainTextRenderer';
 
 // Import from your new files
 import { SETTINGS } from './constants';
 import { processHtmlConversion } from './htmlRenderer';
+import { convertMarkdownToPlainText } from './plainTextRenderer';
 import { validatePlainTextSettings } from './utils';
 
 joplin.plugins.register({
