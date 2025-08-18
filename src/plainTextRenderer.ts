@@ -3,7 +3,6 @@ import * as MarkdownIt from 'markdown-it';
 import * as markdownItMark from 'markdown-it-mark';
 import * as markdownItIns from 'markdown-it-ins';
 import * as markdownItEmoji from 'markdown-it-emoji';
-import * as markdownItFootnote from 'markdown-it-footnote';
 import { PlainTextOptions, TableData, TableRow, ListItem } from './types';
 import { CONSTANTS } from './constants';
 
@@ -265,17 +264,6 @@ export function extractBlockTokens(tokens: Token[], startIndex: number): { block
     return { blockTokens, endIndex: i - 1 };
 }
 
-// Helper to convert a number to superscript (¹, ², ³, ...)
-function toSuperscript(num: number | string): string {
-    const supDigits = '⁰¹²³⁴⁵⁶⁷⁸⁹';
-    return String(num).split('').map(d => supDigits[parseInt(d, 10)] || d).join('');
-}
-
-interface RenderState {
-    footnotes: { [id: string]: string };
-    footnoteOrder: string[];
-}
-
 /**
  * Converts markdown-it tokens to plain text, with options to preserve or remove markdown formatting.
  */
@@ -284,47 +272,16 @@ export function renderPlainText(
     listContext: ListContext = null,
     indentLevel: number = 0,
     options: PlainTextOptions,
-    inCode: boolean = false,
-    state?: RenderState
+    inCode: boolean = false
 ): string {
     let result = '';
     let linkStack: LinkStackItem[] = [];
-    state = state || { footnotes: {}, footnoteOrder: [] };
     for (let i = 0; i < tokens.length; i++) {
         const t = tokens[i];
 
-        // Handle footnote references inline
-        if (t.type === 'footnote_ref') {
-            const id = t.meta && typeof t.meta.id === 'number' ? t.meta.id + 1 : '';
-            result += toSuperscript(id);
-            continue;
-        }
-
-        // Collect footnote definitions
-        if (t.type === 'footnote_block_open') {
-            while (i < tokens.length && tokens[i].type !== 'footnote_block_close') {
-                i++;
-                if (tokens[i] && tokens[i].type === 'footnote_open') {
-                    const id = tokens[i].meta && typeof tokens[i].meta.id === 'number' ? String(tokens[i].meta.id + 1) : '';
-                    let content = '';
-                    let j = i + 1;
-                    while (j < tokens.length && tokens[j].type !== 'footnote_close') {
-                        if (tokens[j].type === 'inline' && tokens[j].children) {
-                            content += renderPlainText(tokens[j].children, listContext, indentLevel, options, inCode, state).trim();
-                        }
-                        j++;
-                    }
-                    state.footnotes[id] = content;
-                    state.footnoteOrder.push(id);
-                    i = j;
-                }
-            }
-            continue;
-        }
-
-        // --- Existing logic for all other tokens ---
         if (t.type === 'table_open' || t.type === 'bullet_list_open' || t.type === 'ordered_list_open') {
             const { blockTokens, endIndex } = extractBlockTokens(tokens, i);
+            
             if (t.type === 'table_open') {
                 result += renderTableFromTokens(blockTokens, options, listContext, indentLevel);
             } else {
@@ -335,6 +292,7 @@ export function renderPlainText(
                     options
                 );
             }
+
             const nextToken = tokens[endIndex + 1];
             if (
                 nextToken &&
@@ -351,11 +309,13 @@ export function renderPlainText(
                     nextToken.type === 'blockquote_open'
                 )
             ) {
+                // Ensure two newlines before block-level elements after a list
                 if (!result.endsWith('\n\n')) result = result.replace(/\n*$/, '\n\n');
             }
             i = endIndex;
             continue;
         }
+
         if (t.type === 'fence' || t.type === 'code_block') {
             result += t.content + '\n';
         } else if (t.type === 'code_inline') {
@@ -366,8 +326,7 @@ export function renderPlainText(
                 listContext,
                 indentLevel,
                 options,
-                inCode,
-                state
+                inCode
             );
         } else if (t.type === 'heading_open') {
             if (options.preserveHeading) {
@@ -440,18 +399,6 @@ export function convertMarkdownToPlainText(
     md.use(markdownItMark);
     md.use(markdownItIns);
     md.use(markdownItEmoji);
-    md.use(markdownItFootnote);
     const tokens = md.parse(markdown, {});
-    const state: RenderState = { footnotes: {}, footnoteOrder: [] };
-    let mainText = renderPlainText(tokens, null, 0, options, false, state);
-    // Append footnotes at the end, in order
-    if (state.footnoteOrder.length) {
-        mainText = mainText.replace(/\s+$/, '') + '\n\n';
-        for (const id of state.footnoteOrder) {
-            if (state.footnotes[id]) {
-                mainText += `${toSuperscript(id)} ${state.footnotes[id]}\n\n`;
-            }
-        }
-    }
-    return mainText.trimEnd();
+    return renderPlainText(tokens, null, 0, options);
 }
