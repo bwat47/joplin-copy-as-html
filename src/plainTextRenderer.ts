@@ -368,7 +368,7 @@ export function renderPlainText(
         } else if (t.type === 'emoji') {
             result += t.content;
         } else if (t.type === 'text') {
-            // Replace [^n] and [^n]: with [n] and [n]:
+            // Replace [^n] and [^text]: with [n] and [text]:
             t.content = t.content.replace(/\[\^([^\]]+)\]/g, '[$1]');
             t.content = t.content.replace(/\[\^([^\]]+)\]:/g, '[$1]:');
             result = handleTextToken(t, linkStack, options, inCode, result);
