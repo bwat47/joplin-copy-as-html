@@ -369,8 +369,8 @@ export function renderPlainText(
             result += t.content;
         } else if (t.type === 'text') {
             // Replace [^n] and [^n]: with [n] and [n]:
-            t.content = t.content.replace(/\[\^(\d+)\]/g, '[$1]');
-            t.content = t.content.replace(/\[\^(\d+)\]:/g, '[$1]:');
+            t.content = t.content.replace(/\[\^([^\]]+)\]/g, '[$1]');
+            t.content = t.content.replace(/\[\^([^\]]+)\]:/g, '[$1]:');
             result = handleTextToken(t, linkStack, options, inCode, result);
         } else if (t.type === 'softbreak' || t.type === 'hardbreak') {
             result += '\n';
