@@ -6,6 +6,7 @@ import { validateEmbedImagesSetting } from './utils';
 import { SETTINGS } from './constants';
 import * as fs from 'fs/promises';
 import * as path from 'path';
+import { defaultStylesheet } from './defaultStylesheet';
 
 /**
  * Creates a consistent error HTML span for resource errors.
@@ -362,6 +363,7 @@ async function getUserStylesheet(): Promise<string> {
     try {
         return await fs.readFile(cssPath, 'utf8');
     } catch {
-        return '';
+        // If user file not found, return the bundled default stylesheet
+        return defaultStylesheet;
     }
 }
