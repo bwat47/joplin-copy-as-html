@@ -9,7 +9,69 @@ import { validatePlainTextSettings } from './utils';
 
 joplin.plugins.register({
 	onStart: async function() {
-		// Register plugin settings
+		// Register main HTML copy command FIRST to avoid keyboard shortcut bug
+		await joplin.commands.register({
+            name: 'copyAsHtml',
+            label: 'Copy selection as HTML',
+            iconName: 'fas fa-copy',
+            when: 'markdownEditorVisible',
+            execute: async () => {
+                try {
+                    const selection = await joplin.commands.execute('editor.execCommand', { name: 'getSelection' });
+                    if (!selection) {
+                        await joplin.views.dialogs.showToast({ message: 'No text selected.', type: ToastType.Info });
+                        return;
+                    }
+                    const asFullDocument = await joplin.settings.value(SETTINGS.EXPORT_FULL_HTML);
+                    const html = await processHtmlConversion(selection, asFullDocument);
+                    await joplin.clipboard.writeHtml(html);
+                    await joplin.views.dialogs.showToast({ message: 'Copied selection as HTML!', type: ToastType.Success });
+                } catch (err) {
+                    console.error('[copy-as-html] Error:', err);
+                    await joplin.views.dialogs.showToast({ message: 'Failed to copy as HTML: ' + (err?.message || err), type: ToastType.Error });
+                }
+            },
+        });
+
+		// Register plain text copy command
+		await joplin.commands.register({
+            name: 'copyAsPlainText',
+            label: 'Copy selection as Plain Text',
+            iconName: 'fas fa-copy',
+            when: 'markdownEditorVisible',
+            execute: async () => {
+                try {
+                    // Gather settings
+                    const plainTextSettings = {
+                        preserveSuperscript: await joplin.settings.value(SETTINGS.PRESERVE_SUPERSCRIPT),
+                        preserveSubscript: await joplin.settings.value(SETTINGS.PRESERVE_SUBSCRIPT),
+                        preserveEmphasis: await joplin.settings.value(SETTINGS.PRESERVE_EMPHASIS),
+                        preserveBold: await joplin.settings.value(SETTINGS.PRESERVE_BOLD),
+                        preserveHeading: await joplin.settings.value(SETTINGS.PRESERVE_HEADING),
+                        hyperlinkBehavior: await joplin.settings.value(SETTINGS.HYPERLINK_BEHAVIOR),
+                        preserveMark: await joplin.settings.value(SETTINGS.PRESERVE_MARK),
+                        preserveInsert: await joplin.settings.value(SETTINGS.PRESERVE_INSERT),
+                    };
+                    const plainTextOptions = validatePlainTextSettings(plainTextSettings);
+
+                    // Get selected markdown
+                    const selection = await joplin.commands.execute('editor.execCommand', { name: 'getSelection' });
+                    if (!selection) {
+                        await joplin.views.dialogs.showToast({ message: 'No text selected.', type: ToastType.Info });
+                        return;
+                    }
+
+                    const plainText = convertMarkdownToPlainText(selection, plainTextOptions);
+                    await joplin.clipboard.writeText(plainText);
+                    await joplin.views.dialogs.showToast({ message: 'Copied selection as Plain Text!', type: ToastType.Success });
+                } catch (err) {
+                    console.error('[copy-as-html] Error:', err);
+                    await joplin.views.dialogs.showToast({ message: 'Failed to copy as Plain Text: ' + (err?.message || err), type: ToastType.Error });
+                }
+            },
+        });
+
+		// Register plugin settings AFTER commands
 		await joplin.settings.registerSection('copyAsHtml', {
 			label: 'Copy as HTML',
 			iconName: 'fas fa-copy',
@@ -104,72 +166,10 @@ joplin.plugins.register({
 			},
 		});
 
-		// Register main HTML copy command
-		await joplin.commands.register({
-            name: 'copyAsHtml',
-            label: 'Copy selection as HTML',
-            iconName: 'fas fa-copy',
-            when: 'markdownEditorVisible',
-            execute: async () => {
-                try {
-                    const selection = await joplin.commands.execute('editor.execCommand', { name: 'getSelection' });
-                    if (!selection) {
-                        await joplin.views.dialogs.showToast({ message: 'No text selected.', type: ToastType.Info });
-                        return;
-                    }
-                    const asFullDocument = await joplin.settings.value(SETTINGS.EXPORT_FULL_HTML);
-                    const html = await processHtmlConversion(selection, asFullDocument);
-                    await joplin.clipboard.writeHtml(html);
-                    await joplin.views.dialogs.showToast({ message: 'Copied selection as HTML!', type: ToastType.Success });
-                } catch (err) {
-                    console.error('[copy-as-html] Error:', err);
-                    await joplin.views.dialogs.showToast({ message: 'Failed to copy as HTML: ' + (err?.message || err), type: ToastType.Error });
-                }
-            },
-        });
-
 		// Register keyboard shortcut for HTML copy
 		await joplin.views.menuItems.create('copyAsHtmlShortcut', 'copyAsHtml', MenuItemLocation.EditorContextMenu, {
 			accelerator: 'Ctrl+Shift+C',
 		});
-
-		// Register plain text copy command
-		await joplin.commands.register({
-            name: 'copyAsPlainText',
-            label: 'Copy selection as Plain Text',
-            iconName: 'fas fa-copy',
-            when: 'markdownEditorVisible',
-            execute: async () => {
-                try {
-                    // Gather settings
-                    const plainTextSettings = {
-                        preserveSuperscript: await joplin.settings.value(SETTINGS.PRESERVE_SUPERSCRIPT),
-                        preserveSubscript: await joplin.settings.value(SETTINGS.PRESERVE_SUBSCRIPT),
-                        preserveEmphasis: await joplin.settings.value(SETTINGS.PRESERVE_EMPHASIS),
-                        preserveBold: await joplin.settings.value(SETTINGS.PRESERVE_BOLD),
-                        preserveHeading: await joplin.settings.value(SETTINGS.PRESERVE_HEADING),
-                        hyperlinkBehavior: await joplin.settings.value(SETTINGS.HYPERLINK_BEHAVIOR),
-                        preserveMark: await joplin.settings.value(SETTINGS.PRESERVE_MARK),
-                        preserveInsert: await joplin.settings.value(SETTINGS.PRESERVE_INSERT),
-                    };
-                    const plainTextOptions = validatePlainTextSettings(plainTextSettings);
-
-                    // Get selected markdown
-                    const selection = await joplin.commands.execute('editor.execCommand', { name: 'getSelection' });
-                    if (!selection) {
-                        await joplin.views.dialogs.showToast({ message: 'No text selected.', type: ToastType.Info });
-                        return;
-                    }
-
-                    const plainText = convertMarkdownToPlainText(selection, plainTextOptions);
-                    await joplin.clipboard.writeText(plainText);
-                    await joplin.views.dialogs.showToast({ message: 'Copied selection as Plain Text!', type: ToastType.Success });
-                } catch (err) {
-                    console.error('[copy-as-html] Error:', err);
-                    await joplin.views.dialogs.showToast({ message: 'Failed to copy as Plain Text: ' + (err?.message || err), type: ToastType.Error });
-                }
-            },
-        });
 
 		// Register keyboard shortcut for plain text copy
 		await joplin.views.menuItems.create('copyAsPlainTextShortcut', 'copyAsPlainText', MenuItemLocation.EditorContextMenu, {
