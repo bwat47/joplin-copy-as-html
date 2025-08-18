@@ -317,11 +317,15 @@ export function renderPlainText(
         }
 
         if (t.type === 'fence' || t.type === 'code_block') {
-            // If the code block content is wrapped in fences, strip them
-            // This handles indented fenced code blocks that markdown-it may parse as code_block
-            const fenceMatch = t.content.match(/^[ \t]*```[a-z]*\n([\s\S]*?)^[ \t]*```[ \t]*$/m);
-            if (fenceMatch) {
-                result += fenceMatch[1] + '\n';
+            // Only strip outer fences if they are the only thing on the first and last line
+            const lines = t.content.split('\n');
+            if (
+                lines.length > 2 &&
+                lines[0].trim().startsWith('```') &&
+                lines[lines.length - 1].trim().startsWith('```')
+            ) {
+                // Remove first and last line (the fences)
+                result += lines.slice(1, -1).join('\n') + '\n';
             } else {
                 result += t.content + '\n';
             }
