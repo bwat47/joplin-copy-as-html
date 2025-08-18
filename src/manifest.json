@@ -34,6 +34,12 @@
 			"description": "If enabled, images in selection will be embedded as base64.",
 			"value": true
 		},
+		"exportFullHtml": {
+			"type": "bool",
+			"label": "Export as full HTML document",
+			"description": "If enabled, exported HTML will be a full document with your custom stylesheet (copy-as-html-user.css in your profile folder).",
+			"value": false
+		},
 		"preserveSuperscript": {
 			"type": "bool",
 			"label": "Preserve superscript characters (^TEST^)",

@@ -19,3 +19,7 @@ export function validatePlainTextSettings(settings: unknown): PlainTextOptions {
 export function validateEmbedImagesSetting(setting: unknown): boolean {
     return Boolean(setting);
 }
+
+export function validateExportFullHtmlSetting(setting: unknown): boolean {
+    return typeof setting === 'boolean';
+}

@@ -4,6 +4,8 @@ import { CONSTANTS, REGEX_PATTERNS } from './constants';
 import { ImageDimensions, MarkdownSegment, JoplinFileData, JoplinResource } from './types';
 import { validateEmbedImagesSetting } from './utils';
 import { SETTINGS } from './constants';
+import * as fs from 'fs/promises';
+import * as path from 'path';
 
 /**
  * Creates a consistent error HTML span for resource errors.
@@ -235,7 +237,10 @@ export async function convertResourceToBase64(id: string): Promise<string> {
  * Converts a markdown selection to processed HTML, including image embedding and dimension preservation.
  * Returns the final HTML fragment.
  */
-export async function processHtmlConversion(selection: string): Promise<string> {
+export async function processHtmlConversion(
+    selection: string,
+    asFullDocument: boolean = false
+): Promise<string> {
     // Get Joplin global settings
     const globalSubEnabled = await joplin.settings.globalValue('markdown.plugin.sub');
     const globalSupEnabled = await joplin.settings.globalValue('markdown.plugin.sup');
@@ -330,5 +335,33 @@ export async function processHtmlConversion(selection: string): Promise<string> 
         fragment = html.trim();
     }
 
+    // Optionally wrap as a full HTML document with user stylesheet
+    if (asFullDocument) {
+        const userStylesheet = await getUserStylesheet();
+        const styleTag = userStylesheet
+            ? `<style type="text/css">\n${userStylesheet}\n</style>`
+            : '';
+        fragment = `<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+${styleTag}
+</head>
+<body>
+${fragment}
+</body>
+</html>`;
+    }
+
     return fragment;
+}
+
+async function getUserStylesheet(): Promise<string> {
+    const profileDir = await joplin.settings.globalValue('profileDir');
+    const cssPath = path.join(profileDir, 'copy-as-html-user.css');
+    try {
+        return await fs.readFile(cssPath, 'utf8');
+    } catch {
+        return '';
+    }
 }

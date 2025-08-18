@@ -8,6 +8,7 @@ export const SETTINGS = {
 	PRESERVE_MARK: 'preserveMark',
 	PRESERVE_INSERT: 'preserveInsert',
 	HYPERLINK_BEHAVIOR: 'hyperlinkBehavior',
+	EXPORT_FULL_HTML: 'exportFullHtml',
 };
 
 // Regex patterns for Joplin resource and image handling

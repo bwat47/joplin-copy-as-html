@@ -24,6 +24,14 @@ joplin.plugins.register({
 				label: 'Embed images as base64',
 				description: 'If enabled, images in selection will be embedded as base64 in HTML output.',
 			},
+			[SETTINGS.EXPORT_FULL_HTML]: {
+				value: false,
+				type: SettingItemType.Bool,
+				section: 'copyAsHtml',
+				public: true,
+				label: 'Export as full HTML document',
+				description: 'If enabled, exported HTML will be a full document with your custom stylesheet (copy-as-html-user.css in your profile folder).',
+			},
 			[SETTINGS.PRESERVE_SUPERSCRIPT]: {
 				value: false,
 				type: SettingItemType.Bool,
@@ -109,8 +117,9 @@ joplin.plugins.register({
                         await joplin.views.dialogs.showToast({ message: 'No text selected.', type: ToastType.Info });
                         return;
                     }
-                    const fragment = await processHtmlConversion(selection);
-                    await joplin.clipboard.writeHtml(fragment);
+                    const asFullDocument = await joplin.settings.value(SETTINGS.EXPORT_FULL_HTML);
+                    const html = await processHtmlConversion(selection, asFullDocument);
+                    await joplin.clipboard.writeHtml(html);
                     await joplin.views.dialogs.showToast({ message: 'Copied selection as HTML!', type: ToastType.Success });
                 } catch (err) {
                     console.error('[copy-as-html] Error:', err);
