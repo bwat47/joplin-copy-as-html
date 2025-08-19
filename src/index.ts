@@ -6,6 +6,7 @@ import { SETTINGS } from './constants';
 import { processHtmlConversion } from './htmlRenderer';
 import { convertMarkdownToPlainText } from './plainTextRenderer';
 import { validatePlainTextSettings } from './utils';
+import { validateExportFullHtmlSetting } from './utils';
 
 joplin.plugins.register({
 	onStart: async function() {
@@ -22,7 +23,9 @@ joplin.plugins.register({
                         await joplin.views.dialogs.showToast({ message: 'No text selected.', type: ToastType.Info });
                         return;
                     }
-                    const asFullDocument = await joplin.settings.value(SETTINGS.EXPORT_FULL_HTML);
+                    const asFullDocument = validateExportFullHtmlSetting(
+						await joplin.settings.value(SETTINGS.EXPORT_FULL_HTML)
+					);
                     const html = await processHtmlConversion(selection, asFullDocument);
                     await joplin.clipboard.writeHtml(html);
                     await joplin.views.dialogs.showToast({ message: 'Copied selection as HTML!', type: ToastType.Success });
