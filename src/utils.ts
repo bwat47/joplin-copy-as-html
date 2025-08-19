@@ -21,5 +21,5 @@ export function validateEmbedImagesSetting(setting: unknown): boolean {
 }
 
 export function validateExportFullHtmlSetting(setting: unknown): boolean {
-    return typeof setting === 'boolean';
+    return typeof setting === 'boolean' ? setting : false;
 }
