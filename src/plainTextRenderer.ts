@@ -332,8 +332,10 @@ export function renderPlainText(
                 result += t.content + '\n';
             }
         } else if (t.type === 'code_inline') {
+            // Inline code: preserve literal content without markdown markers
             result += t.content;
         } else if (t.type === 'inline' && t.children) {
+            // Inline container: recursively render child tokens (em, strong, links, text, etc.)
             result += renderPlainText(
                 t.children,
                 listContext,
@@ -346,7 +348,9 @@ export function renderPlainText(
                 result += '#'.repeat(parseInt(t.tag[1])) + ' ';
             }
         } else if (t.type === 'heading_close') {
+            // Ensure blank line(s) after headings
             result += '\n\n';
+        // emit the original markup only when the corresponding setting is enabled
         } else if (!inCode && t.type === 'em_open') {
             if (options.preserveEmphasis) result += t.markup;
         } else if (!inCode && t.type === 'em_close') {
@@ -363,6 +367,10 @@ export function renderPlainText(
             if (options.preserveInsert) result += '++';
         } else if (!inCode && t.type === 'ins_close') {
             if (options.preserveInsert) result += '++';
+        } else if (!inCode && t.type === 's_open') {
+            if (options.preserveStrikethrough) result += '~~';
+        } else if (!inCode && t.type === 's_close') {
+            if (options.preserveStrikethrough) result += '~~';
         } else if (!inCode && t.type === 'link_open') {
             result = handleLinkToken(t, linkStack, options, result);
         } else if (!inCode && t.type === 'link_close') {

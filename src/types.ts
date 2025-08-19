@@ -18,11 +18,12 @@ export interface PluginOptions {
 }
 
 export interface PlainTextOptions {
-    preserveHeading: boolean;
-    preserveEmphasis: boolean;
-    preserveBold: boolean;
     preserveSuperscript: boolean;
     preserveSubscript: boolean;
+    preserveEmphasis: boolean;
+    preserveBold: boolean;
+    preserveHeading: boolean;
+    preserveStrikethrough: boolean;
     preserveMark: boolean;
     preserveInsert: boolean;
     hyperlinkBehavior: 'title' | 'url' | 'markdown';

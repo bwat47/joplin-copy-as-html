@@ -70,6 +70,12 @@
 			"description": "If enabled, ## TEST will remain as-is in plain text output.",
 			"value": false
 		},
+		"preserveStrikethrough": {
+			"type": "bool",
+			"label": "Preserve strikethrough characters (~~TEST~~)",
+			"description": "If enabled, ~~TEST~~ will remain as-is in plain text output.",
+			"value": false
+		},
 		"preserveMark": {
 			"type": "bool",
 			"label": "Preserve highlight characters (==TEST==)",

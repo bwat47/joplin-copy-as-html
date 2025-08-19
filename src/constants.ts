@@ -9,6 +9,7 @@ export const SETTINGS = {
 	PRESERVE_HEADING: 'preserveHeading',
 	PRESERVE_MARK: 'preserveMark',
 	PRESERVE_INSERT: 'preserveInsert',
+	PRESERVE_STRIKETHROUGH: 'preserveStrikethrough',
 	HYPERLINK_BEHAVIOR: 'hyperlinkBehavior',
 };
 

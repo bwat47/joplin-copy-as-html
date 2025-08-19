@@ -1,7 +1,7 @@
 import { PlainTextOptions } from './types';
 
 export function validatePlainTextSettings(settings: unknown): PlainTextOptions {
-    const s = settings as Record<string, unknown>;
+    const s = settings as any;
     return {
         preserveSuperscript: typeof s.preserveSuperscript === 'boolean'
             ? s.preserveSuperscript
@@ -17,6 +17,9 @@ export function validatePlainTextSettings(settings: unknown): PlainTextOptions {
             : false,
         preserveHeading: typeof s.preserveHeading === 'boolean'
             ? s.preserveHeading
+            : false,
+        preserveStrikethrough: typeof s.preserveStrikethrough === 'boolean'
+            ? s.preserveStrikethrough
             : false,
         preserveMark: typeof s.preserveMark === 'boolean'
             ? s.preserveMark

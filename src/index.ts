@@ -51,9 +51,10 @@ joplin.plugins.register({
                         preserveEmphasis: await joplin.settings.value(SETTINGS.PRESERVE_EMPHASIS),
                         preserveBold: await joplin.settings.value(SETTINGS.PRESERVE_BOLD),
                         preserveHeading: await joplin.settings.value(SETTINGS.PRESERVE_HEADING),
-                        hyperlinkBehavior: await joplin.settings.value(SETTINGS.HYPERLINK_BEHAVIOR),
-                        preserveMark: await joplin.settings.value(SETTINGS.PRESERVE_MARK),
+						preserveStrikethrough: await joplin.settings.value(SETTINGS.PRESERVE_STRIKETHROUGH),
+						preserveMark: await joplin.settings.value(SETTINGS.PRESERVE_MARK),
                         preserveInsert: await joplin.settings.value(SETTINGS.PRESERVE_INSERT),
+                        hyperlinkBehavior: await joplin.settings.value(SETTINGS.HYPERLINK_BEHAVIOR),
                     };
                     const plainTextOptions = validatePlainTextSettings(plainTextSettings);
 
@@ -136,6 +137,14 @@ joplin.plugins.register({
 				public: true,
 				label: 'Preserve heading characters (## TEST)',
 				description: 'If enabled, ## TEST will remain as-is in plain text output.',
+			},
+			[SETTINGS.PRESERVE_STRIKETHROUGH]: {
+				value: false,
+				type: SettingItemType.Bool,
+				section: 'copyAsHtml',
+				public: true,
+				label: 'Preserve strikethrough characters (~~TEST~~)',
+				description: 'If enabled, ~~TEST~~ will remain as-is in plain text output.',
 			},
 			[SETTINGS.PRESERVE_MARK]: {
 				value: false,
