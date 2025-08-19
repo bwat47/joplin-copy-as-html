@@ -3,13 +3,27 @@ import { PlainTextOptions } from './types';
 export function validatePlainTextSettings(settings: unknown): PlainTextOptions {
     const s = settings as Record<string, unknown>;
     return {
-        preserveSuperscript: Boolean(s.preserveSuperscript),
-        preserveSubscript: Boolean(s.preserveSubscript),
-        preserveEmphasis: Boolean(s.preserveEmphasis),
-        preserveBold: Boolean(s.preserveBold),
-        preserveHeading: Boolean(s.preserveHeading),
-        preserveMark: Boolean(s.preserveMark),
-        preserveInsert: Boolean(s.preserveInsert),
+        preserveSuperscript: typeof s.preserveSuperscript === 'boolean'
+            ? s.preserveSuperscript
+            : false,
+        preserveSubscript: typeof s.preserveSubscript === 'boolean'
+            ? s.preserveSubscript
+            : false,
+        preserveEmphasis: typeof s.preserveEmphasis === 'boolean'
+            ? s.preserveEmphasis
+            : false,
+        preserveBold: typeof s.preserveBold === 'boolean'
+            ? s.preserveBold
+            : false,
+        preserveHeading: typeof s.preserveHeading === 'boolean'
+            ? s.preserveHeading
+            : false,
+        preserveMark: typeof s.preserveMark === 'boolean'
+            ? s.preserveMark
+            : false,
+        preserveInsert: typeof s.preserveInsert === 'boolean'
+            ? s.preserveInsert
+            : false,
         hyperlinkBehavior: ['title', 'url', 'markdown'].includes(String(s.hyperlinkBehavior))
             ? String(s.hyperlinkBehavior) as 'title' | 'url' | 'markdown'
             : 'title',
@@ -17,7 +31,7 @@ export function validatePlainTextSettings(settings: unknown): PlainTextOptions {
 }
 
 export function validateEmbedImagesSetting(setting: unknown): boolean {
-    return Boolean(setting);
+    return typeof setting === 'boolean' ? setting : false;
 }
 
 export function validateExportFullHtmlSetting(setting: unknown): boolean {
