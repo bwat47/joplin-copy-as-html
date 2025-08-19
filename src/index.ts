@@ -5,8 +5,7 @@ import { SettingItemType, ToastType, MenuItemLocation } from 'api/types';
 import { SETTINGS } from './constants';
 import { processHtmlConversion } from './htmlRenderer';
 import { convertMarkdownToPlainText } from './plainTextRenderer';
-import { validatePlainTextSettings } from './utils';
-import { validateExportFullHtmlSetting } from './utils';
+import { validatePlainTextSettings, validateBooleanSetting } from './utils';
 
 joplin.plugins.register({
 	onStart: async function() {
@@ -23,7 +22,7 @@ joplin.plugins.register({
                         await joplin.views.dialogs.showToast({ message: 'No text selected.', type: ToastType.Info });
                         return;
                     }
-                    const asFullDocument = validateExportFullHtmlSetting(
+                    const asFullDocument = validateBooleanSetting(
 						await joplin.settings.value(SETTINGS.EXPORT_FULL_HTML)
 					);
                     const html = await processHtmlConversion(selection, asFullDocument);

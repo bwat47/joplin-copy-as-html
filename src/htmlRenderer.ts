@@ -2,7 +2,7 @@ import joplin from 'api';
 import { JSDOM } from 'jsdom';
 import { CONSTANTS, REGEX_PATTERNS } from './constants';
 import { ImageDimensions, MarkdownSegment, JoplinFileData, JoplinResource } from './types';
-import { validateEmbedImagesSetting } from './utils';
+import { validateBooleanSetting } from './utils';
 import { SETTINGS } from './constants';
 import * as fs from 'fs/promises';
 import * as path from 'path';
@@ -248,7 +248,7 @@ export async function processHtmlConversion(
     const globalMarkEnabled = await joplin.settings.globalValue('markdown.plugin.mark');
     const globalInsEnabled = await joplin.settings.globalValue('markdown.plugin.insert');
     const globalSoftBreaksEnabled = await joplin.settings.globalValue('markdown.plugin.softbreaks');
-    const embedImages = validateEmbedImagesSetting(await joplin.settings.value(SETTINGS.EMBED_IMAGES));
+    const embedImages = validateBooleanSetting(await joplin.settings.value(SETTINGS.EMBED_IMAGES), true);
 
     // Handle soft breaks
     let processedSelection = selection;
