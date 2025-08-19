@@ -32,6 +32,3 @@ export const CONSTANTS = {
     MIN_COLUMN_WIDTH: 3,
     DIMENSION_KEY_PREFIX: 'DIMENSION_'
 };
-
-// Type for resource link behavior
-export type JoplinResourceLinkBehavior = 'dont-link' | 'leave-as-is';
