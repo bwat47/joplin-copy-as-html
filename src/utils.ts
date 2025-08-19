@@ -21,6 +21,9 @@ export function validatePlainTextSettings(settings: unknown): PlainTextOptions {
         preserveStrikethrough: typeof s.preserveStrikethrough === 'boolean'
             ? s.preserveStrikethrough
             : false,
+        preserveHorizontalRule: typeof s.preserveHorizontalRule === 'boolean'
+            ? s.preserveHorizontalRule
+            : false,
         preserveMark: typeof s.preserveMark === 'boolean'
             ? s.preserveMark
             : false,

@@ -350,6 +350,14 @@ export function renderPlainText(
         } else if (t.type === 'heading_close') {
             // Ensure blank line(s) after headings
             result += '\n\n';
+        } else if (t.type === 'hr' || t.type === 'thematic_break') {
+            // Horizontal rule: preserve as markdown '---' if requested, otherwise emit spacing
+            if (options.preserveHorizontalRule) {
+                result += '---\n\n';
+            } else {
+                // keep a blank line separator for readability
+                result += '\n\n';
+            }
         // emit the original markup only when the corresponding setting is enabled
         } else if (!inCode && t.type === 'em_open') {
             if (options.preserveEmphasis) result += t.markup;

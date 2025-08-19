@@ -7,9 +7,10 @@ export const SETTINGS = {
 	PRESERVE_EMPHASIS: 'preserveEmphasis',
 	PRESERVE_BOLD: 'preserveBold',
 	PRESERVE_HEADING: 'preserveHeading',
+	PRESERVE_STRIKETHROUGH: 'preserveStrikethrough',
+	PRESERVE_HORIZONTAL_RULE: 'preserveHorizontalRule',
 	PRESERVE_MARK: 'preserveMark',
 	PRESERVE_INSERT: 'preserveInsert',
-	PRESERVE_STRIKETHROUGH: 'preserveStrikethrough',
 	HYPERLINK_BEHAVIOR: 'hyperlinkBehavior',
 };
 

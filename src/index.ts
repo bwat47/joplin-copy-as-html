@@ -52,6 +52,7 @@ joplin.plugins.register({
                         preserveBold: await joplin.settings.value(SETTINGS.PRESERVE_BOLD),
                         preserveHeading: await joplin.settings.value(SETTINGS.PRESERVE_HEADING),
 						preserveStrikethrough: await joplin.settings.value(SETTINGS.PRESERVE_STRIKETHROUGH),
+						preserveHorizontalRule: await joplin.settings.value(SETTINGS.PRESERVE_HORIZONTAL_RULE),
 						preserveMark: await joplin.settings.value(SETTINGS.PRESERVE_MARK),
                         preserveInsert: await joplin.settings.value(SETTINGS.PRESERVE_INSERT),
                         hyperlinkBehavior: await joplin.settings.value(SETTINGS.HYPERLINK_BEHAVIOR),
@@ -145,6 +146,14 @@ joplin.plugins.register({
 				public: true,
 				label: 'Preserve strikethrough characters (~~TEST~~)',
 				description: 'If enabled, ~~TEST~~ will remain as-is in plain text output.',
+			},
+			[SETTINGS.PRESERVE_HORIZONTAL_RULE]: {
+				value: false,
+				type: SettingItemType.Bool,
+				section: 'copyAsHtml',
+				public: true,
+				label: 'Preserve horizontal rule (---)',
+				description: 'If enabled, horizontal rules will be preserved as --- in plain text output.',
 			},
 			[SETTINGS.PRESERVE_MARK]: {
 				value: false,

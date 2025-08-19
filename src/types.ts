@@ -24,6 +24,7 @@ export interface PlainTextOptions {
     preserveBold: boolean;
     preserveHeading: boolean;
     preserveStrikethrough: boolean;
+    preserveHorizontalRule: boolean;
     preserveMark: boolean;
     preserveInsert: boolean;
     hyperlinkBehavior: 'title' | 'url' | 'markdown';
