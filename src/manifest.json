@@ -78,8 +78,8 @@
 		},
 		"preserveHorizontalRule": {
 			"type": "bool",
-			"label": "Preserve strikethrough characters (~~TEST~~)",
-			"description": "If enabled, ~~TEST~~ will remain as-is in plain text output.",
+			"label": "Preserve horizontal rule (---)",
+			"description": "If enabled, horizontal rules will be preserved as --- in plain text output.",
 			"value": false
 		},
 		"preserveMark": {
