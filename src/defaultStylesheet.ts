@@ -1,10 +1,10 @@
 export const defaultStylesheet = `
 body, input {
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: Roboto, Arial, "Helvetica Neue", Helvetica, sans-serif;
 }
 
 code, kbd, pre {
-  font-family: "Courier New", Courier, monospace;
+  font-family: "Roboto Mono", Monaco, "Courier New", Courier, monospace;
   background-color: #f5f5f5;
 }
 
