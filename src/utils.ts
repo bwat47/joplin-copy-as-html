@@ -1,7 +1,7 @@
 import { PlainTextOptions } from './types';
 
 export function validatePlainTextSettings(settings: unknown): PlainTextOptions {
-    const s = settings as any;
+    const s = settings as Partial<PlainTextOptions>;
     return {
         preserveSuperscript: typeof s.preserveSuperscript === 'boolean'
             ? s.preserveSuperscript
