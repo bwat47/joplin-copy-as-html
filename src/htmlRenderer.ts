@@ -328,8 +328,7 @@ export async function processHtmlConversion(
             // Remove Joplin-specific onclick attributes from all <a> tags
             const links = renderedMd.querySelectorAll('a[onclick]');
             links.forEach(link => link.removeAttribute('onclick'));
-
-                       
+    
            // Process Joplin resource links based on user setting
            // Remove links for non-image Joplin resources if user selected "Don't link"
            if (resourceLinkBehavior === 'dont-link') {
