@@ -94,6 +94,19 @@ joplin.plugins.register({
 				label: 'Export as full HTML document',
 				description: 'If enabled, exported HTML will be a full document with your custom stylesheet (copy-as-html-user.css in your profile folder).',
 			},
+			[SETTINGS.JOPLIN_RESOURCE_LINK_BEHAVIOR]: {
+				value: 'dont-link',
+				type: SettingItemType.String,
+				isEnum: true,
+				options: {
+					'dont-link': 'Don\'t link (title only)',
+					'leave-as-is': 'Leave as is (with link)'
+				},
+				section: 'copyAsHtml',
+				public: true,
+				label: 'Joplin Resource Link Handling',
+				description: 'How non-image Joplin resource links should appear in HTML output.',
+			},
 			[SETTINGS.PRESERVE_SUPERSCRIPT]: {
 				value: false,
 				type: SettingItemType.Bool,

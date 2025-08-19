@@ -54,3 +54,6 @@ export interface JoplinFileData {
     data?: Buffer | Uint8Array;
     content?: Buffer | Uint8Array;
 }
+
+// Type for resource link behavior
+export type JoplinResourceLinkBehavior = 'dont-link' | 'leave-as-is';

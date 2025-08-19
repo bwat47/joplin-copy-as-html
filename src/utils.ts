@@ -1,4 +1,4 @@
-import { PlainTextOptions } from './types';
+import { PlainTextOptions, JoplinResourceLinkBehavior } from './types';
 
 export function validatePlainTextSettings(settings: unknown): PlainTextOptions {
     const s = settings as Record<string, unknown>;
@@ -22,4 +22,10 @@ export function validateEmbedImagesSetting(setting: unknown): boolean {
 
 export function validateExportFullHtmlSetting(setting: unknown): boolean {
     return typeof setting === 'boolean';
+}
+
+export function validateJoplinResourceLinkBehavior(setting: unknown): JoplinResourceLinkBehavior {
+    return ['dont-link', 'leave-as-is'].includes(String(setting))
+        ? String(setting) as JoplinResourceLinkBehavior
+        : 'dont-link';
 }

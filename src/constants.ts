@@ -1,5 +1,7 @@
 export const SETTINGS = {
 	EMBED_IMAGES: 'embedImages',
+	EXPORT_FULL_HTML: 'exportFullHtml',
+	JOPLIN_RESOURCE_LINK_BEHAVIOR: 'joplinResourceLinkBehavior',
 	PRESERVE_SUPERSCRIPT: 'preserveSuperscript',
 	PRESERVE_SUBSCRIPT: 'preserveSubScript',
 	PRESERVE_EMPHASIS: 'preserveEmphasis',
@@ -8,7 +10,6 @@ export const SETTINGS = {
 	PRESERVE_MARK: 'preserveMark',
 	PRESERVE_INSERT: 'preserveInsert',
 	HYPERLINK_BEHAVIOR: 'hyperlinkBehavior',
-	EXPORT_FULL_HTML: 'exportFullHtml',
 };
 
 // Regex patterns for Joplin resource and image handling
@@ -31,3 +32,6 @@ export const CONSTANTS = {
     MIN_COLUMN_WIDTH: 3,
     DIMENSION_KEY_PREFIX: 'DIMENSION_'
 };
+
+// Type for resource link behavior
+export type JoplinResourceLinkBehavior = 'dont-link' | 'leave-as-is';
