@@ -2,12 +2,11 @@ import joplin from 'api';
 import { JSDOM } from 'jsdom';
 import { CONSTANTS, REGEX_PATTERNS } from './constants';
 import { ImageDimensions, MarkdownSegment, JoplinFileData, JoplinResource } from './types';
-import { validateEmbedImagesSetting, validateJoplinResourceLinkBehavior } from './utils';
+import { validateEmbedImagesSetting } from './utils';
 import { SETTINGS } from './constants';
 import * as fs from 'fs/promises';
 import * as path from 'path';
 import { defaultStylesheet } from './defaultStylesheet';
-import { JoplinResourceLinkBehavior } from './types';
 
 /**
  * Creates a consistent error HTML span for resource errors.
@@ -250,7 +249,6 @@ export async function processHtmlConversion(
     const globalInsEnabled = await joplin.settings.globalValue('markdown.plugin.insert');
     const globalSoftBreaksEnabled = await joplin.settings.globalValue('markdown.plugin.softbreaks');
     const embedImages = validateEmbedImagesSetting(await joplin.settings.value(SETTINGS.EMBED_IMAGES));
-    const resourceLinkBehavior = validateJoplinResourceLinkBehavior(await joplin.settings.value(SETTINGS.JOPLIN_RESOURCE_LINK_BEHAVIOR));
 
     // Handle soft breaks
     let processedSelection = selection;
@@ -329,22 +327,19 @@ export async function processHtmlConversion(
             const links = renderedMd.querySelectorAll('a[onclick]');
             links.forEach(link => link.removeAttribute('onclick'));
     
-           // Process Joplin resource links based on user setting
-           // Remove links for non-image Joplin resources if user selected "Don't link"
-           if (resourceLinkBehavior === 'dont-link') {
-               const resourceLinks = renderedMd.querySelectorAll('a[data-resource-id]');
-               resourceLinks.forEach(link => {
-                   // Skip if this link contains an image (should be handled by image logic)
-                   if (link.querySelector('img')) {
-                       return;
-                   }
-                   
-                   // Replace with just the text content
-                   const textContent = link.textContent?.trim() || 'Resource';
-                   const textNode = dom.window.document.createTextNode(textContent);
-                   link.parentNode?.replaceChild(textNode, link);
-               });
-           }
+           // Remove links for non-image Joplin resources: display only the title
+           // (Image resources are handled separately and left as images)
+           const resourceLinks = renderedMd.querySelectorAll('a[data-resource-id]');
+           resourceLinks.forEach(link => {
+               // Skip if this link contains an image (should be handled by image logic)
+               if (link.querySelector('img')) {
+                   return;
+               }
+               // Replace with just the text content
+               const textContent = link.textContent?.trim() || 'Resource';
+               const textNode = dom.window.document.createTextNode(textContent);
+               link.parentNode?.replaceChild(textNode, link);
+           });
     
 
             fragment = renderedMd.innerHTML.trim();

@@ -40,16 +40,6 @@
 			"description": "If enabled, exported HTML will be a full document with your custom stylesheet (copy-as-html-user.css in your profile folder).",
 			"value": false
 		},
-		"joplinResourceLinkBehavior": {
-			"type": "enum",
-			"label": "Joplin Resource Link Handling",
-			"description": "How non-image Joplin resource links should appear in HTML output.",
-			"options": {
-				"dont-link": "Don't link (title only)",
-				"leave-as-is": "Leave as is (with link)"
-			},
-			"value": "dont-link"
-		},
 		"preserveSuperscript": {
 			"type": "bool",
 			"label": "Preserve superscript characters (^TEST^)",
