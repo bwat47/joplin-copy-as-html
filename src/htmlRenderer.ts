@@ -1,11 +1,15 @@
 import joplin from 'api';
 import { JSDOM } from 'jsdom';
-import { CONSTANTS, REGEX_PATTERNS } from './constants';
+import { CONSTANTS, REGEX_PATTERNS, SETTINGS } from './constants';
 import { ImageDimensions, MarkdownSegment, JoplinFileData, JoplinResource, HtmlOptions } from './types';
 import { validateHtmlSettings } from './utils';
-import { SETTINGS } from './constants';
 import * as fs from 'fs/promises';
 import * as path from 'path';
+import MarkdownIt = require('markdown-it');
+import markdownItMark = require('markdown-it-mark');
+import markdownItIns = require('markdown-it-ins');
+import markdownItSub = require('markdown-it-sub');
+import markdownItSup = require('markdown-it-sup');
 import { defaultStylesheet } from './defaultStylesheet';
 
 /**
@@ -179,10 +183,12 @@ export async function replaceAsync(
 }
 
 /**
- * Converts a Joplin resource (by ID) to a base64 data URL for embedding.
- * @param id The Joplin resource ID.
- * @returns A base64 data URL string or an error HTML span.
- */
+* Converts a Joplin resource (by ID) to a base64 data URL for embedding.
+* @param id The Joplin resource ID.
+* @returns A base64 data URL string or an error HTML span.
+* Safely extracts a Buffer from a Joplin file object returned by the API.
+* Accepts Buffer, Uint8Array, or compatible shapes on the file object.
+*/
 function extractFileBuffer(fileObj: JoplinFileData): Buffer {
 	if (!fileObj) {
 		throw new Error('No file object provided');
@@ -257,37 +263,55 @@ export async function processHtmlConversion(
         };
         options = validateHtmlSettings(htmlSettings);
     }
+
     // Get Joplin global settings
     const globalSubEnabled = await joplin.settings.globalValue('markdown.plugin.sub');
     const globalSupEnabled = await joplin.settings.globalValue('markdown.plugin.sup');
     const globalMarkEnabled = await joplin.settings.globalValue('markdown.plugin.mark');
     const globalInsEnabled = await joplin.settings.globalValue('markdown.plugin.insert');
     const globalSoftBreaksEnabled = await joplin.settings.globalValue('markdown.plugin.softbreaks');
+    const globalTypographerEnabled = await joplin.settings.globalValue('markdown.plugin.typographer');
 
-    // Handle soft breaks
+    // Handle soft breaks (preserve existing behavior)
     let processedSelection = selection;
     if (!globalSoftBreaksEnabled) {
+        // Force single newlines to become <br> even when soft breaks are disabled
         processedSelection = processedSelection.replace(/([^\n])\n(?!\n)/g, '$1  \n');
     }
 
     // Extract and preserve image dimensions from HTML img tags
     const { processedMarkdown, dimensions } = extractImageDimensions(processedSelection, options.embedImages);
 
-    // Create renderer with plugin options
-    const { MarkupToHtml, MarkupLanguage } = require('@joplin/renderer');
-    let pluginOptions: any = {};
-    if (!globalSubEnabled) pluginOptions.sub = { enabled: false };
-    if (!globalSupEnabled) pluginOptions.sup = { enabled: false };
-    if (!globalMarkEnabled) pluginOptions.mark = { enabled: false };
-    if (!globalInsEnabled) pluginOptions.insert = { enabled: false };
-
-    const markupToHtml = new MarkupToHtml({ pluginOptions });
-
-    // Render processed markdown to HTML using MarkupLanguage.Markdown
-    const renderOptions = {};
-    const theme = {};
-    const renderResult = await markupToHtml.render(MarkupLanguage.Markdown, processedMarkdown, theme, renderOptions);
-    let html = renderResult.html;
+    // Render with a local markdown-it instance for full control
+    const md = new MarkdownIt({
+        html: true,
+        linkify: true,
+        // Keep previous softbreak behavior: rely on our pre-processing when disabled,
+        // and use markdown-it breaks when enabled.
+        breaks: !!globalSoftBreaksEnabled,
+        typographer: !!globalTypographerEnabled,
+    });
+    if (globalMarkEnabled) md.use(markdownItMark);
+    if (globalInsEnabled) md.use(markdownItIns);
+    if (globalSubEnabled) md.use(markdownItSub);
+    if (globalSupEnabled) md.use(markdownItSup);
+    // Replicate Joplin’s non-image resource link marker so later cleanup still works
+    const defaultLinkOpen = md.renderer.rules.link_open
+        || ((tokens, idx, _opts, _env, self) => self.renderToken(tokens, idx, _opts));
+    md.renderer.rules.link_open = function(tokens, idx, opts, env, self) {
+        const token = tokens[idx];
+        const hrefIdx = token.attrIndex('href');
+        if (hrefIdx >= 0) {
+            const href = token.attrs![hrefIdx][1] || '';
+            // Match :/id, :/id#..., :/id?..., and joplin://resource/id variants
+            const m =
+                href.match(/^:\/([a-f0-9]{32})(?:$|[/?#])/i) ||
+                href.match(/^joplin:\/\/resource\/([a-f0-9]{32})(?:$|[/?#])/i);
+            if (m) token.attrPush(['data-resource-id', m[1]]);
+        }
+        return defaultLinkOpen(tokens, idx, opts, env, self);
+    };
+    let html = md.render(processedMarkdown);
 
     // Apply preserved dimensions to the rendered HTML
     if (options.embedImages) {
@@ -308,63 +332,34 @@ export async function processHtmlConversion(
                 return base64Result;
             }
         });
-
-        // Replace fallback [Image: :/resourceId] text with actual base64 image
-        const fallbackRegex = /\[Image: :\/{1,2}([^\]]+)\]/gi;
-        html = await replaceAsync(html, fallbackRegex, async (match: string, id: string) => {
-            if (!id) return match;
-            const base64Result = await convertResourceToBase64(id);
-            if (base64Result.startsWith('data:image')) {
-                return `<img src="${base64Result}" alt="" />`;
-            } else {
-                return base64Result;
-            }
-        });
+        // Joplin renderer fallback “[Image: :/id]” won’t appear with markdown-it; safe to omit.
     }
 
-    // Use JSDOM to reliably extract #rendered-md content to get clean semantic HTML fragment
-	// Regex parsing proved unreliable due to nested HTML complexity
-	// Also remove source blocks (to prevent duplicate code blocks when pasting)
-    let fragment = html.trim();
-    try {
-        const dom = new JSDOM(html);
-        const renderedMd = dom.window.document.querySelector('#rendered-md');
-        if (renderedMd) {
-            // Remove all <pre class="joplin-source"> blocks
-            const sourceBlocks = renderedMd.querySelectorAll('pre.joplin-source');
-            sourceBlocks.forEach((el) => {
-                if (el && typeof el.remove === 'function') {
-                    el.remove();
-                }
-            });
-            // Remove Joplin-specific onclick attributes from all <a> tags
-            const links = renderedMd.querySelectorAll('a[onclick]');
-            links.forEach(link => link.removeAttribute('onclick'));
-    
-           // Remove links for non-image Joplin resources: display only the title
-           // (Image resources are handled separately and left as images)
-           const resourceLinks = renderedMd.querySelectorAll('a[data-resource-id]');
-           resourceLinks.forEach(link => {
-               // Skip if this link contains an image (should be handled by image logic)
-               if (link.querySelector('img')) {
-                   return;
-               }
-               // Replace with just the text content
-               const textContent = link.textContent?.trim() || 'Resource';
-               const textNode = dom.window.document.createTextNode(textContent);
-               link.parentNode?.replaceChild(textNode, link);
-           });
-    
-
-            fragment = renderedMd.innerHTML.trim();
-        } else {
-            console.warn('[copy-as-html] #rendered-md not found, using full HTML');
-            fragment = html.trim();
-        }
-    } catch (err) {
-        console.error('[copy-as-html] JSDOM parsing failed:', err);
-        fragment = html.trim();
-    }
+    // Clean up with JSDOM to produce a clean semantic fragment.
+    // We no longer rely on #rendered-md; operate on the whole document.
+     let fragment = html.trim();
+     try {
+         const dom = new JSDOM(html);
+         const document = dom.window.document;
+         // Remove any Joplin source blocks if present (noop under markdown-it)
+         document.querySelectorAll('pre.joplin-source').forEach(el => el.remove?.());
+         // Remove any inline onclick handlers
+         document.querySelectorAll('a[onclick]').forEach(link => link.removeAttribute('onclick'));
+         // Non-image Joplin resource links -> title only.
+         // Support both our data-resource-id and raw HTML href forms.
+         document.querySelectorAll(
+             'a[data-resource-id], a[href^=":/"], a[href^="joplin://resource/"]'
+         ).forEach(link => {
+             if (link.querySelector('img')) return;
+             const textContent = link.textContent?.trim() || 'Resource';
+             const textNode = document.createTextNode(textContent);
+             link.parentNode?.replaceChild(textNode, link);
+         });
+         fragment = document.body.innerHTML.trim();
+     } catch (err) {
+         console.error('[copy-as-html] JSDOM parsing failed:', err);
+         fragment = html.trim();
+     }
 
     // Optionally wrap as a full HTML document with user stylesheet
     if (options.exportFullHtml) {

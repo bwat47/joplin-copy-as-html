@@ -1,4 +1,4 @@
-import Token from 'markdown-it/lib/token';
+import type { Token } from 'markdown-it';
 import * as MarkdownIt from 'markdown-it';
 import * as markdownItMark from 'markdown-it-mark';
 import * as markdownItIns from 'markdown-it-ins';
