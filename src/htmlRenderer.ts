@@ -414,6 +414,8 @@ export async function processHtmlConversion(
     const globalMultimdTableEnabled = await safeGetGlobalSetting('markdown.plugin.multitable');
     // For TOC, based on the GitHub PR, it should follow the same pattern
     const globalTocEnabled = await safeGetGlobalSetting('markdown.plugin.toc');
+    // For linkify, check Joplin's linkify setting
+    const globalLinkifyEnabled = await safeGetGlobalSetting('markdown.plugin.linkify');
 
     // Handle soft breaks: rely on markdown-it `breaks` option (no pre-processing)
     const processedSelection = selection;
