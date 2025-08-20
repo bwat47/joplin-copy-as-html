@@ -272,12 +272,8 @@ export async function processHtmlConversion(
     const globalSoftBreaksEnabled = await joplin.settings.globalValue('markdown.plugin.softbreaks');
     const globalTypographerEnabled = await joplin.settings.globalValue('markdown.plugin.typographer');
 
-    // Handle soft breaks (preserve existing behavior)
-    let processedSelection = selection;
-    if (!globalSoftBreaksEnabled) {
-        // Force single newlines to become <br> even when soft breaks are disabled
-        processedSelection = processedSelection.replace(/([^\n])\n(?!\n)/g, '$1  \n');
-    }
+    // Handle soft breaks: rely on markdown-it `breaks` option (no pre-processing)
+    const processedSelection = selection;
 
     // Extract and preserve image dimensions from HTML img tags
     const { processedMarkdown, dimensions } = extractImageDimensions(processedSelection, options.embedImages);
@@ -286,9 +282,9 @@ export async function processHtmlConversion(
     const md = new MarkdownIt({
         html: true,
         linkify: true,
-        // Keep previous softbreak behavior: rely on our pre-processing when disabled,
-        // and use markdown-it breaks when enabled.
-        breaks: !!globalSoftBreaksEnabled,
+        // Joplin "Enable soft breaks" => DO NOT insert <br> for single newlines.
+        // markdown-it `breaks` inserts <br> when true, so invert the flag.
+        breaks: !globalSoftBreaksEnabled,
         typographer: !!globalTypographerEnabled,
     });
     if (globalMarkEnabled) md.use(markdownItMark);
