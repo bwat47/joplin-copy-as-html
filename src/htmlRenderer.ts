@@ -290,25 +290,76 @@ export async function convertResourceToBase64(id: string): Promise<string> {
 /**
  * Safe plugin loader that handles potential import issues
  */
-function safePluginUse(md: MarkdownIt, plugin: any, options?: any): boolean {
+function safePluginUse(md: MarkdownIt, plugin: any, options?: any, pluginName: string = 'unknown'): boolean {
     if (!plugin) {
+        console.warn(`[copy-as-html] Plugin ${pluginName} is null or undefined`);
         return false;
     }
     
     try {
+        // Try different plugin formats
+        let pluginFunc = null;
+        
         if (typeof plugin === 'function') {
-            md.use(plugin, options);
+            pluginFunc = plugin;
         } else if (plugin && typeof plugin.default === 'function') {
-            md.use(plugin.default, options);
+            pluginFunc = plugin.default;
         } else if (plugin && plugin.plugin && typeof plugin.plugin === 'function') {
-            md.use(plugin.plugin, options);
-        } else {
-            console.warn('[copy-as-html] Could not load markdown-it plugin:', plugin);
+            pluginFunc = plugin.plugin;
+        } else if (plugin && typeof plugin === 'object') {
+            // For object plugins, look for common export patterns
+            if (typeof plugin.markdownit === 'function') {
+                pluginFunc = plugin.markdownit;
+            } else if (typeof plugin.render === 'function') {
+                pluginFunc = plugin.render;
+            } else if (typeof plugin.parse === 'function') {
+                pluginFunc = plugin.parse;
+            } else if (plugin.full && typeof plugin.full === 'function') {
+                // For markdown-it-emoji which exports {bare, full, light}
+                pluginFunc = plugin.full;
+            } else if (plugin.light && typeof plugin.light === 'function') {
+                // Alternative emoji option
+                pluginFunc = plugin.light;
+            } else if (plugin.bare && typeof plugin.bare === 'function') {
+                // Another emoji option
+                pluginFunc = plugin.bare;
+            } else {
+                // Try to find any function in the object
+                const funcKeys = Object.keys(plugin).filter(key => typeof plugin[key] === 'function');
+                if (funcKeys.length === 1) {
+                    pluginFunc = plugin[funcKeys[0]];
+                } else if (funcKeys.length > 1) {
+                    // If multiple functions, log them for debugging
+                    console.warn(`[copy-as-html] Plugin ${pluginName} has multiple functions:`, funcKeys);
+                    // For multi-function plugins, try common patterns first
+                    if (funcKeys.includes('full')) {
+                        pluginFunc = plugin.full;
+                    } else if (funcKeys.includes('default')) {
+                        pluginFunc = plugin.default;
+                    } else {
+                        // Use the first available function
+                        pluginFunc = plugin[funcKeys[0]];
+                    }
+                } else {
+                    console.warn(`[copy-as-html] Plugin ${pluginName} object found but no callable function. Available keys:`, Object.keys(plugin));
+                    console.warn(`[copy-as-html] Plugin ${pluginName} object:`, plugin);
+                    return false;
+                }
+            }
+        }
+        
+        if (!pluginFunc) {
+            console.warn(`[copy-as-html] Could not find callable plugin function for ${pluginName} in:`, Object.keys(plugin || {}));
             return false;
         }
+        
+        // Try to use the plugin
+        md.use(pluginFunc, options);
+        console.log(`[copy-as-html] Successfully loaded plugin: ${pluginName} (${pluginFunc.name || 'unnamed'})`);
         return true;
     } catch (err) {
-        console.error('[copy-as-html] Error loading markdown-it plugin:', err);
+        console.error(`[copy-as-html] Error loading markdown-it plugin ${pluginName}:`, err);
+        console.error(`[copy-as-html] Plugin ${pluginName} object:`, plugin);
         return false;
     }
 }
@@ -356,13 +407,11 @@ export async function processHtmlConversion(
     const globalTypographerEnabled = await safeGetGlobalSetting('markdown.plugin.typographer');
     const globalAbbrEnabled = await safeGetGlobalSetting('markdown.plugin.abbr');
     const globalDeflistEnabled = await safeGetGlobalSetting('markdown.plugin.deflist');
+    // For emoji, try the main setting key that Joplin uses for emojis
     const globalEmojiEnabled = await safeGetGlobalSetting('markdown.plugin.emoji');
     const globalFootnoteEnabled = await safeGetGlobalSetting('markdown.plugin.footnote');
-    // Try different possible keys for multimd-table
-    const globalMultimdTableEnabled = 
-        await safeGetGlobalSetting('markdown.plugin.multimdtable') ||
-        await safeGetGlobalSetting('markdown.plugin.multimd-table') ||
-        await safeGetGlobalSetting('markdown.plugin.table');
+    // For MultiMD tables, check the actual Joplin setting
+    const globalMultimdTableEnabled = await safeGetGlobalSetting('markdown.plugin.multitable');
     const globalTocEnabled = await safeGetGlobalSetting('markdown.plugin.toc');
 
     // Handle soft breaks: rely on markdown-it `breaks` option (no pre-processing)
@@ -384,28 +433,52 @@ export async function processHtmlConversion(
     });
 
     // Apply plugins based on Joplin's global settings
-    if (globalMarkEnabled) safePluginUse(md, markdownItMark);
-    if (globalInsEnabled) safePluginUse(md, markdownItIns);
-    if (globalSubEnabled) safePluginUse(md, markdownItSub);
-    if (globalSupEnabled) safePluginUse(md, markdownItSup);
-    if (globalAbbrEnabled && markdownItAbbr) safePluginUse(md, markdownItAbbr);
-    if (globalDeflistEnabled && markdownItDeflist) safePluginUse(md, markdownItDeflist);
-    if (globalEmojiEnabled && markdownItEmoji) safePluginUse(md, markdownItEmoji);
-    if (globalFootnoteEnabled && markdownItFootnote) safePluginUse(md, markdownItFootnote);
+    if (globalMarkEnabled) safePluginUse(md, markdownItMark, undefined, 'markdown-it-mark');
+    if (globalInsEnabled) safePluginUse(md, markdownItIns, undefined, 'markdown-it-ins');
+    if (globalSubEnabled) safePluginUse(md, markdownItSub, undefined, 'markdown-it-sub');
+    if (globalSupEnabled) safePluginUse(md, markdownItSup, undefined, 'markdown-it-sup');
+    if (globalAbbrEnabled && markdownItAbbr) safePluginUse(md, markdownItAbbr, undefined, 'markdown-it-abbr');
+    if (globalDeflistEnabled && markdownItDeflist) safePluginUse(md, markdownItDeflist, undefined, 'markdown-it-deflist');
+    if (globalFootnoteEnabled && markdownItFootnote) safePluginUse(md, markdownItFootnote, undefined, 'markdown-it-footnote');
+    
+    // Emoji plugin - enable if the global emoji setting is on
+    if (globalEmojiEnabled && markdownItEmoji) {
+        console.log('[copy-as-html] Attempting to load emoji plugin...');
+        const emojiLoaded = safePluginUse(md, markdownItEmoji, undefined, 'markdown-it-emoji');
+        if (emojiLoaded) {
+            console.log('[copy-as-html] Emoji plugin loaded successfully');
+        } else {
+            console.warn('[copy-as-html] Failed to load emoji plugin');
+        }
+    } else {
+        console.log('[copy-as-html] Emoji plugin skipped - globalEmojiEnabled:', globalEmojiEnabled, 'markdownItEmoji available:', !!markdownItEmoji);
+    }
+    
+    // MultiMD Table plugin - enable based on Joplin's setting
     if (globalMultimdTableEnabled && markdownItMultimdTable) {
-        safePluginUse(md, markdownItMultimdTable, {
+        console.log('[copy-as-html] Attempting to load multimd-table plugin...');
+        const tableLoaded = safePluginUse(md, markdownItMultimdTable, {
             multiline: true,
             rowspan: true,
             headerless: true,
-        });
+            multibody: true,
+        }, 'markdown-it-multimd-table');
+        if (tableLoaded) {
+            console.log('[copy-as-html] MultiMD Table plugin loaded successfully');
+        } else {
+            console.warn('[copy-as-html] Failed to load multimd-table plugin');
+        }
+    } else {
+        console.log('[copy-as-html] MultiMD Table plugin skipped - globalMultimdTableEnabled:', globalMultimdTableEnabled, 'markdownItMultimdTable available:', !!markdownItMultimdTable);
     }
+    
     if (globalTocEnabled && markdownItTocDoneRight) {
         safePluginUse(md, markdownItTocDoneRight, {
             placeholder: '\\[\\[toc\\]\\]',
             slugify: (s: string) => s.trim().toLowerCase().replace(/\s+/g, '-'),
             containerId: 'toc',
             listType: 'ul',
-        });
+        }, 'markdown-it-toc-done-right');
     }
 
     // Replicate Joplin's non-image resource link marker so later cleanup still works
