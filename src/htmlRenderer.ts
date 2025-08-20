@@ -264,16 +264,6 @@ export async function processHtmlConversion(
     const globalInsEnabled = await joplin.settings.globalValue('markdown.plugin.insert');
     const globalSoftBreaksEnabled = await joplin.settings.globalValue('markdown.plugin.softbreaks');
 
-    // Typographer: honor Joplin’s global "Enable typographer" setting
-    const globalTypographerEnabled = await joplin.settings.globalValue('markdown.plugin.typographer');
-    // Pass core markdown-it options through MarkupToHtml (this is what it reads)
-    const markdownOptions = {
-        typographer: !!globalTypographerEnabled,
-        // Ensure ASCII quotes mapping; if typographer gets enabled elsewhere,
-        // this still prevents curly quotes.
-        quotes: '""\'\'',
-    };
-
     // Handle soft breaks
     let processedSelection = selection;
     if (!globalSoftBreaksEnabled) {
@@ -291,27 +281,13 @@ export async function processHtmlConversion(
     if (!globalMarkEnabled) pluginOptions.mark = { enabled: false };
     if (!globalInsEnabled) pluginOptions.insert = { enabled: false };
 
-    // Pass markdown-it options via the supported key. MarkupToHtml reads `markdownOptions`.
-    const markupToHtml = new MarkupToHtml({
-        pluginOptions,
-        markdownOptions,
-    });
+    const markupToHtml = new MarkupToHtml({ pluginOptions });
 
     // Render processed markdown to HTML using MarkupLanguage.Markdown
+    const renderOptions = {};
     const theme = {};
-    const renderResult = await markupToHtml.render(MarkupLanguage.Markdown, processedMarkdown, theme, {});
+    const renderResult = await markupToHtml.render(MarkupLanguage.Markdown, processedMarkdown, theme, renderOptions);
     let html = renderResult.html;
-
-    // Optional hard safety: if typographer is disabled, normalize any curly quotes that might
-    // come from upstream defaults. This keeps output ASCII even if a plugin forces typographer.
-    if (!globalTypographerEnabled) {
-        // Avoid heavy DOM walks; this is conservative and fast.
-        html = html
-            .replace(/[“”]/g, '"')
-            .replace(/[‘’]/g, "'")
-            .replace(/–|—/g, '-')
-            .replace(/…/g, '...');
-    }
 
     // Apply preserved dimensions to the rendered HTML
     if (options.embedImages) {
