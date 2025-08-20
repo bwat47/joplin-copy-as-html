@@ -1,8 +1,28 @@
 import type { Token } from 'markdown-it';
 import * as MarkdownIt from 'markdown-it';
-import * as markdownItMark from 'markdown-it-mark';
-import * as markdownItIns from 'markdown-it-ins';
-import * as markdownItEmoji from 'markdown-it-emoji';
+// Use safe imports to prevent conflicts with htmlRenderer
+let markdownItMark: any;
+let markdownItIns: any;
+let markdownItEmoji: any;
+
+try {
+    markdownItMark = require('markdown-it-mark');
+} catch (e) {
+    console.warn('[copy-as-plain-text] markdown-it-mark not available:', e);
+}
+
+try {
+    markdownItIns = require('markdown-it-ins');
+} catch (e) {
+    console.warn('[copy-as-plain-text] markdown-it-ins not available:', e);
+}
+
+try {
+    markdownItEmoji = require('markdown-it-emoji');
+} catch (e) {
+    console.warn('[copy-as-plain-text] markdown-it-emoji not available:', e);
+}
+
 import { PlainTextOptions, TableData, TableRow, ListItem } from './types';
 import { CONSTANTS } from './constants';
 import stringWidth from 'string-width';
@@ -267,6 +287,29 @@ export function extractBlockTokens(tokens: Token[], startIndex: number): { block
 }
 
 /**
+ * Safe plugin use function for plain text renderer
+ */
+function safePluginUse(md: MarkdownIt, plugin: any): boolean {
+    if (!plugin) {
+        return false;
+    }
+    
+    try {
+        if (typeof plugin === 'function') {
+            md.use(plugin);
+        } else if (plugin && typeof plugin.default === 'function') {
+            md.use(plugin.default);
+        } else {
+            return false;
+        }
+        return true;
+    } catch (err) {
+        console.error('[copy-as-plain-text] Error loading plugin:', err);
+        return false;
+    }
+}
+
+/**
  * Recursively renders an array of markdown-it tokens into a plain text string.
  * It handles various token types to strip markdown formatting while preserving
  * structure like lists, tables, and headings based on the provided options.
@@ -436,9 +479,12 @@ export function convertMarkdownToPlainText(
     options: PlainTextOptions
 ): string {
     const md = new MarkdownIt();
-    md.use(markdownItMark);
-    md.use(markdownItIns);
-    md.use(markdownItEmoji);
+    
+    // Use safe plugin loading to prevent conflicts
+    if (markdownItMark) safePluginUse(md, markdownItMark);
+    if (markdownItIns) safePluginUse(md, markdownItIns);
+    if (markdownItEmoji) safePluginUse(md, markdownItEmoji);
+    
     const tokens = md.parse(markdown, {});
     return renderPlainText(tokens, null, 0, options);
 }

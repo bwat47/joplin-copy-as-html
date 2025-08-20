@@ -10,6 +10,50 @@ import markdownItMark = require('markdown-it-mark');
 import markdownItIns = require('markdown-it-ins');
 import markdownItSub = require('markdown-it-sub');
 import markdownItSup = require('markdown-it-sup');
+// Import additional plugins with try-catch to prevent conflicts
+let markdownItAbbr: any;
+let markdownItDeflist: any;
+let markdownItEmoji: any;
+let markdownItFootnote: any;
+let markdownItMultimdTable: any;
+let markdownItTocDoneRight: any;
+
+try {
+    markdownItAbbr = require('markdown-it-abbr');
+} catch (e) {
+    console.warn('[copy-as-html] markdown-it-abbr not available:', e);
+}
+
+try {
+    markdownItDeflist = require('markdown-it-deflist');
+} catch (e) {
+    console.warn('[copy-as-html] markdown-it-deflist not available:', e);
+}
+
+try {
+    markdownItEmoji = require('markdown-it-emoji');
+} catch (e) {
+    console.warn('[copy-as-html] markdown-it-emoji not available:', e);
+}
+
+try {
+    markdownItFootnote = require('markdown-it-footnote');
+} catch (e) {
+    console.warn('[copy-as-html] markdown-it-footnote not available:', e);
+}
+
+try {
+    markdownItMultimdTable = require('markdown-it-multimd-table');
+} catch (e) {
+    console.warn('[copy-as-html] markdown-it-multimd-table not available:', e);
+}
+
+try {
+    markdownItTocDoneRight = require('markdown-it-toc-done-right');
+} catch (e) {
+    console.warn('[copy-as-html] markdown-it-toc-done-right not available:', e);
+}
+
 import { defaultStylesheet } from './defaultStylesheet';
 
 /**
@@ -244,6 +288,45 @@ export async function convertResourceToBase64(id: string): Promise<string> {
 }
 
 /**
+ * Safe plugin loader that handles potential import issues
+ */
+function safePluginUse(md: MarkdownIt, plugin: any, options?: any): boolean {
+    if (!plugin) {
+        return false;
+    }
+    
+    try {
+        if (typeof plugin === 'function') {
+            md.use(plugin, options);
+        } else if (plugin && typeof plugin.default === 'function') {
+            md.use(plugin.default, options);
+        } else if (plugin && plugin.plugin && typeof plugin.plugin === 'function') {
+            md.use(plugin.plugin, options);
+        } else {
+            console.warn('[copy-as-html] Could not load markdown-it plugin:', plugin);
+            return false;
+        }
+        return true;
+    } catch (err) {
+        console.error('[copy-as-html] Error loading markdown-it plugin:', err);
+        return false;
+    }
+}
+
+/**
+ * Safe function to get global setting value with fallback
+ */
+async function safeGetGlobalSetting(key: string, defaultValue: boolean = false): Promise<boolean> {
+    try {
+        const value = await joplin.settings.globalValue(key);
+        return !!value;
+    } catch (err) {
+        console.warn(`[copy-as-html] Global setting '${key}' not found, using default:`, defaultValue);
+        return defaultValue;
+    }
+}
+
+/**
  * Converts a markdown selection to processed HTML.
  * This includes embedding images as base64, preserving image dimensions,
  * and cleaning the final HTML for portability.
@@ -264,13 +347,23 @@ export async function processHtmlConversion(
         options = validateHtmlSettings(htmlSettings);
     }
 
-    // Get Joplin global settings
-    const globalSubEnabled = await joplin.settings.globalValue('markdown.plugin.sub');
-    const globalSupEnabled = await joplin.settings.globalValue('markdown.plugin.sup');
-    const globalMarkEnabled = await joplin.settings.globalValue('markdown.plugin.mark');
-    const globalInsEnabled = await joplin.settings.globalValue('markdown.plugin.insert');
-    const globalSoftBreaksEnabled = await joplin.settings.globalValue('markdown.plugin.softbreaks');
-    const globalTypographerEnabled = await joplin.settings.globalValue('markdown.plugin.typographer');
+    // Get Joplin global settings with safe fallbacks
+    const globalSubEnabled = await safeGetGlobalSetting('markdown.plugin.sub');
+    const globalSupEnabled = await safeGetGlobalSetting('markdown.plugin.sup');
+    const globalMarkEnabled = await safeGetGlobalSetting('markdown.plugin.mark');
+    const globalInsEnabled = await safeGetGlobalSetting('markdown.plugin.insert');
+    const globalSoftBreaksEnabled = await safeGetGlobalSetting('markdown.plugin.softbreaks');
+    const globalTypographerEnabled = await safeGetGlobalSetting('markdown.plugin.typographer');
+    const globalAbbrEnabled = await safeGetGlobalSetting('markdown.plugin.abbr');
+    const globalDeflistEnabled = await safeGetGlobalSetting('markdown.plugin.deflist');
+    const globalEmojiEnabled = await safeGetGlobalSetting('markdown.plugin.emoji');
+    const globalFootnoteEnabled = await safeGetGlobalSetting('markdown.plugin.footnote');
+    // Try different possible keys for multimd-table
+    const globalMultimdTableEnabled = 
+        await safeGetGlobalSetting('markdown.plugin.multimdtable') ||
+        await safeGetGlobalSetting('markdown.plugin.multimd-table') ||
+        await safeGetGlobalSetting('markdown.plugin.table');
+    const globalTocEnabled = await safeGetGlobalSetting('markdown.plugin.toc');
 
     // Handle soft breaks: rely on markdown-it `breaks` option (no pre-processing)
     const processedSelection = selection;
@@ -287,11 +380,33 @@ export async function processHtmlConversion(
         breaks: !globalSoftBreaksEnabled,
         typographer: !!globalTypographerEnabled,
     });
-    if (globalMarkEnabled) md.use(markdownItMark);
-    if (globalInsEnabled) md.use(markdownItIns);
-    if (globalSubEnabled) md.use(markdownItSub);
-    if (globalSupEnabled) md.use(markdownItSup);
-    // Replicate Joplin’s non-image resource link marker so later cleanup still works
+
+    // Apply plugins based on Joplin's global settings
+    if (globalMarkEnabled) safePluginUse(md, markdownItMark);
+    if (globalInsEnabled) safePluginUse(md, markdownItIns);
+    if (globalSubEnabled) safePluginUse(md, markdownItSub);
+    if (globalSupEnabled) safePluginUse(md, markdownItSup);
+    if (globalAbbrEnabled && markdownItAbbr) safePluginUse(md, markdownItAbbr);
+    if (globalDeflistEnabled && markdownItDeflist) safePluginUse(md, markdownItDeflist);
+    if (globalEmojiEnabled && markdownItEmoji) safePluginUse(md, markdownItEmoji);
+    if (globalFootnoteEnabled && markdownItFootnote) safePluginUse(md, markdownItFootnote);
+    if (globalMultimdTableEnabled && markdownItMultimdTable) {
+        safePluginUse(md, markdownItMultimdTable, {
+            multiline: true,
+            rowspan: true,
+            headerless: true,
+        });
+    }
+    if (globalTocEnabled && markdownItTocDoneRight) {
+        safePluginUse(md, markdownItTocDoneRight, {
+            placeholder: '\\[\\[toc\\]\\]',
+            slugify: (s: string) => s.trim().toLowerCase().replace(/\s+/g, '-'),
+            containerId: 'toc',
+            listType: 'ul',
+        });
+    }
+
+    // Replicate Joplin's non-image resource link marker so later cleanup still works
     const defaultLinkOpen = md.renderer.rules.link_open
         || ((tokens, idx, _opts, _env, self) => self.renderToken(tokens, idx, _opts));
     md.renderer.rules.link_open = function(tokens, idx, opts, env, self) {
@@ -328,7 +443,7 @@ export async function processHtmlConversion(
                 return base64Result;
             }
         });
-        // Joplin renderer fallback “[Image: :/id]” won’t appear with markdown-it; safe to omit.
+        // Joplin renderer fallback "[Image: :/id]" won't appear with markdown-it; safe to omit.
     }
 
     // Clean up with JSDOM to produce a clean semantic fragment.
