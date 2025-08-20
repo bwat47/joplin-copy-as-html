@@ -5,7 +5,7 @@ import { SettingItemType, ToastType, MenuItemLocation } from 'api/types';
 import { SETTINGS } from './constants';
 import { processHtmlConversion } from './htmlRenderer';
 import { convertMarkdownToPlainText } from './plainTextRenderer';
-import { validatePlainTextSettings, validateBooleanSetting } from './utils';
+import { validatePlainTextSettings, validateHtmlSettings } from './utils';
 
 joplin.plugins.register({
 	onStart: async function() {
@@ -22,10 +22,15 @@ joplin.plugins.register({
                         await joplin.views.dialogs.showToast({ message: 'No text selected.', type: ToastType.Info });
                         return;
                     }
-                    const asFullDocument = validateBooleanSetting(
-						await joplin.settings.value(SETTINGS.EXPORT_FULL_HTML)
-					);
-                    const html = await processHtmlConversion(selection, asFullDocument);
+                    
+                    // Gather and validate HTML settings
+                    const htmlSettings = {
+                        embedImages: await joplin.settings.value(SETTINGS.EMBED_IMAGES),
+                        exportFullHtml: await joplin.settings.value(SETTINGS.EXPORT_FULL_HTML),
+                    };
+                    const htmlOptions = validateHtmlSettings(htmlSettings);
+
+                    const html = await processHtmlConversion(selection, htmlOptions);
                     await joplin.clipboard.writeHtml(html);
                     await joplin.views.dialogs.showToast({ message: 'Copied selection as HTML!', type: ToastType.Success });
                 } catch (err) {

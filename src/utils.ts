@@ -1,4 +1,4 @@
-import { PlainTextOptions } from './types';
+import { PlainTextOptions, HtmlOptions } from './types';
 
 export function validatePlainTextSettings(settings: unknown): PlainTextOptions {
     const s = settings as Partial<PlainTextOptions>;
@@ -17,6 +17,14 @@ export function validatePlainTextSettings(settings: unknown): PlainTextOptions {
             typeof s.hyperlinkBehavior === 'string' && ['title', 'url', 'markdown'].includes(s.hyperlinkBehavior)
                 ? (s.hyperlinkBehavior as 'title' | 'url' | 'markdown')
                 : 'title',
+    };
+}
+
+export function validateHtmlSettings(settings: unknown): HtmlOptions {
+    const s = settings as Partial<HtmlOptions>;
+    return {
+        embedImages: validateBooleanSetting(s.embedImages, true),
+        exportFullHtml: validateBooleanSetting(s.exportFullHtml, false),
     };
 }
 

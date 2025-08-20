@@ -17,6 +17,11 @@ export interface PluginOptions {
     insert?: { enabled: boolean };
 }
 
+export interface HtmlOptions {
+    embedImages: boolean;
+    exportFullHtml: boolean;
+}
+
 export interface PlainTextOptions {
     preserveSuperscript: boolean;
     preserveSubscript: boolean;

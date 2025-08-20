@@ -1,8 +1,8 @@
 import joplin from 'api';
 import { JSDOM } from 'jsdom';
 import { CONSTANTS, REGEX_PATTERNS } from './constants';
-import { ImageDimensions, MarkdownSegment, JoplinFileData, JoplinResource } from './types';
-import { validateBooleanSetting } from './utils';
+import { ImageDimensions, MarkdownSegment, JoplinFileData, JoplinResource, HtmlOptions } from './types';
+import { validateHtmlSettings } from './utils';
 import { SETTINGS } from './constants';
 import * as fs from 'fs/promises';
 import * as path from 'path';
@@ -237,18 +237,26 @@ export async function convertResourceToBase64(id: string): Promise<string> {
 /**
  * Converts a markdown selection to processed HTML, including image embedding and dimension preservation.
  * Returns the final HTML fragment.
+ * @param options HTML processing options including embedImages and exportFullHtml settings
  */
 export async function processHtmlConversion(
     selection: string,
-    asFullDocument: boolean = false
+    options?: HtmlOptions
 ): Promise<string> {
+    // Get HTML settings if not provided
+    if (!options) {
+        const htmlSettings = {
+            embedImages: await joplin.settings.value(SETTINGS.EMBED_IMAGES),
+            exportFullHtml: await joplin.settings.value(SETTINGS.EXPORT_FULL_HTML),
+        };
+        options = validateHtmlSettings(htmlSettings);
+    }
     // Get Joplin global settings
     const globalSubEnabled = await joplin.settings.globalValue('markdown.plugin.sub');
     const globalSupEnabled = await joplin.settings.globalValue('markdown.plugin.sup');
     const globalMarkEnabled = await joplin.settings.globalValue('markdown.plugin.mark');
     const globalInsEnabled = await joplin.settings.globalValue('markdown.plugin.insert');
     const globalSoftBreaksEnabled = await joplin.settings.globalValue('markdown.plugin.softbreaks');
-    const embedImages = validateBooleanSetting(await joplin.settings.value(SETTINGS.EMBED_IMAGES), true);
 
     // Handle soft breaks
     let processedSelection = selection;
@@ -257,7 +265,7 @@ export async function processHtmlConversion(
     }
 
     // Extract and preserve image dimensions from HTML img tags
-    const { processedMarkdown, dimensions } = extractImageDimensions(processedSelection, embedImages);
+    const { processedMarkdown, dimensions } = extractImageDimensions(processedSelection, options.embedImages);
 
     // Create renderer with plugin options
     const { MarkupToHtml, MarkupLanguage } = require('@joplin/renderer');
@@ -276,12 +284,12 @@ export async function processHtmlConversion(
     let html = renderResult.html;
 
     // Apply preserved dimensions to the rendered HTML
-    if (embedImages) {
+    if (options.embedImages) {
         html = applyPreservedDimensions(html, dimensions);
     }
 
     // If embedding images, convert Joplin resource URLs to base64
-    if (embedImages) {
+    if (options.embedImages) {
         // Replace src attribute for Joplin resource images with base64 data
         html = await replaceAsync(html, REGEX_PATTERNS.IMG_TAG_WITH_RESOURCE, async (match: string, id: string) => {
             if (!validateResourceId(id)) {
@@ -296,7 +304,7 @@ export async function processHtmlConversion(
         });
 
         // Replace fallback [Image: :/resourceId] text with actual base64 image
-        const fallbackRegex = /\[Image: :\/{1,2}([a-f0-9]{32})\]/gi;
+        const fallbackRegex = /\[Image: :\/{1,2}([^\]]+)\]/gi;
         html = await replaceAsync(html, fallbackRegex, async (match: string, id: string) => {
             if (!id) return match;
             const base64Result = await convertResourceToBase64(id);
@@ -353,7 +361,7 @@ export async function processHtmlConversion(
     }
 
     // Optionally wrap as a full HTML document with user stylesheet
-    if (asFullDocument) {
+    if (options.exportFullHtml) {
         const userStylesheet = await getUserStylesheet();
         const styleTag = userStylesheet
             ? `<style type="text/css">\n${userStylesheet}\n</style>`
