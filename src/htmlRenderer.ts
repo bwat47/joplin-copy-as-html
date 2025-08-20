@@ -426,7 +426,7 @@ export async function processHtmlConversion(
     // Render with a local markdown-it instance for full control
     const md = new MarkdownIt({
         html: true,
-        linkify: true,
+        linkify: !!globalLinkifyEnabled,
         // Invert the soft breaks setting:
         // Joplin's "Enable soft breaks" means "do NOT insert <br> for single newlines".
         // markdown-it's `breaks: true` option DOES insert <br> tags.
