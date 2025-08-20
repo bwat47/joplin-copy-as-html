@@ -27,11 +27,14 @@ function createResourceError(id: string, reason: string): string {
 }
 
 /**
- * Extracts width, height, and style from HTML <img> tags in markdown, preserving them in a map.
- * Optionally removes all images if embedImages is false.
- * @param markdown The markdown string to process.
- * @param embedImages Whether to preserve images or remove them.
- * @returns An object with processedMarkdown and a map of dimension info.
+ * Pre-processes markdown to handle HTML <img> tags before rendering.
+ * It extracts dimensions (width, height, style) and replaces the <img> tag
+ * with a markdown equivalent containing a unique key. This key is used later
+ * by applyPreservedDimensions to restore the attributes.
+ * Also removes all image tags if embedImages is false.
+ * @param markdown The raw markdown string from the user selection.
+ * @param embedImages A boolean to determine if images should be processed or stripped.
+ * @returns An object containing the processed markdown and a map of dimension data.
  */
 export function extractImageDimensions(markdown: string, embedImages: boolean): { processedMarkdown: string, dimensions: Map<string, ImageDimensions> } {
 	const dimensions = new Map<string, ImageDimensions>();
@@ -235,9 +238,12 @@ export async function convertResourceToBase64(id: string): Promise<string> {
 }
 
 /**
- * Converts a markdown selection to processed HTML, including image embedding and dimension preservation.
- * Returns the final HTML fragment.
- * @param options HTML processing options including embedImages and exportFullHtml settings
+ * Converts a markdown selection to processed HTML.
+ * This includes embedding images as base64, preserving image dimensions,
+ * and cleaning the final HTML for portability.
+ * @param selection The markdown string selected by the user.
+ * @param options HTML processing options, including embedImages and exportFullHtml settings.
+ * @returns A promise that resolves to the final HTML string (either a fragment or a full document).
  */
 export async function processHtmlConversion(
     selection: string,

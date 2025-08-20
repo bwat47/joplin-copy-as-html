@@ -267,7 +267,15 @@ export function extractBlockTokens(tokens: Token[], startIndex: number): { block
 }
 
 /**
- * Converts markdown-it tokens to plain text, with options to preserve or remove markdown formatting.
+ * Recursively renders an array of markdown-it tokens into a plain text string.
+ * It handles various token types to strip markdown formatting while preserving
+ * structure like lists, tables, and headings based on the provided options.
+ * @param tokens An array of markdown-it tokens to process.
+ * @param listContext The current list context (ordered or bullet) for indentation.
+ * @param indentLevel The current level of indentation for nested structures.
+ * @param options The user-configured options for preserving markdown formatting.
+ * @param inCode A flag to indicate if the renderer is currently inside a code block.
+ * @returns The generated plain text string.
  */
 export function renderPlainText(
     tokens: Token[],
