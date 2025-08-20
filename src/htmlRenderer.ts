@@ -412,6 +412,7 @@ export async function processHtmlConversion(
     const globalFootnoteEnabled = await safeGetGlobalSetting('markdown.plugin.footnote');
     // For MultiMD tables, check the actual Joplin setting
     const globalMultimdTableEnabled = await safeGetGlobalSetting('markdown.plugin.multitable');
+    // For TOC, based on the GitHub PR, it should follow the same pattern
     const globalTocEnabled = await safeGetGlobalSetting('markdown.plugin.toc');
 
     // Handle soft breaks: rely on markdown-it `breaks` option (no pre-processing)
@@ -424,10 +425,8 @@ export async function processHtmlConversion(
     const md = new MarkdownIt({
         html: true,
         linkify: true,
-        // Invert the soft breaks setting:
-        // Joplin's "Enable soft breaks" means "do NOT insert <br> for single newlines".
-        // markdown-it's `breaks: true` option DOES insert <br> tags.
-        // So, we invert the Joplin setting to get the correct markdown-it behavior.
+        // Joplin "Enable soft breaks" => DO NOT insert <br> for single newlines.
+        // markdown-it `breaks` inserts <br> when true, so invert the flag.
         breaks: !globalSoftBreaksEnabled,
         typographer: !!globalTypographerEnabled,
     });
@@ -473,12 +472,20 @@ export async function processHtmlConversion(
     }
     
     if (globalTocEnabled && markdownItTocDoneRight) {
-        safePluginUse(md, markdownItTocDoneRight, {
+        console.log('[copy-as-html] Attempting to load TOC plugin...');
+        const tocLoaded = safePluginUse(md, markdownItTocDoneRight, {
             placeholder: '\\[\\[toc\\]\\]',
             slugify: (s: string) => s.trim().toLowerCase().replace(/\s+/g, '-'),
             containerId: 'toc',
             listType: 'ul',
         }, 'markdown-it-toc-done-right');
+        if (tocLoaded) {
+            console.log('[copy-as-html] TOC plugin loaded successfully');
+        } else {
+            console.warn('[copy-as-html] Failed to load TOC plugin');
+        }
+    } else {
+        console.log('[copy-as-html] TOC plugin skipped - globalTocEnabled:', globalTocEnabled, 'markdownItTocDoneRight available:', !!markdownItTocDoneRight);
     }
 
     // Replicate Joplin's non-image resource link marker so later cleanup still works
