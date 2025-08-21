@@ -22,14 +22,55 @@ By default, the plugin will embed any images as base64 in the text/html output, 
 
 This should work with both markdown image embeds and the html `<img>` embeds that you get when resizing images via joplin's rich text editor.
 
+### Export as fragment or full HTML document
+
+When you copy text from Joplin's markdown viewer (or export the note to HTML), there is a lot of styling applied which can sometimes cause issues pasting text into other editors (e.g. if you copy from the markdown viewer, your joplin theme's background color may be pasted).
+
+#### HTML Fragment
+
+By default, the plugin will populate the clipboard with an HTML fragment, e.g:
+
+```html
+<html>
+   <body>
+      <!--StartFragment-->
+      <h2 id="test-heading">Test Heading</h2>
+      <p>Test paragraph 1</p>
+      <p>Test paragraph 2</p>
+      <!--EndFragment-->
+   </body>
+</html>
+```
+
+This is similar to what you get when copying from Joplin's TinyMCE rich text editor (semantic markup, no css styling). Any styling will be determined by the application you're pasting the text into.
+
+#### Full HTML Document
+
+Optionally, you can enable the setting "Export as full HTML document".
+
+This will wrap the HTML fragment in a full HTML document with CSS styling. A default (minimal) css stylesheet is provided: STYLSHEETHERE. The default stylesheet is used if no custom stylesheet is provided and the "Export as full HTML document" setting is enabled.
+
+To use your own stylesheet, create a file called `copy-as-html-user.css` in your Joplin profile directory. To locate your Joplin profile directory, open Joplin and click Help | Open profile directory.
+
+After creating (or updating) the stylesheet, restart Joplin and you should see your custom styling used when Copying as HTML.
+
 ### Optional markdown syntax
 
 The plugin will adhere to Joplin's settings for whether or not to render:
 
 - Soft Breaks
-- `^sup^`
-- `~sub~`
-- `==mark==`
+- Typographer
+- Likify
+- ==mark==
+- Footnotes
+- Table of Contents
+- ~sub~
+- ^sup^
+- Deflist
+- Abbreviation
+- Markdown Emoji
+- ++Insert++
+- Multimarkdown Table`
 
 ## Copy as Plain Text
 
@@ -38,6 +79,8 @@ The plugin will adhere to Joplin's settings for whether or not to render:
 This will strip markdown formatting characters, backslash escapes, and image embeds (e.g. `![](:/22cce3a8c2244493877c66c9e3259274)` or `<img src=":/5bb1066cec6f4c849cefc28ba7b0fc1e">`) from the source markdown and populate it as text/plain in the clipboard, for scenarios where you need to paste into an app that supports neither HTML formatting or markdown.
 
 List leaders and nested list indentation will be maintained (these are normally lost when copying from the markdown viewer or rich text editor).
+
+### Customizing plain text output
 
 The following options are provided to preserve specific markdown formatting in the text/plain output:
 
@@ -56,13 +99,19 @@ If enabled, `**TEST*`* or `__TEST__` will remain as-is in plain text output.
 - Preserve heading characters `(## TEST)`
 If enabled, `## TEST` will remain as-is in plain text output.
 
+- Preserve strikethrough characters (~~TEST~~)
+If enabled, ~~TEST~~ will remain as-is in plain text output.
+
+- Preserve horizontal rule (---)
+If enabled, horizontal rules will be preserved as --- in plain text output.
+
 - Preserve highlight characters `(==TEST==)`
 If enabled, `==TEST==` will remain as-is in plain text output.
 
 - Preserve insert characters `(++TEST++)`
 If enabled, `++TEST++` will remain as-is in plain text output.
 
-As of version 1.0.15, the following options are provided for external hyperlinks (only impacts markdown links containing http/https URL):
+The following options are provided for external hyperlinks (only impacts markdown links containing http/https URL):
 
 - Title - Displays link title only (default).
 
@@ -70,9 +119,14 @@ As of version 1.0.15, the following options are provided for external hyperlinks
 
 - Markdown Format - Displays full markdown link formatting with title and URL.
 
+### Markdown emoji
+
+Copy as Plain Text supports the markdown-it emoji plugin, so emoji such as :white_check_mark: will be displayed in the plain text output. This can be disabled if desired via the Display emojis setting.
+
 ## Known Issues
 
 - The context menu options appear in the rich text editor's context menu (but aren't functional, the plugin is only intended for the markdown editor).
+- The plugin's keyboard shortcuts sometimes don't work on cold start of Joplin, can be fixed by toggling editors or going to Tools | Options | Keyboard Shortcuts and back.
 
 ## Misc
 
