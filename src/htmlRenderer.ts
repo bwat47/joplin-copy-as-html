@@ -282,6 +282,44 @@ function validateResourceId(id: string): boolean {
     return !!id && typeof id === 'string' && /^[a-f0-9]{32}$/i.test(id);
 }
 
+/**
+ * Simple timeout wrapper that ensures cleanup
+ */
+async function withTimeout<T>(
+    promise: Promise<T>,
+    timeoutMs: number,
+    errorMessage: string = 'Operation timed out'
+): Promise<T> {
+    let timeoutId: NodeJS.Timeout;
+
+    const timeoutPromise = new Promise<never>((_, reject) => {
+        timeoutId = setTimeout(() => reject(new Error(errorMessage)), timeoutMs);
+    });
+
+    try {
+        return await Promise.race([promise, timeoutPromise]);
+    } finally {
+        clearTimeout(timeoutId);
+    }
+}
+
+const pendingResourceRequests = new Map<string, Promise<string>>();
+
+async function getResourceWithDedupe(id: string): Promise<string> {
+    if (pendingResourceRequests.has(id)) {
+        return pendingResourceRequests.get(id)!;
+    }
+
+    const promise = convertResourceToBase64(id);
+    pendingResourceRequests.set(id, promise);
+    
+    promise.finally(() => {
+        pendingResourceRequests.delete(id);
+    });
+
+    return promise;
+}
+
 export async function convertResourceToBase64(id: string): Promise<string> {
     if (!validateResourceId(id)) {
         return createResourceError(id, 'is not a valid Joplin resource ID.');
@@ -292,11 +330,12 @@ export async function convertResourceToBase64(id: string): Promise<string> {
             return createResourceError(id, 'could not be found or is not an image.');
         }
 
-        // Timeout handling- underlying request is not cancelled, but doesn't seem to cause any issues
-        const fileObj = await Promise.race([
+        // Use timeout wrapper to ensure cleanup
+        const fileObj = await withTimeout(
             joplin.data.get(['resources', id, 'file']),
-            new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout retrieving resource file')), CONSTANTS.BASE64_TIMEOUT_MS))
-        ]) as JoplinFileData;
+            CONSTANTS.BASE64_TIMEOUT_MS,
+            'Timeout retrieving resource file'
+        ) as JoplinFileData;
         let fileBuffer: Buffer;
         try {
             fileBuffer = extractFileBuffer(fileObj);
@@ -476,14 +515,13 @@ export async function processHtmlConversion(
             if (!validateResourceId(id)) {
                 return createResourceError(id, 'could not be found');
             }
-            const base64Result = await convertResourceToBase64(id);
+            const base64Result = await getResourceWithDedupe(id);
             if (base64Result.startsWith('data:image')) {
                 return match.replace(/src=["'][^"']+["']/, `src="${base64Result}"`);
             } else {
                 return base64Result;
             }
         });
-        // Joplin renderer fallback "[Image: :/id]" won't appear with markdown-it; safe to omit.
     }
 
     // Clean up with JSDOM to produce a clean semantic fragment.
