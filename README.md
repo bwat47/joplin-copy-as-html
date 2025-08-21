@@ -71,7 +71,7 @@ The plugin will adhere to Joplin's settings for whether or not to render:
 
 "Copy selection as Plain Text" is provided as a right click context menu option and as a keyboard shortcut (ctrl + alt + c by default).
 
-This will strip markdown formatting characters, backslash escapes, and image embeds (e.g. `![](:/22cce3a8c2244493877c66c9e3259274)` or `<img src=":/5bb1066cec6f4c849cefc28ba7b0fc1e">`) from the source markdown and populate it as text/plain in the clipboard, for scenarios where you need to paste into an app that supports neither HTML formatting or markdown.
+This will strip markdown formatting characters, backslash escapes, and image embeds from the source markdown and populate it as text/plain in the clipboard, for scenarios where you need to paste into an app that supports neither HTML formatting or markdown.
 
 List leaders and nested list indentation will be maintained (these are normally lost when copying from the markdown viewer or rich text editor).
 
