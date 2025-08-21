@@ -233,12 +233,13 @@ export function handleLinkCloseToken(
  */
 export function handleTextToken(
     t: Token,
+    content: string,
     linkStack: LinkStackItem[],
     options: PlainTextOptions,
     inCode: boolean,
     result: string
 ): string {
-    let txt = t.content;
+    let txt = content;
     if (!inCode && linkStack.length && linkStack[linkStack.length - 1].href) {
         // If inside an external link, capture the title for later
         linkStack[linkStack.length - 1].title += txt;
@@ -485,10 +486,11 @@ export function renderPlainText(
         } else if (t.type === 'emoji') {
             result += t.content;
         } else if (t.type === 'text') {
-            // Replace [^n] and [^text]: with [n] and [text]:
-            t.content = t.content.replace(/\[\^([^\]]+)\]/g, '[$1]');
-            t.content = t.content.replace(/\[\^([^\]]+)\]:/g, '[$1]:');
-            result = handleTextToken(t, linkStack, options, inCode, result);
+            // Replace [^n] and [^text]: with [n] and [text]: (don't mutate original token)
+            let content = t.content.replace(/\[\^([^\]]+)\]/g, '[$1]');
+            content = content.replace(/\[\^([^\]]+)\]:/g, '[$1]:');
+            // Pass modified content as separate parameter
+            result = handleTextToken(t, content, linkStack, options, inCode, result);
         } else if (t.type === 'softbreak' || t.type === 'hardbreak') {
             result += '\n';
         } else if (t.type === 'paragraph_close') {
