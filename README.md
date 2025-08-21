@@ -45,7 +45,7 @@ This is similar to what you get when copying from Joplin's TinyMCE rich text edi
 
 Optionally, you can enable the setting "Export as full HTML document".
 
-This will wrap the HTML fragment in a full HTML document with CSS styling. A default (minimal) css stylesheet is provided: STYLSHEETHERE. The default stylesheet is used if no custom stylesheet is provided and the "Export as full HTML document" setting is enabled.
+This will wrap the HTML fragment in a full HTML document with CSS styling. A default (minimal) css [stylesheet](https://github.com/bwat47/joplin-copy-as-html/blob/main/src/defaultStylesheet.ts) is provided. The default stylesheet is only used if no custom stylesheet is provided and the "Export as full HTML document" setting is enabled.
 
 To use your own stylesheet, create a file called `copy-as-html-user.css` in your Joplin profile directory. To locate your Joplin profile directory, open Joplin and click Help | Open profile directory.
 
