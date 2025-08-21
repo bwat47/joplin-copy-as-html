@@ -59,6 +59,7 @@ joplin.plugins.register({
 						preserveHorizontalRule: await joplin.settings.value(SETTINGS.PRESERVE_HORIZONTAL_RULE),
 						preserveMark: await joplin.settings.value(SETTINGS.PRESERVE_MARK),
                         preserveInsert: await joplin.settings.value(SETTINGS.PRESERVE_INSERT),
+						displayEmojis: await joplin.settings.value(SETTINGS.DISPLAY_EMOJIS),
                         hyperlinkBehavior: await joplin.settings.value(SETTINGS.HYPERLINK_BEHAVIOR),
                     };
                     const plainTextOptions = validatePlainTextSettings(plainTextSettings);
@@ -174,6 +175,14 @@ joplin.plugins.register({
 				public: true,
 				label: 'Preserve insert characters (++TEST++)',
 				description: 'If enabled, ++TEST++ will remain as-is in plain text output.',
+			},
+			[SETTINGS.DISPLAY_EMOJIS]: {
+				value: true,
+				type: SettingItemType.Bool,
+				section: 'copyAsHtml',
+				public: true,
+				label: 'Display emojis',
+				description: 'If enabled, emojis will be displayed in the plain text output.',
 			},
 			[SETTINGS.HYPERLINK_BEHAVIOR]: {
 				value: 'title',

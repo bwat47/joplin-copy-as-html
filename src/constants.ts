@@ -11,6 +11,7 @@ export const SETTINGS = {
 	PRESERVE_HORIZONTAL_RULE: 'preserveHorizontalRule',
 	PRESERVE_MARK: 'preserveMark',
 	PRESERVE_INSERT: 'preserveInsert',
+	DISPLAY_EMOJIS: 'displayEmojis',
 	HYPERLINK_BEHAVIOR: 'hyperlinkBehavior',
 };
 

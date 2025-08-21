@@ -12,6 +12,7 @@ export function validatePlainTextSettings(settings: unknown): PlainTextOptions {
         preserveHorizontalRule: validateBooleanSetting(s.preserveHorizontalRule),
         preserveMark: validateBooleanSetting(s.preserveMark),
         preserveInsert: validateBooleanSetting(s.preserveInsert),
+        displayEmojis: validateBooleanSetting(s.displayEmojis, true), // Default to true
         // Only accept a string value and one of the allowed options.
         hyperlinkBehavior:
             typeof s.hyperlinkBehavior === 'string' && ['title', 'url', 'markdown'].includes(s.hyperlinkBehavior)

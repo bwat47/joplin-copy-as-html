@@ -32,6 +32,7 @@ export interface PlainTextOptions {
     preserveHorizontalRule: boolean;
     preserveMark: boolean;
     preserveInsert: boolean;
+    displayEmojis: boolean;
     hyperlinkBehavior: 'title' | 'url' | 'markdown';
 }
 
