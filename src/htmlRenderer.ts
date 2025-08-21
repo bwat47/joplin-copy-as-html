@@ -492,10 +492,6 @@ export async function processHtmlConversion(
      try {
          const dom = new JSDOM(html);
          const document = dom.window.document;
-         // Remove any Joplin source blocks if present (noop under markdown-it)
-         document.querySelectorAll('pre.joplin-source').forEach(el => el.remove?.());
-         // Remove any inline onclick handlers
-         document.querySelectorAll('a[onclick]').forEach(link => link.removeAttribute('onclick'));
          // Non-image Joplin resource links -> title only.
          // Support both our data-resource-id and raw HTML href forms.
          document.querySelectorAll(
