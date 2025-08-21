@@ -65,7 +65,7 @@ The plugin will adhere to Joplin's settings for whether or not to render:
 - Abbreviation
 - Markdown Emoji
 - ++Insert++
-- Multimarkdown Table`
+- Multimarkdown Table
 
 ## Copy as Plain Text
 
