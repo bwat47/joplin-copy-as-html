@@ -6,3 +6,4 @@ publish/
 .DS_Store
 .env
 .vscode/
+*:Zone.Identifier
