@@ -63,3 +63,10 @@ export interface JoplinFileData {
     data?: Buffer | Uint8Array;
     content?: Buffer | Uint8Array;
 }
+
+export interface PluginConfig {
+    enabled: boolean;
+    plugin: any;
+    name: string;
+    options?: any;
+ }

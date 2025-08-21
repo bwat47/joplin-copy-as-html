@@ -1,5 +1,6 @@
 import type { Token } from 'markdown-it';
 import * as MarkdownIt from 'markdown-it';
+import { safePluginUse } from './pluginUtils';
 // Use safe imports to prevent conflicts with htmlRenderer
 let markdownItMark: any;
 let markdownItIns: any;
@@ -289,77 +290,6 @@ export function extractBlockTokens(tokens: Token[], startIndex: number): { block
 }
 
 /**
- * Safe plugin use function for plain text renderer
- */
-function safePluginUse(md: MarkdownIt, plugin: any, pluginName: string = 'unknown'): boolean {
-    if (!plugin) {
-        return false;
-    }
-    
-    try {
-        // Try different plugin formats
-        let pluginFunc = null;
-        
-        if (typeof plugin === 'function') {
-            pluginFunc = plugin;
-        } else if (plugin && typeof plugin.default === 'function') {
-            pluginFunc = plugin.default;
-        } else if (plugin && plugin.plugin && typeof plugin.plugin === 'function') {
-            pluginFunc = plugin.plugin;
-        } else if (plugin && typeof plugin === 'object') {
-            // For object plugins, look for common export patterns
-            if (typeof plugin.markdownit === 'function') {
-                pluginFunc = plugin.markdownit;
-            } else if (typeof plugin.render === 'function') {
-                pluginFunc = plugin.render;
-            } else if (typeof plugin.parse === 'function') {
-                pluginFunc = plugin.parse;
-            } else if (plugin.full && typeof plugin.full === 'function') {
-                // For markdown-it-emoji which exports {bare, full, light}
-                pluginFunc = plugin.full;
-            } else if (plugin.light && typeof plugin.light === 'function') {
-                // Alternative emoji option
-                pluginFunc = plugin.light;
-            } else if (plugin.bare && typeof plugin.bare === 'function') {
-                // Another emoji option
-                pluginFunc = plugin.bare;
-            } else {
-                // Try to find any function in the object
-                const funcKeys = Object.keys(plugin).filter(key => typeof plugin[key] === 'function');
-                if (funcKeys.length === 1) {
-                    pluginFunc = plugin[funcKeys[0]];
-                } else if (funcKeys.length > 1) {
-                    // If multiple functions, try common patterns first
-                    if (funcKeys.includes('full')) {
-                        pluginFunc = plugin.full;
-                    } else if (funcKeys.includes('default')) {
-                        pluginFunc = plugin.default;
-                    } else {
-                        // Use the first available function
-                        pluginFunc = plugin[funcKeys[0]];
-                    }
-                } else {
-                    console.warn(`[copy-as-plain-text] Plugin ${pluginName} object found but no callable function. Available keys:`, Object.keys(plugin));
-                    return false;
-                }
-            }
-        }
-        
-        if (!pluginFunc) {
-            console.warn(`[copy-as-plain-text] Could not find callable plugin function for ${pluginName}`);
-            return false;
-        }
-        
-        // Try to use the plugin
-        md.use(pluginFunc);
-        return true;
-    } catch (err) {
-        console.error(`[copy-as-plain-text] Error loading plugin ${pluginName}:`, err);
-        return false;
-    }
-}
-
-/**
  * Recursively renders an array of markdown-it tokens into a plain text string.
  * It handles various token types to strip markdown formatting while preserving
  * structure like lists, tables, and headings based on the provided options.
@@ -534,9 +464,9 @@ export function convertMarkdownToPlainText(
     const md = new MarkdownIt();
     
     // Use safe plugin loading to prevent conflicts
-    if (markdownItMark) safePluginUse(md, markdownItMark, 'markdown-it-mark');
-    if (markdownItIns) safePluginUse(md, markdownItIns, 'markdown-it-ins');
-    if (markdownItEmoji) safePluginUse(md, markdownItEmoji, 'markdown-it-emoji');
+    if (markdownItMark) safePluginUse(md, markdownItMark, undefined, 'markdown-it-mark');
+    if (markdownItIns) safePluginUse(md, markdownItIns, undefined, 'markdown-it-ins');
+    if (markdownItEmoji) safePluginUse(md, markdownItEmoji, undefined, 'markdown-it-emoji');
     
     const tokens = md.parse(markdown, {});
     return renderPlainText(tokens, null, 0, options);
