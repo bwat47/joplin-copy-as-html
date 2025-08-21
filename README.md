@@ -29,13 +29,13 @@ By default, the plugin will populate the clipboard with an HTML fragment, e.g:
 
 ```html
 <html>
-   <body>
-      <!--StartFragment-->
-      <h2>Test Heading</h2>
-      <p>Test paragraph 1</p>
-      <p>Test paragraph 2</p>
-      <!--EndFragment-->
-   </body>
+    <body>
+        <!--StartFragment-->
+        <h2>Test Heading</h2>
+        <p>Test paragraph 1</p>
+        <p>Test paragraph 2</p>
+        <!--EndFragment-->
+    </body>
 </html>
 ```
 

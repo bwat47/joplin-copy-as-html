@@ -5,10 +5,11 @@ Based on analysis of the Copy as HTML plugin, these guidelines promote maintaina
 ## Project Structure
 
 ### File Organization
+
 ```
 src/
 ├── constants.ts          # All constants, regex patterns, settings keys
-├── types.ts             # TypeScript interfaces and type definitions  
+├── types.ts             # TypeScript interfaces and type definitions
 ├── utils.ts             # Validation functions and utilities
 ├── index.ts             # Main plugin entry point
 ├── [feature]Renderer.ts # Feature-specific logic (e.g., htmlRenderer.ts)
@@ -16,6 +17,7 @@ src/
 ```
 
 ### Separation of Concerns
+
 - **Constants**: Centralize all magic numbers, regex patterns, and configuration keys
 - **Types**: Define all interfaces in a dedicated file for reusability
 - **Utils**: Extract validation and utility functions for testability
@@ -25,6 +27,7 @@ src/
 ## TypeScript Best Practices
 
 ### Type Safety
+
 ```typescript
 // ✅ Define comprehensive interfaces
 export interface PlainTextOptions {
@@ -43,13 +46,14 @@ export function validatePlainTextSettings(settings: unknown): PlainTextOptions {
     return {
         preserveHeading: Boolean(s.preserveHeading),
         hyperlinkBehavior: ['title', 'url', 'markdown'].includes(String(s.hyperlinkBehavior))
-            ? String(s.hyperlinkBehavior) as HyperlinkBehavior
+            ? (String(s.hyperlinkBehavior) as HyperlinkBehavior)
             : 'title',
     };
 }
 ```
 
 ### Interface Design
+
 - Define interfaces for all complex data structures
 - Use optional properties (`?`) appropriately
 - Prefer union types over loose string types
@@ -58,6 +62,7 @@ export function validatePlainTextSettings(settings: unknown): PlainTextOptions {
 ## Error Handling
 
 ### Consistent Error Messages
+
 ```typescript
 // ✅ Standardize error creation
 function createResourceError(id: string, reason: string): string {
@@ -76,6 +81,7 @@ try {
 ```
 
 ### Error Handling Patterns
+
 - **Graceful degradation**: Always provide fallback behavior
 - **User feedback**: Show meaningful toast messages for user-facing errors
 - **Logging**: Use consistent prefixes like `[plugin-name]` in console logs
@@ -84,6 +90,7 @@ try {
 ## Constants and Configuration
 
 ### Centralized Constants
+
 ```typescript
 // ✅ Group related constants
 export const SETTINGS = {
@@ -95,19 +102,20 @@ export const SETTINGS = {
 export const CONSTANTS = {
     BASE64_TIMEOUT_MS: 5000,
     MIN_COLUMN_WIDTH: 3,
-    DIMENSION_KEY_PREFIX: 'DIMENSION_'
+    DIMENSION_KEY_PREFIX: 'DIMENSION_',
 };
 
 // ✅ Document complex regex patterns
 export const REGEX_PATTERNS = {
     // Matches HTML <img> tags with a Joplin resource ID in the src attribute
-    // Group 1: All attributes up to the resource ID  
+    // Group 1: All attributes up to the resource ID
     // Group 2: The 32-character Joplin resource ID
     HTML_IMG_WITH_RESOURCE: /<img([^>]*src=["']:\/{1,2}([a-f0-9]{32})["'][^>]*)>/gi,
 };
 ```
 
 ### Settings Management
+
 - Use string constants for all setting keys to avoid typos
 - Provide sensible defaults for all settings
 - Validate settings with dedicated functions
@@ -116,12 +124,13 @@ export const REGEX_PATTERNS = {
 ## Code Quality
 
 ### Function Design
+
 ```typescript
 // ✅ Single responsibility, clear naming
 export function extractImageDimensions(
-    markdown: string, 
+    markdown: string,
     embedImages: boolean
-): { processedMarkdown: string, dimensions: Map<string, ImageDimensions> }
+): { processedMarkdown: string; dimensions: Map<string, ImageDimensions> };
 
 // ✅ Document complex functions
 /**
@@ -130,10 +139,11 @@ export function extractImageDimensions(
  * @param options Configuration for preserving/removing formatting
  * @returns Clean plain text string
  */
-export function renderPlainText(tokens: Token[], options: PlainTextOptions): string
+export function renderPlainText(tokens: Token[], options: PlainTextOptions): string;
 ```
 
 ### Validation Patterns
+
 ```typescript
 // ✅ Dedicated validation functions
 function validateResourceId(id: string): boolean {
@@ -147,6 +157,7 @@ if (!validateResourceId(id)) {
 ```
 
 ### Documentation Standards
+
 - Use JSDoc for complex functions
 - Comment architectural decisions (e.g., why JSDOM over regex)
 - Document regex patterns with examples
@@ -155,9 +166,10 @@ if (!validateResourceId(id)) {
 ## Joplin-Specific Patterns
 
 ### Plugin Registration
+
 ```typescript
 joplin.plugins.register({
-    onStart: async function() {
+    onStart: async function () {
         // 1. Register settings section
         await joplin.settings.registerSection('pluginName', {
             label: 'Plugin Display Name',
@@ -183,6 +195,7 @@ joplin.plugins.register({
 ```
 
 ### Command Implementation
+
 ```typescript
 // ✅ Consistent command structure
 await joplin.commands.register({
@@ -193,34 +206,34 @@ await joplin.commands.register({
     execute: async () => {
         try {
             // Get selection/input
-            const selection = await joplin.commands.execute('editor.execCommand', { 
-                name: 'getSelection' 
+            const selection = await joplin.commands.execute('editor.execCommand', {
+                name: 'getSelection',
             });
-            
+
             if (!selection) {
-                await joplin.views.dialogs.showToast({ 
-                    message: 'No text selected.', 
-                    type: ToastType.Info 
+                await joplin.views.dialogs.showToast({
+                    message: 'No text selected.',
+                    type: ToastType.Info,
                 });
                 return;
             }
 
             // Process data
             const result = await processData(selection);
-            
-            // Output result  
+
+            // Output result
             await joplin.clipboard.writeText(result);
-            
+
             // User feedback
-            await joplin.views.dialogs.showToast({ 
-                message: 'Operation completed!', 
-                type: ToastType.Success 
+            await joplin.views.dialogs.showToast({
+                message: 'Operation completed!',
+                type: ToastType.Success,
             });
         } catch (err) {
             console.error('[plugin-name] Error:', err);
-            await joplin.views.dialogs.showToast({ 
-                message: 'Operation failed: ' + (err?.message || err), 
-                type: ToastType.Error 
+            await joplin.views.dialogs.showToast({
+                message: 'Operation failed: ' + (err?.message || err),
+                type: ToastType.Error,
             });
         }
     },
@@ -230,31 +243,33 @@ await joplin.commands.register({
 ## Performance Considerations
 
 ### Resource Management
+
 - Use timeouts for potentially long-running operations
 - Consider memory usage with large data processing
 - Avoid blocking the UI thread for intensive operations
 - Clean up resources (event listeners, intervals) appropriately
 
 ### Async Patterns
+
 ```typescript
 // ✅ Handle Promise.race for timeouts
 const result = await Promise.race([
     joplin.data.get(['resources', id, 'file']),
-    new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Timeout')), TIMEOUT_MS)
-    )
+    new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), TIMEOUT_MS)),
 ]);
 ```
 
 ## Testing and Maintenance
 
 ### Code Organization for Testing
+
 - Extract pure functions that can be unit tested
 - Avoid tightly coupling to Joplin APIs in business logic
 - Use dependency injection where appropriate
 - Keep side effects isolated
 
 ### Maintainability Practices
+
 - Prefer explicit over clever code
 - Use meaningful variable and function names
 - Keep functions focused and small
@@ -264,18 +279,21 @@ const result = await Promise.race([
 ## Common Pitfalls to Avoid
 
 ### Don't Over-Engineer
-- ❌ Complex inheritance hierarchies for simple plugins  
+
+- ❌ Complex inheritance hierarchies for simple plugins
 - ❌ Unnecessary abstraction layers
 - ❌ Generic solutions for specific problems
 - ✅ Keep complexity proportional to requirements
 
 ### Avoid Tight Coupling
+
 - ❌ Hardcoded magic numbers scattered throughout code
-- ❌ Direct DOM manipulation without fallbacks  
+- ❌ Direct DOM manipulation without fallbacks
 - ❌ Assumptions about Joplin's internal HTML structure
 - ✅ Use constants, provide fallbacks, handle edge cases
 
 ### Settings Best Practices
+
 - ❌ Duplicate settings definitions between manifest and code
 - ❌ Unvalidated user input from settings
 - ❌ Settings that break core functionality when changed
@@ -284,7 +302,7 @@ const result = await Promise.race([
 ## Final Principles
 
 1. **Robustness First**: Handle edge cases and provide fallbacks
-2. **User Experience**: Clear error messages and appropriate feedback  
+2. **User Experience**: Clear error messages and appropriate feedback
 3. **Maintainability**: Code should be easy to understand and modify
 4. **TypeScript**: Use the type system to prevent runtime errors
 5. **Documentation**: Code should be self-documenting with strategic comments

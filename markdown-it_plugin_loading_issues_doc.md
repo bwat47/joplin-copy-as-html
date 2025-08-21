@@ -7,8 +7,9 @@ During the development of the Joplin Copy as HTML plugin, we encountered several
 ## Background
 
 The goal was to add support for these markdown-it plugins to respect Joplin's settings:
+
 - `markdown-it-abbr` (abbreviations)
-- `markdown-it-deflist` (definition lists) 
+- `markdown-it-deflist` (definition lists)
 - `markdown-it-emoji` (emoji syntax like `:smile:`)
 - `markdown-it-footnote` (footnotes)
 - `markdown-it-multimd-table` (advanced tables)
@@ -19,18 +20,21 @@ The goal was to add support for these markdown-it plugins to respect Joplin's se
 ### 1. Function Application Errors
 
 **Symptoms:**
-- `HTML: e.apply is not a function` 
+
+- `HTML: e.apply is not a function`
 - `HTML: M is not a function`
 - Errors in PlainTextRenderer even when no changes were made to it
 
 **Root Cause:**
 Different markdown-it plugins use various export patterns and module formats:
+
 - Some export as ES modules with `.default` property
 - Some export as CommonJS functions directly
 - Some export as objects with nested function properties
 - Some have multiple export patterns (like `markdown-it-emoji` with `{bare, full, light}`)
 
 **Example of the Problem:**
+
 ```javascript
 // This failed because plugin might be an object, not a function
 md.use(markdownItEmoji); // Error: e.apply is not a function
@@ -38,7 +42,7 @@ md.use(markdownItEmoji); // Error: e.apply is not a function
 // The actual structure was:
 markdownItEmoji = {
   bare: function() {...},
-  full: function() {...}, 
+  full: function() {...},
   light: function() {...}
 }
 ```
@@ -46,6 +50,7 @@ markdownItEmoji = {
 ### 2. Unknown Joplin Setting Keys
 
 **Symptoms:**
+
 - `Failed to copy as HTML: Unknown key: markdown.plugin.multimdtable`
 - Plugins not respecting Joplin's enable/disable settings
 
@@ -53,19 +58,21 @@ markdownItEmoji = {
 Incorrect assumption about Joplin's internal setting key names. The actual setting keys didn't match our guessed patterns.
 
 **Example:**
+
 ```javascript
 // We tried:
-await joplin.settings.globalValue('markdown.plugin.multimdtable')
-await joplin.settings.globalValue('markdown.plugin.multimd-table') 
-await joplin.settings.globalValue('markdown.plugin.table')
+await joplin.settings.globalValue('markdown.plugin.multimdtable');
+await joplin.settings.globalValue('markdown.plugin.multimd-table');
+await joplin.settings.globalValue('markdown.plugin.table');
 
 // The actual key was:
-await joplin.settings.globalValue('markdown.plugin.multitable')
+await joplin.settings.globalValue('markdown.plugin.multitable');
 ```
 
 ### 3. Module Import Conflicts
 
 **Symptoms:**
+
 - Changes to htmlRenderer.ts causing errors in plainTextRenderer.ts
 - Cross-contamination between the two renderers
 
@@ -75,11 +82,13 @@ Both renderers were importing the same markdown-it plugins, causing module resol
 ### 4. Plugin Object Structure Variations
 
 **Symptoms:**
+
 - `Plugin object found but no callable function: Object`
 - Some plugins loading, others failing silently
 
 **Root Cause:**
 Plugins had vastly different export structures:
+
 - Function exports: `module.exports = function(md, options) {...}`
 - Object exports: `module.exports = { plugin: function(md, options) {...} }`
 - Multi-function exports: `module.exports = { bare: fn1, full: fn2, light: fn3 }`
@@ -97,10 +106,10 @@ function safePluginUse(md: MarkdownIt, plugin: any, options?: any, pluginName: s
         console.warn(`[copy-as-html] Plugin ${pluginName} is null or undefined`);
         return false;
     }
-    
+
     try {
         let pluginFunc = null;
-        
+
         // Try different plugin formats
         if (typeof plugin === 'function') {
             pluginFunc = plugin;
@@ -140,12 +149,12 @@ function safePluginUse(md: MarkdownIt, plugin: any, options?: any, pluginName: s
                 }
             }
         }
-        
+
         if (!pluginFunc) {
             console.warn(`[copy-as-html] Could not find callable plugin function for ${pluginName}`);
             return false;
         }
-        
+
         md.use(pluginFunc, options);
         return true;
     } catch (err) {
@@ -266,12 +275,7 @@ loadPluginsConditionally(md, [
 // src/pluginUtils.ts
 import MarkdownIt = require('markdown-it');
 
-export function safePluginUse(
-    md: MarkdownIt, 
-    plugin: any, 
-    options?: any, 
-    pluginName: string = 'unknown'
-): boolean {
+export function safePluginUse(md: MarkdownIt, plugin: any, options?: any, pluginName: string = 'unknown'): boolean {
     // ... (complete safePluginUse implementation)
 }
 
@@ -292,6 +296,7 @@ export function loadPluginsConditionally(md: MarkdownIt, plugins: PluginConfig[]
 ```
 
 **Benefits of Shared Utilities:**
+
 - **Reduced Duplication**: Eliminated ~200 lines of duplicated complex plugin loading code
 - **Single Source of Truth**: Plugin loading logic centralized for easier maintenance
 - **Consistent Behavior**: Both renderers use identical plugin loading mechanisms
@@ -299,6 +304,7 @@ export function loadPluginsConditionally(md: MarkdownIt, plugins: PluginConfig[]
 - **Preserved Separation**: Each renderer still maintains its own plugin configuration and settings
 
 **Implementation:**
+
 - `htmlRenderer.ts`: Imports and uses shared utilities, maintains Joplin global settings integration
 - `plainTextRenderer.ts`: Imports and uses shared utilities, maintains custom settings for plain text output
 - Both renderers retain their distinct plugin configurations and requirements
@@ -334,32 +340,42 @@ This refactoring maintained the hard-won stability of the plugin loading system 
 ## Key Learnings
 
 ### 1. Plugin Export Pattern Diversity
+
 Different npm packages use vastly different export patterns. A robust plugin loader must handle:
+
 - Direct function exports
 - Object exports with nested functions
 - ES module vs CommonJS differences
 - Multi-function exports for different feature sets
 
 ### 2. Setting Key Discovery
+
 Joplin's internal setting keys don't always match expected patterns. Finding correct keys required:
+
 - GitHub source code investigation
 - Trial and error testing
 - Console debugging with unknown key error handling
 
 ### 3. Module Isolation
+
 In plugin environments, shared module imports can cause conflicts. Solutions include:
+
 - Separate try-catch blocks for each import
 - Defensive programming with existence checks
 - Graceful degradation when modules aren't available
 
 ### 4. Debugging Strategy
+
 Comprehensive logging was crucial for identifying issues:
+
 - Success/failure logging for each plugin
 - Object structure inspection for failed plugins
 - Clear error messages with context
 
 ### 5. Code Reuse and Maintainability
+
 Complex, battle-tested code should be shared when possible:
+
 - Extract intricate functions into shared utilities
 - Maintain separation of concerns between different use cases
 - Preserve existing behavior while reducing duplication
