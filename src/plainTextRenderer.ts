@@ -350,7 +350,6 @@ function safePluginUse(md: MarkdownIt, plugin: any, pluginName: string = 'unknow
         
         // Try to use the plugin
         md.use(pluginFunc);
-        console.log(`[copy-as-plain-text] Successfully loaded plugin: ${pluginName} (${pluginFunc.name || 'unnamed'})`);
         return true;
     } catch (err) {
         console.error(`[copy-as-plain-text] Error loading plugin ${pluginName}:`, err);
@@ -532,15 +531,7 @@ export function convertMarkdownToPlainText(
     // Use safe plugin loading to prevent conflicts
     if (markdownItMark) safePluginUse(md, markdownItMark, 'markdown-it-mark');
     if (markdownItIns) safePluginUse(md, markdownItIns, 'markdown-it-ins');
-    if (markdownItEmoji) {
-        console.log('[copy-as-plain-text] Attempting to load emoji plugin...');
-        const emojiLoaded = safePluginUse(md, markdownItEmoji, 'markdown-it-emoji');
-        if (emojiLoaded) {
-            console.log('[copy-as-plain-text] Emoji plugin loaded successfully');
-        } else {
-            console.warn('[copy-as-plain-text] Failed to load emoji plugin');
-        }
-    }
+    if (markdownItEmoji) safePluginUse(md, markdownItEmoji, 'markdown-it-emoji');
     
     const tokens = md.parse(markdown, {});
     return renderPlainText(tokens, null, 0, options);
