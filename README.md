@@ -13,9 +13,6 @@ The primary use case is copying text from Joplin and pasting formatted text into
 
 This will populate the clipboard's text/html category with the HTML formatted text.
 
-> [!note]
-> By design, the plugin only copies an HTML fragment including the basic semantic HTML markup (i.e. it won't include any of the Joplin theme styling). This is for maximum compatibility with pasting into other apps, so you don't see issues such as Joplin's background color being pasted- you'll just get the formatted text (bold, italics, formatted lists, etc...).
-
 ### Embed images as base64
 
 By default, the plugin will embed any images as base64 in the text/html output, allowing you paste text + images into external applications. However, this can be disabled in the plugin's settings.
