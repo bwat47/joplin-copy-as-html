@@ -128,7 +128,7 @@ export function formatTable(tableData: TableData, colWidths: number[]): string {
     let headerDone = false;
     for (let r = 0; r < tableData.rows.length; r++) {
         let paddedCells = tableData.rows[r].cells.map((c, i) => padCell(c, colWidths[i]));
-        result += paddedCells.join('  ') + '\n';
+        result += paddedCells.join(' '.repeat(CONSTANTS.TABLE_CELL_PADDING)) + '\n';
         if (tableData.rows[r].isHeader && !headerDone && tableData.rows.length > 1) {
             let sepCells = colWidths.map(w => '-'.repeat(Math.max(CONSTANTS.MIN_COLUMN_WIDTH, w)));
             result += sepCells.join('  ') + '\n';
@@ -188,7 +188,7 @@ export function parseListTokens(listTokens: Token[], listContext: ListContext, i
 export function formatList(listItems: ListItem[], options: PlainTextOptions): string {
     let lines: string[] = [];
     for (const item of listItems) {
-        const indentChar = options.indentType === 'tabs' ? '\t' : '    ';
+        const indentChar = options.indentType === 'tabs' ? '\t' : ' '.repeat(CONSTANTS.SPACES_PER_INDENT);
         const indent = item.indentLevel > 1 ? indentChar.repeat(item.indentLevel - 1) : '';
         const prefix = item.ordered ? `${item.index}. ` : '- ';
         lines.push(indent + prefix + item.content);

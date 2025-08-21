@@ -302,7 +302,8 @@ function extractFileBuffer(fileObj: JoplinFileData): Buffer {
  * @returns True if valid, false otherwise.
  */
 function validateResourceId(id: string): boolean {
-    return !!id && typeof id === 'string' && /^[a-f0-9]{32}$/i.test(id);
+    const idRegex = new RegExp(`^[a-f0-9]{${CONSTANTS.JOPLIN_RESOURCE_ID_LENGTH}}$`, 'i');
+    return !!id && typeof id === 'string' && idRegex.test(id);
 }
 
 /**
