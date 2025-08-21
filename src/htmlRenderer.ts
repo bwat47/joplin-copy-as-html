@@ -17,6 +17,7 @@ let markdownItEmoji: any;
 let markdownItFootnote: any;
 let markdownItMultimdTable: any;
 let markdownItTocDoneRight: any;
+let markdownItTaskLists: any;
 
 try {
     markdownItAbbr = require('markdown-it-abbr');
@@ -52,6 +53,12 @@ try {
     markdownItTocDoneRight = require('markdown-it-toc-done-right');
 } catch (e) {
     console.warn('[copy-as-html] markdown-it-toc-done-right not available:', e);
+}
+
+try {
+    markdownItTaskLists = require('markdown-it-task-lists');
+} catch (e) {
+    console.warn('[copy-as-html] markdown-it-task-lists not available:', e);
 }
 
 import { defaultStylesheet } from './defaultStylesheet';
@@ -507,6 +514,14 @@ export async function processHtmlConversion(
             }
         }
     ]);
+
+    // Add task list support (checkboxes) - always enabled since it's core Joplin functionality
+    if (markdownItTaskLists) {
+        safePluginUse(md, markdownItTaskLists, {
+            enabled: true,
+            lineNumber: false
+        }, 'markdown-it-task-lists');
+    }
 
     // Replicate Joplin's non-image resource link marker so later cleanup still works
     const defaultLinkOpen = md.renderer.rules.link_open

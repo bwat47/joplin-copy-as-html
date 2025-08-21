@@ -59,21 +59,26 @@ ul ul, ol ol, ul li > ul, ol li > ol {
 }
 
 /* Joplin checkboxes */
-li.md-checkbox {
+li.md-checkbox,
+li.task-list-item {
     list-style: none; /* remove bullet point. */
     padding-left: 0;
     margin-left: 0;
+
 }
 
 /* The checkbox and its label are treated as inline blocks. */
 li.md-checkbox input[type="checkbox"],
-li.md-checkbox label {
+li.md-checkbox label,
+li.task-list-item input[type="checkbox"],
+li.task-list-item label {
     display: inline-block;
     vertical-align: middle; /* This is the key for alignment. */
 }
 
 /* Add space to the right of the checkbox. */
-li.md-checkbox input[type="checkbox"] {
+li.md-checkbox input[type="checkbox"],
+li.task-list-item input[type="checkbox"] {
     margin-right: 0.5em;
 }
 `;
