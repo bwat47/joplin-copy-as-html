@@ -32,6 +32,8 @@ export const REGEX_PATTERNS = {
 // Constants for timeouts, formatting, and dimension keys
 export const CONSTANTS = {
     BASE64_TIMEOUT_MS: 5000,
+	MAX_IMAGE_SIZE_BYTES: 10 * 1024 * 1024, // 10MB limit
+    MAX_IMAGE_SIZE_WARNING: 5 * 1024 * 1024, // 5MB warning threshold
     MIN_COLUMN_WIDTH: 3,
     DIMENSION_KEY_PREFIX: 'DIMENSION_'
 };

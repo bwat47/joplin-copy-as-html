@@ -274,6 +274,13 @@ export async function convertResourceToBase64(id: string): Promise<string> {
         let fileBuffer: Buffer;
         try {
             fileBuffer = extractFileBuffer(fileObj);
+                        
+            // Check file size limits
+            if (fileBuffer.length > CONSTANTS.MAX_IMAGE_SIZE_BYTES) {
+                return createResourceError(id, `is too large (${Math.round(fileBuffer.length / 1024 / 1024)}MB). Maximum size: ${Math.round(CONSTANTS.MAX_IMAGE_SIZE_BYTES / 1024 / 1024)}MB`);
+            } else if (fileBuffer.length > CONSTANTS.MAX_IMAGE_SIZE_WARNING) {
+                console.warn(`[copy-as-html] Large image detected: Resource :/${id} is ${Math.round(fileBuffer.length / 1024 / 1024)}MB`);
+            }
         } catch (err) {
             const msg = err && err.message ? err.message : String(err);
             return createResourceError(id, `could not be retrieved: ${msg}`);
