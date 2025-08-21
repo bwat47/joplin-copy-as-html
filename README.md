@@ -49,8 +49,6 @@ This will wrap the HTML fragment in a full HTML document with CSS styling. A def
 
 To use your own stylesheet, create a file called `copy-as-html-user.css` in your Joplin profile directory. To locate your Joplin profile directory, open Joplin and click Help | Open profile directory.
 
-After creating (or updating) the stylesheet, restart Joplin and you should see your custom styling used when Copying as HTML.
-
 ### Optional markdown syntax
 
 The plugin will adhere to Joplin's settings for whether or not to render:
