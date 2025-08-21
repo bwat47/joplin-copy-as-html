@@ -256,6 +256,55 @@ loadPluginsConditionally(md, [
 ]);
 ```
 
+### 6. Shared Plugin Utilities (Code Refactoring)
+
+**Challenge:** After implementing the complex plugin loading logic in both `htmlRenderer.ts` and `plainTextRenderer.ts`, we had significant code duplication (~200 lines) of the intricate `safePluginUse` function.
+
+**Solution:** We extracted the plugin loading utilities into a shared module `pluginUtils.ts`:
+
+```typescript
+// src/pluginUtils.ts
+import MarkdownIt = require('markdown-it');
+
+export function safePluginUse(
+    md: MarkdownIt, 
+    plugin: any, 
+    options?: any, 
+    pluginName: string = 'unknown'
+): boolean {
+    // ... (complete safePluginUse implementation)
+}
+
+export interface PluginConfig {
+    enabled: boolean;
+    plugin: any;
+    name: string;
+    options?: any;
+}
+
+export function loadPluginsConditionally(md: MarkdownIt, plugins: PluginConfig[]) {
+    plugins.forEach(({ enabled, plugin, name, options }) => {
+        if (enabled && plugin) {
+            safePluginUse(md, plugin, options, name);
+        }
+    });
+}
+```
+
+**Benefits of Shared Utilities:**
+- **Reduced Duplication**: Eliminated ~200 lines of duplicated complex plugin loading code
+- **Single Source of Truth**: Plugin loading logic centralized for easier maintenance
+- **Consistent Behavior**: Both renderers use identical plugin loading mechanisms
+- **Safer Updates**: Bug fixes and improvements only need to be made once
+- **Preserved Separation**: Each renderer still maintains its own plugin configuration and settings
+
+**Implementation:**
+- `htmlRenderer.ts`: Imports and uses shared utilities, maintains Joplin global settings integration
+- `plainTextRenderer.ts`: Imports and uses shared utilities, maintains custom settings for plain text output
+- Both renderers retain their distinct plugin configurations and requirements
+
+This refactoring maintained the hard-won stability of the plugin loading system while eliminating code duplication and improving maintainability.
+
 ## Specific Plugin Challenges & Solutions
 
 ### Markdown-it-emoji
@@ -309,6 +358,13 @@ Comprehensive logging was crucial for identifying issues:
 - Object structure inspection for failed plugins
 - Clear error messages with context
 
+### 5. Code Reuse and Maintainability
+Complex, battle-tested code should be shared when possible:
+- Extract intricate functions into shared utilities
+- Maintain separation of concerns between different use cases
+- Preserve existing behavior while reducing duplication
+- Centralize critical logic for easier maintenance and debugging
+
 ## Final Architecture Benefits
 
 The final solution provides:
@@ -316,8 +372,8 @@ The final solution provides:
 1. **Resilient Plugin Loading**: Never crashes due to plugin issues
 2. **Comprehensive Compatibility**: Handles all major plugin export patterns
 3. **Setting Accuracy**: Correctly respects all Joplin markdown settings
-4. **Maintainable Code**: Clean, declarative plugin configuration
+4. **Maintainable Code**: Clean, declarative plugin configuration with shared utilities
 5. **Excellent Debugging**: Clear error messages and logging
 6. **Future-Proof**: Easy to add new plugins with minimal code
-
-This architecture demonstrates how to build robust plugin systems that can handle the diversity and unpredictability of third-party modules while maintaining excellent user experience and code quality.
+7. **DRY Principle**: Eliminated code duplication while preserving functionality
+8. **Consistent Behavior**: Both renderers use the same robust plugin loading mechanism
