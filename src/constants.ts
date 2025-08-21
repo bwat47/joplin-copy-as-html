@@ -53,10 +53,7 @@ export const CONSTANTS = {
     BASE64_TIMEOUT_MS: 5000,
     MAX_IMAGE_SIZE_BYTES: 10 * 1024 * 1024, // 10MB limit
     MAX_IMAGE_SIZE_WARNING: 5 * 1024 * 1024, // 5MB warning threshold
-    MIN_COLUMN_WIDTH: 3,
     JOPLIN_RESOURCE_ID_LENGTH: 32,
-    SPACES_PER_INDENT: 4,
-    TABLE_CELL_PADDING: 2,
     DIMENSION_KEY_PREFIX: 'DIMENSION_',
 };
 
@@ -109,3 +106,18 @@ export const SANITIZE_STYLE_PATTERNS: RegExp[] = [
     /behavior\s*:/gi,
     /<script[^>]*>[\s\S]*?<\/script>/gi,
 ];
+
+// Plain text renderer specific (values not already in CONSTANTS)
+export const PLAIN_TEXT_CONSTANTS = {
+    ORDERED_LIST_START: 1,
+    BULLET_PREFIX: '- ',
+    ORDERED_SUFFIX: '. ',
+    LIST_ITEM_TRAILING_BLANK_LINE: true,
+    HEADING_PREFIX_CHAR: '#',
+    HORIZONTAL_RULE_MARKER: '---',
+    CODE_FENCE_MARKER: '```',
+    MAX_PARAGRAPH_NEWLINES: 2,
+    MIN_COLUMN_WIDTH: 3,
+    SPACES_PER_INDENT: 4,
+    TABLE_CELL_PADDING: 2,
+} as const;

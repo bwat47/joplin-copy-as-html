@@ -44,7 +44,7 @@ try {
 }
 
 import { PlainTextOptions, TableData, TableRow, ListItem } from './types';
-import { CONSTANTS } from './constants';
+import { PLAIN_TEXT_CONSTANTS } from './constants';
 import stringWidth from 'string-width';
 
 type LinkStackItem = { href: string; title: string };
@@ -133,9 +133,9 @@ export function formatTable(tableData: TableData, colWidths: number[]): string {
     let headerDone = false;
     for (let r = 0; r < tableData.rows.length; r++) {
         let paddedCells = tableData.rows[r].cells.map((c, i) => padCell(c, colWidths[i]));
-        result += paddedCells.join(' '.repeat(CONSTANTS.TABLE_CELL_PADDING)) + '\n';
+        result += paddedCells.join(' '.repeat(PLAIN_TEXT_CONSTANTS.TABLE_CELL_PADDING)) + '\n';
         if (tableData.rows[r].isHeader && !headerDone && tableData.rows.length > 1) {
-            let sepCells = colWidths.map((w) => '-'.repeat(Math.max(CONSTANTS.MIN_COLUMN_WIDTH, w)));
+            let sepCells = colWidths.map((w) => '-'.repeat(Math.max(PLAIN_TEXT_CONSTANTS.MIN_COLUMN_WIDTH, w)));
             result += sepCells.join('  ') + '\n';
             headerDone = true;
         }
@@ -202,11 +202,13 @@ export function parseListTokens(
 export function formatList(listItems: ListItem[], options: PlainTextOptions): string {
     let lines: string[] = [];
     for (const item of listItems) {
-        const indentChar = options.indentType === 'tabs' ? '\t' : ' '.repeat(CONSTANTS.SPACES_PER_INDENT);
+        const indentChar = options.indentType === 'tabs' ? '\t' : ' '.repeat(PLAIN_TEXT_CONSTANTS.SPACES_PER_INDENT);
         const indent = item.indentLevel > 1 ? indentChar.repeat(item.indentLevel - 1) : '';
-        const prefix = item.ordered ? `${item.index}. ` : '- ';
+        const prefix = item.ordered
+            ? `${item.index}${PLAIN_TEXT_CONSTANTS.ORDERED_SUFFIX}`
+            : PLAIN_TEXT_CONSTANTS.BULLET_PREFIX;
         lines.push(indent + prefix + item.content);
-        lines.push(''); // Always add a blank line after every list item
+        if (PLAIN_TEXT_CONSTANTS.LIST_ITEM_TRAILING_BLANK_LINE) lines.push('');
     }
     // Remove trailing blank lines (to avoid extra newlines at the end)
     while (lines.length > 1 && lines[lines.length - 1] === '' && lines[lines.length - 2] === '') {
@@ -386,8 +388,8 @@ export function renderPlainText(
             const lines = t.content.split('\n');
             if (
                 lines.length > 2 &&
-                lines[0].trim().startsWith('```') &&
-                lines[lines.length - 1].trim().startsWith('```')
+                lines[0].trim().startsWith(PLAIN_TEXT_CONSTANTS.CODE_FENCE_MARKER) &&
+                lines[lines.length - 1].trim().startsWith(PLAIN_TEXT_CONSTANTS.CODE_FENCE_MARKER)
             ) {
                 // Remove first and last line (the fences)
                 result += lines.slice(1, -1).join('\n') + '\n';
@@ -402,7 +404,7 @@ export function renderPlainText(
             result += renderPlainText(t.children, listContext, indentLevel, options, inCode);
         } else if (t.type === 'heading_open') {
             if (options.preserveHeading) {
-                result += '#'.repeat(parseInt(t.tag[1])) + ' ';
+                result += PLAIN_TEXT_CONSTANTS.HEADING_PREFIX_CHAR.repeat(parseInt(t.tag[1])) + ' ';
             }
         } else if (t.type === 'heading_close') {
             // Ensure blank line(s) after headings
@@ -410,7 +412,7 @@ export function renderPlainText(
         } else if (t.type === 'hr' || t.type === 'thematic_break') {
             // Horizontal rule: preserve as markdown '---' if requested, otherwise emit spacing
             if (options.preserveHorizontalRule) {
-                result += '---\n\n';
+                result += `${PLAIN_TEXT_CONSTANTS.HORIZONTAL_RULE_MARKER}\n\n`;
             } else {
                 // keep a blank line separator for readability
                 result += '\n\n';
@@ -469,7 +471,7 @@ export function renderPlainText(
             if (k < tokens.length && tokens[k].type === 'blockquote_open') {
                 result = result.replace(/\n*$/, '\n\n');
             }
-            result = result.replace(/\n{3,}/g, '\n\n');
+            result = result.replace(/\n{3,}/g, '\n'.repeat(PLAIN_TEXT_CONSTANTS.MAX_PARAGRAPH_NEWLINES));
         }
     }
     return result;
