@@ -80,31 +80,22 @@ List leaders and nested list indentation will be maintained (these are normally 
 The following options are provided to preserve specific markdown formatting in the text/plain output:
 
 - Preserve superscript characters `(^TEST^)`
-If enabled, `^TEST^` will remain `^TEST^` in plain text output.
 
 - Preserve subscript characters `(~TEST~)`
-If enabled, `~TEST~` will remain `~TEST~` in plain text output.
 
 - Preserve emphasis characters `(*TEST* or _TEST_)`
-If enabled, `*TEST*` or `_TEST_` will remain as-is in plain text output.
 
 - Preserve bold characters `(**TEST** or __TEST__)`
-If enabled, `**TEST*`* or `__TEST__` will remain as-is in plain text output.
 
 - Preserve heading characters `(## TEST)`
-If enabled, `## TEST` will remain as-is in plain text output.
 
-- Preserve strikethrough characters (~~TEST~~)
-If enabled, ~~TEST~~ will remain as-is in plain text output.
+- Preserve strikethrough characters (`~~TEST~~`)
 
-- Preserve horizontal rule (---)
-If enabled, horizontal rules will be preserved as --- in plain text output.
+- Preserve horizontal rule (`---`)
 
 - Preserve highlight characters `(==TEST==)`
-If enabled, `==TEST==` will remain as-is in plain text output.
 
 - Preserve insert characters `(++TEST++)`
-If enabled, `++TEST++` will remain as-is in plain text output.
 
 The following options are provided for external hyperlinks (only impacts markdown links containing http/https URL):
 
