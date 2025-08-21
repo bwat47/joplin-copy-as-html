@@ -75,6 +75,23 @@ function createResourceError(id: string, reason: string): string {
 }
 
 /**
+ * Sanitizes CSS style attributes to prevent injection attacks
+ * @param style The CSS style string to sanitize
+ * @returns Sanitized CSS style string
+ */
+function sanitizeStyle(style: string): string {
+    if (!style || typeof style !== 'string') return '';
+    
+    return style
+        .replace(/javascript\s*:/gi, '')
+        .replace(/expression\s*\(/gi, '')
+        .replace(/@import[^;]*;?/gi, '')
+        .replace(/url\s*\(\s*["']?javascript:/gi, 'url(')
+        .replace(/behavior\s*:/gi, '')
+        .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '');
+}
+
+/**
  * Pre-processes markdown to handle HTML <img> tags before rendering.
  * It extracts dimensions (width, height, style) and replaces the <img> tag
  * with a markdown equivalent containing a unique key. This key is used later
@@ -135,7 +152,7 @@ export function extractImageDimensions(markdown: string, embedImages: boolean): 
 					dimensions.set(dimensionKey, {
 						width: widthMatch ? widthMatch[1] : undefined,
 						height: heightMatch ? heightMatch[1] : undefined,
-						style: styleMatch ? styleMatch[1] : undefined,
+						style: styleMatch ? sanitizeStyle(styleMatch[1]) : undefined,
 						resourceId: resourceId
 					});
 					const result = `![${dimensionKey}](://${resourceId})`;
@@ -182,15 +199,16 @@ export function applyPreservedDimensions(html: string, dimensions: Map<string, I
 			
 			// Add or merge style if preserved
 			if (attrs.style) {
+				const sanitizedStyle = sanitizeStyle(attrs.style);
 				const existingStyleMatch = newAttrs.match(/style\s*=\s*["']([^"']*)["']/i);
 				if (existingStyleMatch) {
 					// Merge with existing style
 					const existingStyle = existingStyleMatch[1];
-					const mergedStyle = existingStyle.endsWith(';') ? existingStyle + attrs.style : existingStyle + ';' + attrs.style;
+					const mergedStyle = existingStyle.endsWith(';') ? existingStyle + sanitizedStyle : existingStyle + ';' + sanitizedStyle;
 					newAttrs = newAttrs.replace(/style\s*=\s*["'][^"']*["']/i, `style="${mergedStyle}"`);
 				} else {
 					// Add new style attribute
-					newAttrs += ` style="${attrs.style}"`;
+					newAttrs += ` style="${sanitizedStyle}"`;
 				}
 			}
 			
