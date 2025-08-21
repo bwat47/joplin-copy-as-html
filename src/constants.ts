@@ -20,7 +20,7 @@ export const SETTINGS = {
 export const REGEX_PATTERNS = {
 	CODE_BLOCKS: /(```[\s\S]*?```|`[^`\n]*`)/g,
 	HTML_IMG: /<img[^>]*>/gi,
-	MARKDOWN_IMG: /!\[[^\]]*\]\(:\/{1,2}[a-f0-9]{32}\)/gi,
+	MARKDOWN_IMG: /!\[[^\]]*\]\(:\/[^)]+\)/gi,
 	// Matches HTML <img> tags with a Joplin resource ID in the src attribute.
     // Group 1: All attributes up to the resource ID
     // Group 2: The 32-character Joplin resource ID
