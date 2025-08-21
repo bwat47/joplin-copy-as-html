@@ -1,3 +1,21 @@
+/**
+ * @fileoverview Configuration Constants - Centralized plugin settings and patterns
+ * 
+ * Contains all configuration constants, regex patterns, and magic numbers used
+ * throughout the plugin. Organized into logical groups:
+ * 
+ * - SETTINGS: Plugin-specific setting keys for user preferences
+ * - REGEX_PATTERNS: Compiled patterns for markdown and HTML parsing
+ * - CONSTANTS: Processing limits, timeouts, and formatting values
+ * - JOPLIN_SETTINGS: Global Joplin markdown plugin setting keys
+ * 
+ * Centralizing constants here improves maintainability and makes the codebase
+ * more self-documenting by giving context to numeric values and string patterns.
+ * 
+ * @author bwat47
+ * @since 1.0.0
+ */
+
 export const SETTINGS = {
 	EMBED_IMAGES: 'embedImages',
 	EXPORT_FULL_HTML: 'exportFullHtml',

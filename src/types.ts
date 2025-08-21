@@ -1,3 +1,20 @@
+/**
+ * @fileoverview Type Definitions - Interfaces and types for plugin data structures
+ * 
+ * Defines TypeScript interfaces for all data structures used across the plugin:
+ * 
+ * - Configuration interfaces (HtmlOptions, PlainTextOptions)
+ * - Processing data structures (ImageDimensions, TableData, ListItem)  
+ * - Joplin API types (JoplinResource, JoplinFileData)
+ * - Internal processing types (MarkdownSegment, PluginConfig)
+ * 
+ * These types provide compile-time safety and serve as documentation for the
+ * expected structure of data flowing through the plugin's processing pipeline.
+ * 
+ * @author bwat47
+ * @since 1.0.0
+ */
+
 export interface ImageDimensions {
     width?: string;
     height?: string;

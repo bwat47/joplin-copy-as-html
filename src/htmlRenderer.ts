@@ -1,3 +1,26 @@
+/**
+ * @fileoverview HTML Renderer - Converts markdown to clean, portable HTML
+ * 
+ * This module handles the complex process of converting Joplin markdown to portable HTML:
+ * 
+ * Key Features:
+ * 1. Respects all Joplin global markdown plugin settings
+ * 2. Extracts and preserves image dimensions from rich text editor
+ * 3. Embeds images as base64 or strips them based on user preference
+ * 4. Removes Joplin-specific elements for cross-application compatibility
+ * 5. Handles resource loading with timeout and deduplication
+ * 
+ * The rendering process:
+ * - Pre-processes HTML img tags to preserve dimensions
+ * - Configures markdown-it to match Joplin's behavior
+ * - Converts Joplin resources to base64 data URLs
+ * - Cleans up output using JSDOM for semantic HTML
+ * - Optionally wraps as full HTML document with custom CSS
+ * 
+ * @author bwat47
+ * @since 1.0.0
+ */
+
 import joplin from 'api';
 import { JSDOM } from 'jsdom';
 import { CONSTANTS, REGEX_PATTERNS, SETTINGS, JOPLIN_SETTINGS } from './constants';

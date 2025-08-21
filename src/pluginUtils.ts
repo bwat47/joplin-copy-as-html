@@ -1,4 +1,24 @@
-// src/pluginUtils.ts
+/**
+ * @fileoverview Plugin Loading Utilities - Safe markdown-it plugin management
+ * 
+ * Provides robust loading of markdown-it plugins that handles diverse export patterns.
+ * 
+ * The challenge: Different npm packages export plugins in various ways:
+ * - Direct function exports: `module.exports = function(md) {...}`
+ * - Object exports: `module.exports = {plugin: function(md) {...}}`  
+ * - Multi-function exports: `module.exports = {bare: fn1, full: fn2, light: fn3}`
+ * - ES module exports: `export default function(md) {...}`
+ * 
+ * This module automatically detects and handles all these patterns, with special
+ * logic for complex plugins like markdown-it-emoji that export multiple variants.
+ * 
+ * Originally developed to solve plugin loading conflicts between HTML and plain text
+ * renderers, now shared to eliminate code duplication and ensure consistency.
+ * 
+ * @author bwat47
+ * @since 1.1.0
+ */
+
 import MarkdownIt = require('markdown-it');
 
 /**

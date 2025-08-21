@@ -1,3 +1,22 @@
+/**
+ * @fileoverview Plain Text Renderer - Converts markdown to formatted plain text
+ * 
+ * Renders markdown-it tokens to plain text while preserving document structure.
+ * Unlike simple markdown stripping, this renderer maintains:
+ * 
+ * - Proper list formatting with indentation
+ * - Aligned table layout with column padding
+ * - Configurable preservation of markdown syntax (bold, italic, etc.)
+ * - Smart link handling (title, URL, or full markdown format)
+ * - Proper spacing between block elements
+ * 
+ * The renderer processes tokens recursively, handling complex nested structures
+ * like lists within blockquotes and tables with formatted content.
+ * 
+ * @author bwat47
+ * @since 1.0.0
+ */
+
 import type { Token } from 'markdown-it';
 import * as MarkdownIt from 'markdown-it';
 import { safePluginUse } from './pluginUtils';

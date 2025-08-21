@@ -1,3 +1,18 @@
+/**
+ * @fileoverview Main plugin entry point for Joplin Copy as HTML
+ * 
+ * Registers commands and settings for copying markdown selections as HTML or plain text.
+ * Provides two main features:
+ * - Copy as HTML: Converts markdown to clean HTML with embedded images
+ * - Copy as Plain Text: Strips markdown formatting while preserving structure
+ * 
+ * The plugin respects Joplin's global markdown settings and provides additional
+ * customization options for plain text output formatting.
+ * 
+ * @author bwat47
+ * @since 1.0.0
+ */
+
 import joplin from 'api';
 import { SettingItemType, ToastType, MenuItemLocation } from 'api/types';
 
