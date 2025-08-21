@@ -34,3 +34,20 @@ export const CONSTANTS = {
     MIN_COLUMN_WIDTH: 3,
     DIMENSION_KEY_PREFIX: 'DIMENSION_'
 };
+
+// Joplin global markdown plugin setting keys
+export const JOPLIN_SETTINGS = {
+    SUB: 'markdown.plugin.sub',
+    SUP: 'markdown.plugin.sup',
+    MARK: 'markdown.plugin.mark',
+    INSERT: 'markdown.plugin.insert',
+    SOFT_BREAKS: 'markdown.plugin.softbreaks',
+    TYPOGRAPHER: 'markdown.plugin.typographer',
+    ABBR: 'markdown.plugin.abbr',
+    DEFLIST: 'markdown.plugin.deflist',
+    EMOJI: 'markdown.plugin.emoji',
+    FOOTNOTE: 'markdown.plugin.footnote',
+    MULTITABLE: 'markdown.plugin.multitable',
+    TOC: 'markdown.plugin.toc',
+    LINKIFY: 'markdown.plugin.linkify',
+} as const;
