@@ -434,11 +434,8 @@ export async function processHtmlConversion(
     const globalTocEnabled = await safeGetGlobalSetting(JOPLIN_SETTINGS.TOC);
     const globalLinkifyEnabled = await safeGetGlobalSetting(JOPLIN_SETTINGS.LINKIFY);
 
-    // Handle soft breaks: rely on markdown-it `breaks` option (no pre-processing)
-    const processedSelection = selection;
-
     // Extract and preserve image dimensions from HTML img tags
-    const { processedMarkdown, dimensions } = extractImageDimensions(processedSelection, options.embedImages);
+    const { processedMarkdown, dimensions } = extractImageDimensions(selection, options.embedImages);
 
     // Render with a local markdown-it instance for full control
     const md = new MarkdownIt({
