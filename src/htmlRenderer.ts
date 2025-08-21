@@ -481,6 +481,26 @@ export async function processHtmlConversion(
         typographer: !!globalTypographerEnabled,
     });
 
+    // Configure linkify to only handle HTTP/HTTPS URLs and mailto (matching Joplin's behavior)
+    if (globalLinkifyEnabled) {
+        md.linkify.set({ 
+            fuzzyLink: false,  // Disable fuzzy linking (URLs without protocol)
+            fuzzyEmail: false, // Disable automatic email detection (we'll use explicit mailto:)
+            fuzzyIP: false     // Disable IP address linking
+        });
+        
+        // Only allow specific schemes by re-adding them explicitly
+        md.linkify.add('http:', {
+            validate: /^\/\/.*/
+        });
+        md.linkify.add('https:', {
+            validate: /^\/\/.*/
+        });
+        md.linkify.add('mailto:', {
+            validate: /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*/
+        });
+    }
+
     // Load plugins conditionally based on Joplin's global settings
     loadPluginsConditionally(md, [
         { enabled: globalMarkEnabled, plugin: markdownItMark, name: 'markdown-it-mark' },
