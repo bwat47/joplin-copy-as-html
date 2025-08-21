@@ -10,17 +10,18 @@ The plugin is designed for seamless integration with external applications like 
 ## Main Features and Design Choices
 
 ### HTML Output Features
-- **Clean HTML Generation**: Uses Joplin's `@joplin/renderer` with minimal theme to produce semantic HTML
+- **Clean HTML Generation**: Uses markdown-it with Joplin-compatible plugin configuration to produce semantic HTML
+- **Plugin Compatibility**: Respects all Joplin global markdown plugin settings through sophisticated plugin loading
 - **Image Embedding**: Optionally converts Joplin resource images to base64 data URLs for portability
-- **Dimension Preservation**: Maintains original image dimensions (width, height, style) from HTML `<img>` tags
-- **Global Settings Compliance**: Honors Joplin's markdown plugin settings (subscript, superscript, mark)
+- **Dimension Preservation**: Maintains original image dimensions (width, height, style) from HTML `<img>` tags through markdown-it pipeline
+- **Resource Loading Optimization**: Timeout protection and request deduplication prevent API overwhelm
 - **Fragment Extraction**: Uses JSDOM to extract clean HTML fragments, removing Joplin-specific wrapper elements
-- **Link Cleaning**: Removes Joplin-specific onclick attributes from links for external compatibility
+- **Link Cleaning**: Converts Joplin resource links to plain text for external compatibility
 
 ### Plain Text Output Features
 - **Robust Markdown Parsing**: Uses markdown-it with custom plugins for comprehensive markdown support
 - **Selective Format Preservation**: Configurable preservation of markdown characters (bold, italic, headings, etc.)
-- **Table Formatting**: Converts markdown tables to aligned plain text with proper spacing
+- **Table Formatting**: Converts markdown tables to aligned plain text with proper spacing using string-width calculations
 - **List Handling**: Preserves list structure with proper indentation and numbering
 - **External Link Processing**: Configurable behavior for HTTP/HTTPS links (title, URL, or markdown format)
 - **Code Block Preservation**: Maintains code blocks and inline code in plain text output
@@ -40,6 +41,7 @@ Centralized configuration and regex patterns:
 - **SETTINGS**: String constants for all plugin settings to prevent typos
 - **REGEX_PATTERNS**: Documented regex patterns for Joplin resource handling and image processing
 - **CONSTANTS**: Timeout values, formatting constants, and dimension key prefixes
+- **JOPLIN_SETTINGS**: Global Joplin markdown plugin setting keys for compatibility
 
 #### `src/types.ts`
 TypeScript interfaces for type safety:
@@ -51,7 +53,23 @@ TypeScript interfaces for type safety:
 #### `src/utils.ts`
 Validation and utility functions:
 - **validatePlainTextSettings**: Type-safe validation of user settings with fallbacks
-- **validateEmbedImagesSetting**: Boolean validation for image embedding setting
+- **validateHtmlSettings**: Boolean validation for HTML processing options
+
+#### `src/pluginUtils.ts`
+Shared utilities for safe markdown-it plugin loading:
+
+**Key Functions:**
+- **`safePluginUse`**: Handles diverse plugin export patterns (function, object, multi-variant)
+- **`loadPluginsConditionally`**: Declarative plugin configuration with enable/disable logic
+
+**Plugin Export Patterns Supported:**
+- Direct function exports: `module.exports = function(md) {...}`
+- Object exports: `module.exports = {plugin: function(md) {...}}`
+- Multi-function exports: `module.exports = {bare: fn1, full: fn2, light: fn3}`
+- ES module exports: `export default function(md) {...}`
+
+**Why This Exists:**
+Originally developed to solve plugin loading conflicts between HTML and plain text renderers. The complex detection logic handles the diversity of npm package export patterns, with special handling for plugins like markdown-it-emoji that export multiple variants.
 
 ### Feature Modules
 
@@ -62,17 +80,20 @@ Complete HTML processing pipeline:
 - **`extractImageDimensions`**: Preserves image dimensions while converting HTML `<img>` tags to markdown
 - **`applyPreservedDimensions`**: Restores preserved dimensions to rendered HTML `<img>` tags
 - **`convertResourceToBase64`**: Async conversion of Joplin resources to base64 data URLs with timeout handling
+- **`getResourceWithDedupe`**: Simple deduplication to prevent duplicate requests within a single operation
+- **`withTimeout`**: Ensures proper cleanup of timeout timers to prevent memory leaks
 - **`processHtmlConversion`**: Main orchestrator that coordinates the entire HTML conversion process
 
 **Processing Flow:**
-1. Read Joplin global markdown settings
-2. Handle soft breaks based on global settings
+1. Read Joplin global markdown settings using safe fallbacks
+2. Configure markdown-it instance to match Joplin's behavior exactly
 3. Extract and preserve image dimensions from HTML tags
-4. Render markdown to HTML using Joplin's renderer
-5. Re-apply preserved image dimensions
-6. Convert resource URLs to base64 (if enabled)
-7. Extract clean HTML fragment using JSDOM
-8. Remove Joplin-specific elements and attributes
+4. Load markdown-it plugins conditionally based on Joplin settings
+5. Render markdown to HTML using configured markdown-it instance
+6. Re-apply preserved image dimensions to rendered HTML
+7. Convert resource URLs to base64 with simple deduplication (if enabled)
+8. Extract clean HTML fragment using JSDOM
+9. Remove Joplin-specific elements and convert resource links to text
 
 #### `src/plainTextRenderer.ts`
 Comprehensive plain text conversion system:
@@ -80,9 +101,10 @@ Comprehensive plain text conversion system:
 **Core Functions:**
 - **`renderPlainText`**: Main recursive token processor with formatting options
 - **`convertMarkdownToPlainText`**: Entry point that initializes markdown-it and processes tokens
-- **`parseTableTokens`/`formatTable`**: Table processing with aligned columns and headers
+- **`parseTableTokens`/`formatTable`**: Table processing with aligned columns and headers using string-width
 - **`parseListTokens`/`formatList`**: List processing with proper indentation and numbering
 - **`handleLinkToken`/`handleLinkCloseToken`**: External link processing with configurable output
+- **`extractBlockTokens`**: Safe token extraction for nested structures
 
 **Token Processing:**
 - Recursive processing of markdown-it token trees
@@ -96,43 +118,75 @@ Plugin registration and command implementation:
 **Settings Registration:**
 - Comprehensive settings with descriptions and default values
 - Boolean settings for markdown preservation options
-- Enum setting for hyperlink behavior in plain text
+- Enum settings for hyperlink behavior and indentation type
 
 **Command Implementation:**
 - **copyAsHtml**: Selection → HTML processing → clipboard → user feedback
 - **copyAsPlainText**: Selection → plain text processing → clipboard → user feedback
 - Consistent error handling with toast notifications
-- Context menu integration with keyboard shortcuts
+- Context menu integration with keyboard shortcuts (Ctrl+Shift+C, Ctrl+Alt+C)
 
 ## Technical Implementation Details
+
+### Plugin Loading Architecture
+
+#### Challenge
+Different markdown-it plugins use incompatible export patterns, causing loading failures and conflicts between HTML and plain text renderers. The npm ecosystem has evolved with different module systems, resulting in:
+- CommonJS function exports
+- ES6 default exports
+- Object wrappers with nested functions
+- Multi-variant exports (like emoji plugins with `{bare, full, light}`)
+
+#### Solution
+Created `pluginUtils.ts` with robust detection logic that handles all known patterns:
+1. **Pattern Detection**: Systematic checking of export types
+2. **Fallback Logic**: Auto-detection when patterns don't match
+3. **Error Recovery**: Graceful handling of malformed plugins
+4. **Debugging Support**: Clear logging for troubleshooting
+
+#### Benefits
+- **Zero Plugin Failures**: Graceful fallback for any export pattern
+- **Code Reuse**: Eliminates 200+ lines of duplicated plugin loading code
+- **Maintainability**: Single place to update plugin loading logic
+- **Consistency**: Both renderers use identical plugin loading behavior
 
 ### Image Handling Strategy
 The plugin uses a sophisticated multi-step process for image handling:
 
 1. **Dimension Extraction**: Parse HTML `<img>` tags and extract width/height/style attributes
 2. **Markdown Conversion**: Convert `<img>` tags to markdown with dimension keys as alt text
-3. **HTML Rendering**: Let Joplin render the markdown normally
+3. **markdown-it Rendering**: Process through markdown-it with Joplin-compatible plugins
 4. **Dimension Restoration**: Use the dimension keys to restore original attributes
-5. **Base64 Conversion**: Replace Joplin resource URLs with base64 data
+5. **Base64 Conversion**: Replace Joplin resource URLs with base64 data (with simple deduplication)
 
-This approach ensures compatibility with Joplin's renderer while preserving user-defined image dimensions.
+This approach ensures compatibility with markdown-it while preserving user-defined image dimensions from Joplin's rich text editor.
+
+### Resource Loading Enhancements
+- **Timeout Protection**: 5-second timeout with proper cleanup prevents memory leaks from hanging timers
+- **Simple Request Deduplication**: Prevents multiple simultaneous requests for the same resource within a single operation
+- **Graceful Error Recovery**: Individual resource failures don't break entire operations
+- **Memory Management**: Automatic cleanup of timeout handles and request map
 
 ### Error Handling Philosophy
 - **Graceful Degradation**: Operations continue even when individual resources fail
 - **User Visibility**: Errors are displayed as red text in output rather than hidden
 - **Logging**: Console logging for debugging while maintaining user experience
-- **Timeout Protection**: Resource fetching has timeout limits to prevent hanging
+- **Timeout Protection**: Resource fetching has timeout limits with proper cleanup to prevent memory leaks
+- **Simple Deduplication**: Prevents duplicate requests for the same resource within a single operation
 
 ### Performance Considerations
-- **Async Resource Processing**: Uses `Promise.all()` for concurrent resource fetching
-- **Timeout Handling**: 5-second timeout for resource operations to prevent blocking
-- **Memory Management**: Processes resources individually rather than loading all at once - **Not yet implemented**
-- **Regex Optimization**: Pre-compiled regex patterns stored in constants **Not yet implemented**
+- **Simple Request Deduplication**: Prevents duplicate API calls for the same resource within a single operation
+- **Timeout Protection**: 5-second timeout prevents hanging operations
+- **Memory-Safe Processing**: Proper cleanup of timers and request map
+- **Concurrent Processing**: Uses `Promise.all()` for parallel resource fetching
+- **Plugin Loading Optimization**: Shared plugin utilities eliminate code duplication
+- **String Width Calculations**: Accurate table column alignment using unicode-aware width calculation
 
 ## Configuration and Settings
 
 ### HTML-Specific Settings
 - **embedImages** (default: true): Controls base64 image embedding in HTML output
+- **exportFullHtml** (default: false): Wraps output as complete HTML document with custom CSS
 
 ### Plain Text Settings
 All preservation settings default to `false` for clean plain text output:
@@ -141,16 +195,26 @@ All preservation settings default to `false` for clean plain text output:
 - **preserveEmphasis**: Maintains `*text*` or `_text_` in output
 - **preserveBold**: Maintains `**text**` or `__text__` in output
 - **preserveHeading**: Maintains `## text` in output
+- **preserveStrikethrough**: Maintains `~~text~~` in output
+- **preserveHorizontalRule**: Maintains `---` in output
 - **preserveMark**: Maintains `==text==` in output (requires markdown-it-mark)
 - **preserveInsert**: Maintains `++text++` in output (requires markdown-it-ins)
+- **displayEmojis**: Converts `:emoji:` syntax to unicode characters
 - **hyperlinkBehavior**: Controls external link output ('title', 'url', 'markdown')
+- **indentType**: Controls list indentation ('spaces', 'tabs')
 
 ## Why These Design Choices?
+
+### markdown-it over @joplin/renderer
+- **Full Control**: Complete control over plugin loading and configuration
+- **Joplin Compatibility**: Can closer match Joplin's markdown processing behavior (joplin-renderer limited which plugins we could enable/disable).
+- **Extensibility**: Easy to add new markdown features as needed
+- **Consistency**: Same parsing engine for both HTML and plain text output
 
 ### JSDOM for HTML Processing
 - **Reliability**: Regex parsing of HTML proved unreliable for nested structures
 - **Maintainability**: DOM queries are more readable and robust than complex regex
-- **Future-Proofing**: Adapts better to changes in Joplin's HTML structure
+- **Future-Proofing**: Adapts better to changes in markdown-it's HTML structure
 
 ### Base64 Image Embedding
 - **Portability**: Embedded images work in any application that supports HTML
@@ -170,7 +234,7 @@ All preservation settings default to `false` for clean plain text output:
 ### Comprehensive Error Handling
 - **User Experience**: Never fails silently; always provides feedback
 - **Debugging**: Console logging helps with troubleshooting
-- **Robustness**: Handles edge cases like missing resources or network timeouts
+- **Robustness**: Handles edge cases like missing resources, network timeouts, and malformed plugins
 
 ## Extension Points
 
@@ -180,19 +244,29 @@ The plugin's modular design makes it easy to extend:
 2. **Additional Settings**: Extend the settings interfaces and validation functions
 3. **Custom Processing**: Add new token processors to the plain text renderer
 4. **Resource Types**: Extend resource handling beyond images
+5. **New Plugins**: Add support for additional markdown-it plugins using the shared plugin utilities
 
 ## Dependencies
 
 ### Runtime Dependencies
-- **@joplin/renderer**: Joplin's markdown rendering engine
-- **markdown-it**: Extensible markdown parser for plain text processing
+- **markdown-it**: Extensible markdown parser and renderer (replaces @joplin/renderer)
 - **markdown-it-mark**: Plugin for `==highlight==` syntax
-- **markdown-it-ins**: Plugin for `++insert++` syntax
+- **markdown-it-ins**: Plugin for `++insert++` syntax  
+- **markdown-it-sub**: Plugin for subscript syntax
+- **markdown-it-sup**: Plugin for superscript syntax
+- **markdown-it-abbr**: Plugin for abbreviation syntax
+- **markdown-it-deflist**: Plugin for definition lists
+- **markdown-it-emoji**: Plugin for emoji syntax like `:smile:`
+- **markdown-it-footnote**: Plugin for footnote syntax
+- **markdown-it-multimd-table**: Plugin for advanced table features
+- **markdown-it-toc-done-right**: Plugin for table of contents
+- **markdown-it-task-lists**: Plugin for checkbox lists
 - **jsdom**: DOM manipulation for HTML fragment extraction
+- **string-width**: Accurate string width calculation for table formatting
 
 ### Development Dependencies
 - Standard Joplin plugin build tools and TypeScript compiler
 
 ---
 
-This documentation reflects the current implementation and can be updated as the plugin evolves. The modular architecture and comprehensive error handling make the plugin robust and maintainable for future development.
+This documentation reflects the current implementation and architectural decisions. The modular architecture, sophisticated plugin loading system, and comprehensive error handling make the plugin robust and maintainable for future development. The plugin loading utilities and resource management improvements represent significant technical contributions that could benefit the broader Joplin plugin ecosystem.
