@@ -7,3 +7,5 @@ publish/
 .env
 .vscode/
 *:Zone.Identifier
+*.patch
+*.diff
