@@ -1,20 +1,20 @@
 /**
  * @fileoverview Plugin Loading Utilities - Safe markdown-it plugin management
- * 
+ *
  * Provides robust loading of markdown-it plugins that handles diverse export patterns.
- * 
+ *
  * The challenge: Different npm packages export plugins in various ways:
  * - Direct function exports: `module.exports = function(md) {...}`
- * - Object exports: `module.exports = {plugin: function(md) {...}}`  
+ * - Object exports: `module.exports = {plugin: function(md) {...}}`
  * - Multi-function exports: `module.exports = {bare: fn1, full: fn2, light: fn3}`
  * - ES module exports: `export default function(md) {...}`
- * 
+ *
  * This module automatically detects and handles all these patterns, with special
  * logic for complex plugins like markdown-it-emoji that export multiple variants.
- * 
+ *
  * Originally developed to solve plugin loading conflicts between HTML and plain text
  * renderers, now shared to eliminate code duplication and ensure consistency.
- * 
+ *
  * @author bwat47
  * @since 1.1.0
  */
@@ -26,21 +26,16 @@ import MarkdownIt = require('markdown-it');
  * This is the complex function that was hard to get right,
  * so we share it to avoid duplicating the logic.
  */
-export function safePluginUse(
-    md: MarkdownIt, 
-    plugin: any, 
-    options?: any, 
-    pluginName: string = 'unknown'
-): boolean {
+export function safePluginUse(md: MarkdownIt, plugin: any, options?: any, pluginName: string = 'unknown'): boolean {
     if (!plugin) {
         console.warn(`[copy-as-html] Plugin ${pluginName} is null or undefined`);
         return false;
     }
-    
+
     try {
         // Try different plugin formats
         let pluginFunc = null;
-        
+
         if (typeof plugin === 'function') {
             pluginFunc = plugin;
         } else if (plugin && typeof plugin.default === 'function') {
@@ -66,7 +61,7 @@ export function safePluginUse(
                 pluginFunc = plugin.bare;
             } else {
                 // Try to find any function in the object
-                const funcKeys = Object.keys(plugin).filter(key => typeof plugin[key] === 'function');
+                const funcKeys = Object.keys(plugin).filter((key) => typeof plugin[key] === 'function');
                 if (funcKeys.length === 1) {
                     pluginFunc = plugin[funcKeys[0]];
                 } else if (funcKeys.length > 1) {
@@ -82,18 +77,24 @@ export function safePluginUse(
                         pluginFunc = plugin[funcKeys[0]];
                     }
                 } else {
-                    console.warn(`[copy-as-html] Plugin ${pluginName} object found but no callable function. Available keys:`, Object.keys(plugin));
+                    console.warn(
+                        `[copy-as-html] Plugin ${pluginName} object found but no callable function. Available keys:`,
+                        Object.keys(plugin)
+                    );
                     console.warn(`[copy-as-html] Plugin ${pluginName} object:`, plugin);
                     return false;
                 }
             }
         }
-        
+
         if (!pluginFunc) {
-            console.warn(`[copy-as-html] Could not find callable plugin function for ${pluginName} in:`, Object.keys(plugin || {}));
+            console.warn(
+                `[copy-as-html] Could not find callable plugin function for ${pluginName} in:`,
+                Object.keys(plugin || {})
+            );
             return false;
         }
-        
+
         // Try to use the plugin
         md.use(pluginFunc, options);
         return true;

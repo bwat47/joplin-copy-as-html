@@ -1,14 +1,14 @@
 /**
  * @fileoverview Main plugin entry point for Joplin Copy as HTML
- * 
+ *
  * Registers commands and settings for copying markdown selections as HTML or plain text.
  * Provides two main features:
  * - Copy as HTML: Converts markdown to clean HTML with embedded images
  * - Copy as Plain Text: Strips markdown formatting while preserving structure
- * 
+ *
  * The plugin respects Joplin's global markdown settings and provides additional
  * customization options for plain text output formatting.
- * 
+ *
  * @author bwat47
  * @since 1.0.0
  */
@@ -23,9 +23,9 @@ import { convertMarkdownToPlainText } from './plainTextRenderer';
 import { validatePlainTextSettings, validateHtmlSettings } from './utils';
 
 joplin.plugins.register({
-	onStart: async function() {
-		// Register main HTML copy command FIRST to avoid keyboard shortcut bug
-		await joplin.commands.register({
+    onStart: async function () {
+        // Register main HTML copy command FIRST to avoid keyboard shortcut bug
+        await joplin.commands.register({
             name: 'copyAsHtml',
             label: 'Copy selection as HTML',
             iconName: 'fas fa-copy',
@@ -37,7 +37,7 @@ joplin.plugins.register({
                         await joplin.views.dialogs.showToast({ message: 'No text selected.', type: ToastType.Info });
                         return;
                     }
-                    
+
                     // Gather and validate HTML settings
                     const htmlSettings = {
                         embedImages: await joplin.settings.value(SETTINGS.EMBED_IMAGES),
@@ -47,16 +47,22 @@ joplin.plugins.register({
 
                     const html = await processHtmlConversion(selection, htmlOptions);
                     await joplin.clipboard.writeHtml(html);
-                    await joplin.views.dialogs.showToast({ message: 'Copied selection as HTML!', type: ToastType.Success });
+                    await joplin.views.dialogs.showToast({
+                        message: 'Copied selection as HTML!',
+                        type: ToastType.Success,
+                    });
                 } catch (err) {
                     console.error('[copy-as-html] Error:', err);
-                    await joplin.views.dialogs.showToast({ message: 'Failed to copy as HTML: ' + (err?.message || err), type: ToastType.Error });
+                    await joplin.views.dialogs.showToast({
+                        message: 'Failed to copy as HTML: ' + (err?.message || err),
+                        type: ToastType.Error,
+                    });
                 }
             },
         });
 
-		// Register plain text copy command
-		await joplin.commands.register({
+        // Register plain text copy command
+        await joplin.commands.register({
             name: 'copyAsPlainText',
             label: 'Copy selection as Plain Text',
             iconName: 'fas fa-copy',
@@ -70,13 +76,13 @@ joplin.plugins.register({
                         preserveEmphasis: await joplin.settings.value(SETTINGS.PRESERVE_EMPHASIS),
                         preserveBold: await joplin.settings.value(SETTINGS.PRESERVE_BOLD),
                         preserveHeading: await joplin.settings.value(SETTINGS.PRESERVE_HEADING),
-						preserveStrikethrough: await joplin.settings.value(SETTINGS.PRESERVE_STRIKETHROUGH),
-						preserveHorizontalRule: await joplin.settings.value(SETTINGS.PRESERVE_HORIZONTAL_RULE),
-						preserveMark: await joplin.settings.value(SETTINGS.PRESERVE_MARK),
+                        preserveStrikethrough: await joplin.settings.value(SETTINGS.PRESERVE_STRIKETHROUGH),
+                        preserveHorizontalRule: await joplin.settings.value(SETTINGS.PRESERVE_HORIZONTAL_RULE),
+                        preserveMark: await joplin.settings.value(SETTINGS.PRESERVE_MARK),
                         preserveInsert: await joplin.settings.value(SETTINGS.PRESERVE_INSERT),
-						displayEmojis: await joplin.settings.value(SETTINGS.DISPLAY_EMOJIS),
+                        displayEmojis: await joplin.settings.value(SETTINGS.DISPLAY_EMOJIS),
                         hyperlinkBehavior: await joplin.settings.value(SETTINGS.HYPERLINK_BEHAVIOR),
-						indentType: await joplin.settings.value(SETTINGS.INDENT_TYPE),
+                        indentType: await joplin.settings.value(SETTINGS.INDENT_TYPE),
                     };
                     const plainTextOptions = validatePlainTextSettings(plainTextSettings);
 
@@ -89,154 +95,166 @@ joplin.plugins.register({
 
                     const plainText = convertMarkdownToPlainText(selection, plainTextOptions);
                     await joplin.clipboard.writeText(plainText);
-                    await joplin.views.dialogs.showToast({ message: 'Copied selection as Plain Text!', type: ToastType.Success });
+                    await joplin.views.dialogs.showToast({
+                        message: 'Copied selection as Plain Text!',
+                        type: ToastType.Success,
+                    });
                 } catch (err) {
                     console.error('[copy-as-html] Error:', err);
-                    await joplin.views.dialogs.showToast({ message: 'Failed to copy as Plain Text: ' + (err?.message || err), type: ToastType.Error });
+                    await joplin.views.dialogs.showToast({
+                        message: 'Failed to copy as Plain Text: ' + (err?.message || err),
+                        type: ToastType.Error,
+                    });
                 }
             },
         });
 
-		// Register plugin settings AFTER commands
-		await joplin.settings.registerSection('copyAsHtml', {
-			label: 'Copy as HTML',
-			iconName: 'fas fa-copy',
-		});
+        // Register plugin settings AFTER commands
+        await joplin.settings.registerSection('copyAsHtml', {
+            label: 'Copy as HTML',
+            iconName: 'fas fa-copy',
+        });
 
-		await joplin.settings.registerSettings({
-			[SETTINGS.EMBED_IMAGES]: {
-				value: true,
-				type: SettingItemType.Bool,
-				section: 'copyAsHtml',
-				public: true,
-				label: 'Embed images as base64',
-				description: 'If enabled, images in selection will be embedded as base64 in HTML output.',
-			},
-			[SETTINGS.EXPORT_FULL_HTML]: {
-				value: false,
-				type: SettingItemType.Bool,
-				section: 'copyAsHtml',
-				public: true,
-				label: 'Export as full HTML document',
-				description: 'If enabled, exported HTML will be a full document with your custom stylesheet (copy-as-html-user.css in your profile folder).',
-			},
-			[SETTINGS.PRESERVE_SUPERSCRIPT]: {
-				value: false,
-				type: SettingItemType.Bool,
-				section: 'copyAsHtml',
-				public: true,
-				label: 'Preserve superscript characters (^TEST^)',
-				description: 'If enabled, ^TEST^ will remain ^TEST^ in plain text output.',
-			},
-			[SETTINGS.PRESERVE_SUBSCRIPT]: {
-				value: false,
-				type: SettingItemType.Bool,
-				section: 'copyAsHtml',
-				public: true,
-				label: 'Preserve subscript characters (~TEST~)',
-				description: 'If enabled, ~TEST~ will remain ~TEST~ in plain text output.',
-			},
-			[SETTINGS.PRESERVE_EMPHASIS]: {
-				value: false,
-				type: SettingItemType.Bool,
-				section: 'copyAsHtml',
-				public: true,
-				label: 'Preserve emphasis characters (*TEST* or _TEST_)',
-				description: 'If enabled, *TEST* or _TEST_ will remain as-is in plain text output.',
-			},
-			[SETTINGS.PRESERVE_BOLD]: {
-				value: false,
-				type: SettingItemType.Bool,
-				section: 'copyAsHtml',
-				public: true,
-				label: 'Preserve bold characters (**TEST** or __TEST__)',
-				description: 'If enabled, **TEST** or __TEST__ will remain as-is in plain text output.',
-			},
-			[SETTINGS.PRESERVE_HEADING]: {
-				value: false,
-				type: SettingItemType.Bool,
-				section: 'copyAsHtml',
-				public: true,
-				label: 'Preserve heading characters (## TEST)',
-				description: 'If enabled, ## TEST will remain as-is in plain text output.',
-			},
-			[SETTINGS.PRESERVE_STRIKETHROUGH]: {
-				value: false,
-				type: SettingItemType.Bool,
-				section: 'copyAsHtml',
-				public: true,
-				label: 'Preserve strikethrough characters (~~TEST~~)',
-				description: 'If enabled, ~~TEST~~ will remain as-is in plain text output.',
-			},
-			[SETTINGS.PRESERVE_HORIZONTAL_RULE]: {
-				value: false,
-				type: SettingItemType.Bool,
-				section: 'copyAsHtml',
-				public: true,
-				label: 'Preserve horizontal rule (---)',
-				description: 'If enabled, horizontal rules will be preserved as --- in plain text output.',
-			},
-			[SETTINGS.PRESERVE_MARK]: {
-				value: false,
-				type: SettingItemType.Bool,
-				section: 'copyAsHtml',
-				public: true,
-				label: 'Preserve highlight characters (==TEST==)',
-				description: 'If enabled, ==TEST== will remain as-is in plain text output.',
-			},
-			[SETTINGS.PRESERVE_INSERT]: {
-				value: false,
-				type: SettingItemType.Bool,
-				section: 'copyAsHtml',
-				public: true,
-				label: 'Preserve insert characters (++TEST++)',
-				description: 'If enabled, ++TEST++ will remain as-is in plain text output.',
-			},
-			[SETTINGS.DISPLAY_EMOJIS]: {
-				value: true,
-				type: SettingItemType.Bool,
-				section: 'copyAsHtml',
-				public: true,
-				label: 'Display emojis',
-				description: 'If enabled, emojis will be displayed in the plain text output.',
-			},
-			[SETTINGS.HYPERLINK_BEHAVIOR]: {
-				value: 'title',
-				type: SettingItemType.String,
-				isEnum: true,
-				options: {
-					'title': 'Link Title',
-					'url': 'Link URL', 
-					'markdown': 'Markdown Format'
-				},
-				section: 'copyAsHtml',
-				public: true,
-				label: 'Plain text hyperlink behavior',
-				description: 'How external HTTP/HTTPS links should appear in plain text output.',
-			},
-			[SETTINGS.INDENT_TYPE]: {
-				value: 'spaces',
-				type: SettingItemType.String,
-				isEnum: true,
-				options: {
-					'spaces': '4 Spaces',
-					'tabs': 'Tabs'
-				},
-				section: 'copyAsHtml',
-				public: true,
-				label: 'List indentation type',
-				description: 'How nested lists should be indented in plain text output.',
-			},
-		});
+        await joplin.settings.registerSettings({
+            [SETTINGS.EMBED_IMAGES]: {
+                value: true,
+                type: SettingItemType.Bool,
+                section: 'copyAsHtml',
+                public: true,
+                label: 'Embed images as base64',
+                description: 'If enabled, images in selection will be embedded as base64 in HTML output.',
+            },
+            [SETTINGS.EXPORT_FULL_HTML]: {
+                value: false,
+                type: SettingItemType.Bool,
+                section: 'copyAsHtml',
+                public: true,
+                label: 'Export as full HTML document',
+                description:
+                    'If enabled, exported HTML will be a full document with your custom stylesheet (copy-as-html-user.css in your profile folder).',
+            },
+            [SETTINGS.PRESERVE_SUPERSCRIPT]: {
+                value: false,
+                type: SettingItemType.Bool,
+                section: 'copyAsHtml',
+                public: true,
+                label: 'Preserve superscript characters (^TEST^)',
+                description: 'If enabled, ^TEST^ will remain ^TEST^ in plain text output.',
+            },
+            [SETTINGS.PRESERVE_SUBSCRIPT]: {
+                value: false,
+                type: SettingItemType.Bool,
+                section: 'copyAsHtml',
+                public: true,
+                label: 'Preserve subscript characters (~TEST~)',
+                description: 'If enabled, ~TEST~ will remain ~TEST~ in plain text output.',
+            },
+            [SETTINGS.PRESERVE_EMPHASIS]: {
+                value: false,
+                type: SettingItemType.Bool,
+                section: 'copyAsHtml',
+                public: true,
+                label: 'Preserve emphasis characters (*TEST* or _TEST_)',
+                description: 'If enabled, *TEST* or _TEST_ will remain as-is in plain text output.',
+            },
+            [SETTINGS.PRESERVE_BOLD]: {
+                value: false,
+                type: SettingItemType.Bool,
+                section: 'copyAsHtml',
+                public: true,
+                label: 'Preserve bold characters (**TEST** or __TEST__)',
+                description: 'If enabled, **TEST** or __TEST__ will remain as-is in plain text output.',
+            },
+            [SETTINGS.PRESERVE_HEADING]: {
+                value: false,
+                type: SettingItemType.Bool,
+                section: 'copyAsHtml',
+                public: true,
+                label: 'Preserve heading characters (## TEST)',
+                description: 'If enabled, ## TEST will remain as-is in plain text output.',
+            },
+            [SETTINGS.PRESERVE_STRIKETHROUGH]: {
+                value: false,
+                type: SettingItemType.Bool,
+                section: 'copyAsHtml',
+                public: true,
+                label: 'Preserve strikethrough characters (~~TEST~~)',
+                description: 'If enabled, ~~TEST~~ will remain as-is in plain text output.',
+            },
+            [SETTINGS.PRESERVE_HORIZONTAL_RULE]: {
+                value: false,
+                type: SettingItemType.Bool,
+                section: 'copyAsHtml',
+                public: true,
+                label: 'Preserve horizontal rule (---)',
+                description: 'If enabled, horizontal rules will be preserved as --- in plain text output.',
+            },
+            [SETTINGS.PRESERVE_MARK]: {
+                value: false,
+                type: SettingItemType.Bool,
+                section: 'copyAsHtml',
+                public: true,
+                label: 'Preserve highlight characters (==TEST==)',
+                description: 'If enabled, ==TEST== will remain as-is in plain text output.',
+            },
+            [SETTINGS.PRESERVE_INSERT]: {
+                value: false,
+                type: SettingItemType.Bool,
+                section: 'copyAsHtml',
+                public: true,
+                label: 'Preserve insert characters (++TEST++)',
+                description: 'If enabled, ++TEST++ will remain as-is in plain text output.',
+            },
+            [SETTINGS.DISPLAY_EMOJIS]: {
+                value: true,
+                type: SettingItemType.Bool,
+                section: 'copyAsHtml',
+                public: true,
+                label: 'Display emojis',
+                description: 'If enabled, emojis will be displayed in the plain text output.',
+            },
+            [SETTINGS.HYPERLINK_BEHAVIOR]: {
+                value: 'title',
+                type: SettingItemType.String,
+                isEnum: true,
+                options: {
+                    title: 'Link Title',
+                    url: 'Link URL',
+                    markdown: 'Markdown Format',
+                },
+                section: 'copyAsHtml',
+                public: true,
+                label: 'Plain text hyperlink behavior',
+                description: 'How external HTTP/HTTPS links should appear in plain text output.',
+            },
+            [SETTINGS.INDENT_TYPE]: {
+                value: 'spaces',
+                type: SettingItemType.String,
+                isEnum: true,
+                options: {
+                    spaces: '4 Spaces',
+                    tabs: 'Tabs',
+                },
+                section: 'copyAsHtml',
+                public: true,
+                label: 'List indentation type',
+                description: 'How nested lists should be indented in plain text output.',
+            },
+        });
 
-		// Register keyboard shortcut for HTML copy
-		await joplin.views.menuItems.create('copyAsHtmlShortcut', 'copyAsHtml', MenuItemLocation.EditorContextMenu, {
-			accelerator: 'Ctrl+Shift+C',
-		});
+        // Register keyboard shortcut for HTML copy
+        await joplin.views.menuItems.create('copyAsHtmlShortcut', 'copyAsHtml', MenuItemLocation.EditorContextMenu, {
+            accelerator: 'Ctrl+Shift+C',
+        });
 
-		// Register keyboard shortcut for plain text copy
-		await joplin.views.menuItems.create('copyAsPlainTextShortcut', 'copyAsPlainText', MenuItemLocation.EditorContextMenu, {
-			accelerator: 'Ctrl+Alt+C',
-		});
-	},
+        // Register keyboard shortcut for plain text copy
+        await joplin.views.menuItems.create(
+            'copyAsPlainTextShortcut',
+            'copyAsPlainText',
+            MenuItemLocation.EditorContextMenu,
+            {
+                accelerator: 'Ctrl+Alt+C',
+            }
+        );
+    },
 });

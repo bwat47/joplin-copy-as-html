@@ -1,19 +1,19 @@
 /**
  * @fileoverview Default CSS Stylesheet - Baseline styling for HTML export
- * 
+ *
  * Provides minimal, clean CSS styling for HTML documents exported by the plugin.
- * 
+ *
  * The stylesheet aims for:
  * - Cross-application compatibility (works in email clients, word processors)
  * - Readable typography with proper spacing
  * - Consistent table and list formatting
  * - Support for Joplin's task list checkboxes
- * 
+ *
  * Used when "Export as full HTML document" is enabled and no custom stylesheet
  * (copy-as-html-user.css) is found in the user's profile directory.
- * 
+ *
  * Users can override this by creating their own copy-as-html-user.css file.
- * 
+ *
  * @author bwat47
  * @since 1.0.0
  */

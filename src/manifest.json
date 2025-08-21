@@ -1,125 +1,125 @@
 {
-	"manifest_version": 1,
-	"id": "com.bwat47.copyashtml",
-	"app_min_version": "3.3",
-	"version": "1.1.1",
-	"name": "Copy as HTML",
-	"description": "Allows you to copy text with HTML (rich text) formatting from the markdown editor (including images). Also allows you to copy as plain text (without markdown formatting)",
-	"author": "bwat47",
-	"homepage_url": "https://github.com/bwat47/joplin-copy-as-html",
-	"repository_url": "https://github.com/bwat47/joplin-copy-as-html",
-	"keywords": ["Copy", "HTML", "Text", "Images", "Image"],
-	"categories": ["productivity"],
-	"screenshots": [
-		{ "src": "images/copy-as-html1.png", "label": "Copy as HTML example 1" },
-		{ "src": "images/copy-as-html2.png", "label": "Copy as HTML example 2" },
-		{ "src": "images/copy-as-plain1.png", "label": "Copy as Plain Text example 1" },
-		{ "src": "images/copy-as-plain2.png", "label": "Copy as Plain Text example 2" }
-	],
-	"icons": {
-		"128": "images/128.png",
-		"64": "images/64.png",
-		"48": "images/48.png",
-		"32": "images/32.png",
-		"16": "images/16.png"
-	},
-	"promo_tile": {
-		"src": "images/copyashtml_promo_tile.png",
-		"label": "Copy as HTML Promo Tile"
-	},
-	"settings": {
-		"embedImages": {
-			"type": "bool",
-			"label": "Embed images as base64",
-			"description": "If enabled, images in selection will be embedded as base64.",
-			"value": true
-		},
-		"exportFullHtml": {
-			"type": "bool",
-			"label": "Export as full HTML document",
-			"description": "If enabled, exported HTML will be a full document with your custom stylesheet (copy-as-html-user.css in your profile folder).",
-			"value": false
-		},
-		"preserveSuperscript": {
-			"type": "bool",
-			"label": "Preserve superscript characters (^TEST^)",
-			"description": "If enabled, ^TEST^ will remain ^TEST^ in plain text output.",
-			"value": false
-		},
-		"preserveSubscript": {
-			"type": "bool",
-			"label": "Preserve subscript characters (~TEST~)",
-			"description": "If enabled, ~TEST~ will remain ~TEST~ in plain text output.",
-			"value": false
-		},
-		"preserveEmphasis": {
-			"type": "bool",
-			"label": "Preserve emphasis characters (*TEST* or _TEST_)",
-			"description": "If enabled, *TEST* or _TEST_ will remain as-is in plain text output.",
-			"value": false
-		},
-		"preserveBold": {
-			"type": "bool",
-			"label": "Preserve bold characters (**TEST** or __TEST__)",
-			"description": "If enabled, **TEST** or __TEST__ will remain as-is in plain text output.",
-			"value": false
-		},
-		"preserveHeading": {
-			"type": "bool",
-			"label": "Preserve heading characters (## TEST)",
-			"description": "If enabled, ## TEST will remain as-is in plain text output.",
-			"value": false
-		},
-		"preserveStrikethrough": {
-			"type": "bool",
-			"label": "Preserve strikethrough characters (~~TEST~~)",
-			"description": "If enabled, ~~TEST~~ will remain as-is in plain text output.",
-			"value": false
-		},
-		"preserveHorizontalRule": {
-			"type": "bool",
-			"label": "Preserve horizontal rule (---)",
-			"description": "If enabled, horizontal rules will be preserved as --- in plain text output.",
-			"value": false
-		},
-		"preserveMark": {
-			"type": "bool",
-			"label": "Preserve highlight characters (==TEST==)",
-			"description": "If enabled, ==TEST== will remain as-is in plain text output.",
-			"value": false
-		},
-		"preserveInsert": {
-			"type": "bool",
-			"label": "Preserve insert characters (++TEST++)",
-			"description": "If enabled, ++TEST++ will remain as-is in plain text output.",
-			"value": false
-		},
-		"displayEmojis": {
-			"type": "bool",
-			"label": "Display emojis",
-			"description": "If enabled, emojis will be displayed in the plain text output.",
-			"value": true
-		},
-		"hyperlinkBehavior": {
-			"type": "enum",
-			"label": "Plain Text hyperlink behavior",
-			"description": "How external hyperlinks should be displayed in plain text output.",
-			"options": {
-				"title": "Link Title",
-				"url": "Link URL",
-				"markdown": "Markdown Format"
-			},
-			"value": "title"
-		},
-		"indentType": {
-			"type": "enum",
-			"label": "List indentation type",
-			"description": "How nested lists should be indented in plain text output.",
-			"options": {
-				"spaces": "4 Spaces",
-				"tabs": "Tabs"
-			},
-			"value": "spaces"
-		}
-	}
+    "manifest_version": 1,
+    "id": "com.bwat47.copyashtml",
+    "app_min_version": "3.3",
+    "version": "1.1.1",
+    "name": "Copy as HTML",
+    "description": "Allows you to copy text with HTML (rich text) formatting from the markdown editor (including images). Also allows you to copy as plain text (without markdown formatting)",
+    "author": "bwat47",
+    "homepage_url": "https://github.com/bwat47/joplin-copy-as-html",
+    "repository_url": "https://github.com/bwat47/joplin-copy-as-html",
+    "keywords": ["Copy", "HTML", "Text", "Images", "Image"],
+    "categories": ["productivity"],
+    "screenshots": [
+        { "src": "images/copy-as-html1.png", "label": "Copy as HTML example 1" },
+        { "src": "images/copy-as-html2.png", "label": "Copy as HTML example 2" },
+        { "src": "images/copy-as-plain1.png", "label": "Copy as Plain Text example 1" },
+        { "src": "images/copy-as-plain2.png", "label": "Copy as Plain Text example 2" }
+    ],
+    "icons": {
+        "128": "images/128.png",
+        "64": "images/64.png",
+        "48": "images/48.png",
+        "32": "images/32.png",
+        "16": "images/16.png"
+    },
+    "promo_tile": {
+        "src": "images/copyashtml_promo_tile.png",
+        "label": "Copy as HTML Promo Tile"
+    },
+    "settings": {
+        "embedImages": {
+            "type": "bool",
+            "label": "Embed images as base64",
+            "description": "If enabled, images in selection will be embedded as base64.",
+            "value": true
+        },
+        "exportFullHtml": {
+            "type": "bool",
+            "label": "Export as full HTML document",
+            "description": "If enabled, exported HTML will be a full document with your custom stylesheet (copy-as-html-user.css in your profile folder).",
+            "value": false
+        },
+        "preserveSuperscript": {
+            "type": "bool",
+            "label": "Preserve superscript characters (^TEST^)",
+            "description": "If enabled, ^TEST^ will remain ^TEST^ in plain text output.",
+            "value": false
+        },
+        "preserveSubscript": {
+            "type": "bool",
+            "label": "Preserve subscript characters (~TEST~)",
+            "description": "If enabled, ~TEST~ will remain ~TEST~ in plain text output.",
+            "value": false
+        },
+        "preserveEmphasis": {
+            "type": "bool",
+            "label": "Preserve emphasis characters (*TEST* or _TEST_)",
+            "description": "If enabled, *TEST* or _TEST_ will remain as-is in plain text output.",
+            "value": false
+        },
+        "preserveBold": {
+            "type": "bool",
+            "label": "Preserve bold characters (**TEST** or __TEST__)",
+            "description": "If enabled, **TEST** or __TEST__ will remain as-is in plain text output.",
+            "value": false
+        },
+        "preserveHeading": {
+            "type": "bool",
+            "label": "Preserve heading characters (## TEST)",
+            "description": "If enabled, ## TEST will remain as-is in plain text output.",
+            "value": false
+        },
+        "preserveStrikethrough": {
+            "type": "bool",
+            "label": "Preserve strikethrough characters (~~TEST~~)",
+            "description": "If enabled, ~~TEST~~ will remain as-is in plain text output.",
+            "value": false
+        },
+        "preserveHorizontalRule": {
+            "type": "bool",
+            "label": "Preserve horizontal rule (---)",
+            "description": "If enabled, horizontal rules will be preserved as --- in plain text output.",
+            "value": false
+        },
+        "preserveMark": {
+            "type": "bool",
+            "label": "Preserve highlight characters (==TEST==)",
+            "description": "If enabled, ==TEST== will remain as-is in plain text output.",
+            "value": false
+        },
+        "preserveInsert": {
+            "type": "bool",
+            "label": "Preserve insert characters (++TEST++)",
+            "description": "If enabled, ++TEST++ will remain as-is in plain text output.",
+            "value": false
+        },
+        "displayEmojis": {
+            "type": "bool",
+            "label": "Display emojis",
+            "description": "If enabled, emojis will be displayed in the plain text output.",
+            "value": true
+        },
+        "hyperlinkBehavior": {
+            "type": "enum",
+            "label": "Plain Text hyperlink behavior",
+            "description": "How external hyperlinks should be displayed in plain text output.",
+            "options": {
+                "title": "Link Title",
+                "url": "Link URL",
+                "markdown": "Markdown Format"
+            },
+            "value": "title"
+        },
+        "indentType": {
+            "type": "enum",
+            "label": "List indentation type",
+            "description": "How nested lists should be indented in plain text output.",
+            "options": {
+                "spaces": "4 Spaces",
+                "tabs": "Tabs"
+            },
+            "value": "spaces"
+        }
+    }
 }

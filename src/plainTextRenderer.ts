@@ -1,18 +1,18 @@
 /**
  * @fileoverview Plain Text Renderer - Converts markdown to formatted plain text
- * 
+ *
  * Renders markdown-it tokens to plain text while preserving document structure.
  * Unlike simple markdown stripping, this renderer maintains:
- * 
+ *
  * - Proper list formatting with indentation
  * - Aligned table layout with column padding
  * - Configurable preservation of markdown syntax (bold, italic, etc.)
  * - Smart link handling (title, URL, or full markdown format)
  * - Proper spacing between block elements
- * 
+ *
  * The renderer processes tokens recursively, handling complex nested structures
  * like lists within blockquotes and tables with formatted content.
- * 
+ *
  * @author bwat47
  * @since 1.0.0
  */
@@ -47,8 +47,8 @@ import { PlainTextOptions, TableData, TableRow, ListItem } from './types';
 import { CONSTANTS } from './constants';
 import stringWidth from 'string-width';
 
-type LinkStackItem = { href: string, title: string };
-type ListContext = { type: 'ordered', index: number } | { type: 'bullet' } | null;
+type LinkStackItem = { href: string; title: string };
+type ListContext = { type: 'ordered'; index: number } | { type: 'bullet' } | null;
 
 /**
  * Removes markdown backslash escapes from a string.
@@ -72,7 +72,12 @@ export function isExternalHttpUrl(url: string): boolean {
  * Parses table-related tokens into a structured TableData object.
  * Handles header and body rows, and extracts cell content using renderPlainText for nested formatting.
  */
-export function parseTableTokens(tableTokens: Token[], options: PlainTextOptions, listContext: ListContext, indentLevel: number): TableData {
+export function parseTableTokens(
+    tableTokens: Token[],
+    options: PlainTextOptions,
+    listContext: ListContext,
+    indentLevel: number
+): TableData {
     let tableRows: TableRow[] = [];
     let currentRow: string[] = [];
     let isHeaderRow = false;
@@ -81,7 +86,7 @@ export function parseTableTokens(tableTokens: Token[], options: PlainTextOptions
         if (tk.type === 'thead_open') isHeaderRow = true;
         if (tk.type === 'thead_close') isHeaderRow = false;
         if (tk.type === 'tr_open') currentRow = [];
-        if ((tk.type === 'th_open' || tk.type === 'td_open')) {
+        if (tk.type === 'th_open' || tk.type === 'td_open') {
             let cellContent = '';
             let l = k + 1;
             while (l < tableTokens.length && tableTokens[l].type !== 'th_close' && tableTokens[l].type !== 'td_close') {
@@ -130,7 +135,7 @@ export function formatTable(tableData: TableData, colWidths: number[]): string {
         let paddedCells = tableData.rows[r].cells.map((c, i) => padCell(c, colWidths[i]));
         result += paddedCells.join(' '.repeat(CONSTANTS.TABLE_CELL_PADDING)) + '\n';
         if (tableData.rows[r].isHeader && !headerDone && tableData.rows.length > 1) {
-            let sepCells = colWidths.map(w => '-'.repeat(Math.max(CONSTANTS.MIN_COLUMN_WIDTH, w)));
+            let sepCells = colWidths.map((w) => '-'.repeat(Math.max(CONSTANTS.MIN_COLUMN_WIDTH, w)));
             result += sepCells.join('  ') + '\n';
             headerDone = true;
         }
@@ -139,7 +144,12 @@ export function formatTable(tableData: TableData, colWidths: number[]): string {
 }
 
 // Main orchestrator for table rendering
-export function renderTableFromTokens(tableTokens: Token[], options: PlainTextOptions, listContext: ListContext, indentLevel: number): string {
+export function renderTableFromTokens(
+    tableTokens: Token[],
+    options: PlainTextOptions,
+    listContext: ListContext,
+    indentLevel: number
+): string {
     const tableData = parseTableTokens(tableTokens, options, listContext, indentLevel);
     const colWidths = calculateColumnWidths(tableData);
     return formatTable(tableData, colWidths);
@@ -148,12 +158,16 @@ export function renderTableFromTokens(tableTokens: Token[], options: PlainTextOp
 /**
  * Parses list-related tokens into a structured array of ListItem objects.
  */
-export function parseListTokens(listTokens: Token[], listContext: ListContext, indentLevel: number, options: PlainTextOptions): ListItem[] {
+export function parseListTokens(
+    listTokens: Token[],
+    listContext: ListContext,
+    indentLevel: number,
+    options: PlainTextOptions
+): ListItem[] {
     let items: ListItem[] = [];
     let ordered = listContext && listContext.type === 'ordered';
-    let index = (listContext && listContext.type === 'ordered' && typeof listContext.index === 'number')
-        ? listContext.index
-        : 1;
+    let index =
+        listContext && listContext.type === 'ordered' && typeof listContext.index === 'number' ? listContext.index : 1;
     for (let i = 0; i < listTokens.length; i++) {
         const t = listTokens[i];
         if (t.type === 'list_item_open') {
@@ -173,7 +187,7 @@ export function parseListTokens(listTokens: Token[], listContext: ListContext, i
                 content: content.trim(),
                 ordered,
                 index: ordered ? index : undefined,
-                indentLevel
+                indentLevel,
             });
             if (ordered) index++;
             i = j - 1;
@@ -204,7 +218,12 @@ export function formatList(listItems: ListItem[], options: PlainTextOptions): st
 /**
  * Parses and formats a list from markdown-it tokens using the configured options.
  */
-export function renderListFromTokens(listTokens: Token[], listContext: ListContext, indentLevel: number, options: PlainTextOptions): string {
+export function renderListFromTokens(
+    listTokens: Token[],
+    listContext: ListContext,
+    indentLevel: number,
+    options: PlainTextOptions
+): string {
     const listItems = parseListTokens(listTokens, listContext, indentLevel, options);
     return formatList(listItems, options);
 }
@@ -232,11 +251,7 @@ export function handleLinkToken(
 /**
  * Handles closing of a markdown link token, popping from the stack and appending link text as needed.
  */
-export function handleLinkCloseToken(
-    linkStack: LinkStackItem[],
-    options: PlainTextOptions,
-    result: string
-): string {
+export function handleLinkCloseToken(linkStack: LinkStackItem[], options: PlainTextOptions, result: string): string {
     const link = linkStack.pop();
     if (link && link.href && link.title) {
         if (options.hyperlinkBehavior === 'url') {
@@ -292,7 +307,7 @@ export function handleTextToken(
 /**
  * Extracts a slice of tokens from an opening token to its corresponding closing token.
  */
-export function extractBlockTokens(tokens: Token[], startIndex: number): { blockTokens: Token[], endIndex: number } {
+export function extractBlockTokens(tokens: Token[], startIndex: number): { blockTokens: Token[]; endIndex: number } {
     const startToken = tokens[startIndex];
     const closeType = startToken.type.replace('_open', '_close');
     const blockTokens: Token[] = [];
@@ -333,7 +348,7 @@ export function renderPlainText(
 
         if (t.type === 'table_open' || t.type === 'bullet_list_open' || t.type === 'ordered_list_open') {
             const { blockTokens, endIndex } = extractBlockTokens(tokens, i);
-            
+
             if (t.type === 'table_open') {
                 result += renderTableFromTokens(blockTokens, options, listContext, indentLevel);
             } else {
@@ -348,8 +363,7 @@ export function renderPlainText(
             const nextToken = tokens[endIndex + 1];
             if (
                 nextToken &&
-                (
-                    nextToken.type === 'paragraph_open' ||
+                (nextToken.type === 'paragraph_open' ||
                     nextToken.type === 'heading_open' ||
                     nextToken.type === 'hr' ||
                     nextToken.type === 'thematic_break' ||
@@ -358,8 +372,7 @@ export function renderPlainText(
                     nextToken.type === 'ordered_list_open' ||
                     nextToken.type === 'fence' ||
                     nextToken.type === 'code_block' ||
-                    nextToken.type === 'blockquote_open'
-                )
+                    nextToken.type === 'blockquote_open')
             ) {
                 // Ensure two newlines before block-level elements after a list
                 if (!result.endsWith('\n\n')) result = result.replace(/\n*$/, '\n\n');
@@ -386,13 +399,7 @@ export function renderPlainText(
             result += t.content;
         } else if (t.type === 'inline' && t.children) {
             // Inline container: recursively render child tokens (em, strong, links, text, etc.)
-            result += renderPlainText(
-                t.children,
-                listContext,
-                indentLevel,
-                options,
-                inCode
-            );
+            result += renderPlainText(t.children, listContext, indentLevel, options, inCode);
         } else if (t.type === 'heading_open') {
             if (options.preserveHeading) {
                 result += '#'.repeat(parseInt(t.tag[1])) + ' ';
@@ -408,7 +415,7 @@ export function renderPlainText(
                 // keep a blank line separator for readability
                 result += '\n\n';
             }
-        // emit the original markup only when the corresponding setting is enabled
+            // emit the original markup only when the corresponding setting is enabled
         } else if (!inCode && t.type === 'em_open') {
             if (options.preserveEmphasis) result += t.markup;
         } else if (!inCode && t.type === 'em_close') {
@@ -434,9 +441,9 @@ export function renderPlainText(
         } else if (!inCode && t.type === 'link_close') {
             result = handleLinkCloseToken(linkStack, options, result);
         } else if (t.type === 'emoji') {
-        if (options.displayEmojis) {
-            result += t.content;
-        }
+            if (options.displayEmojis) {
+                result += t.content;
+            }
         } else if (t.type === 'text') {
             // Replace [^n] and [^text]: with [n] and [text]: (don't mutate original token)
             let content = t.content.replace(/\[\^([^\]]+)\]/g, '[$1]');
@@ -452,12 +459,10 @@ export function renderPlainText(
             let k = i + 1;
             while (
                 k < tokens.length &&
-                (
-                    tokens[k].type === 'paragraph_open' ||
+                (tokens[k].type === 'paragraph_open' ||
                     tokens[k].type === 'paragraph_close' ||
                     tokens[k].type === 'softbreak' ||
-                    tokens[k].type === 'hardbreak'
-                )
+                    tokens[k].type === 'hardbreak')
             ) {
                 k++;
             }
@@ -476,17 +481,14 @@ export function renderPlainText(
  * @param options The plain text rendering options.
  * @returns The resulting plain text string.
  */
-export function convertMarkdownToPlainText(
-    markdown: string,
-    options: PlainTextOptions
-): string {
+export function convertMarkdownToPlainText(markdown: string, options: PlainTextOptions): string {
     const md = new MarkdownIt();
-    
+
     // Use safe plugin loading to prevent conflicts
     if (markdownItMark) safePluginUse(md, markdownItMark, undefined, 'markdown-it-mark');
     if (markdownItIns) safePluginUse(md, markdownItIns, undefined, 'markdown-it-ins');
     if (markdownItEmoji) safePluginUse(md, markdownItEmoji, undefined, 'markdown-it-emoji');
-    
+
     const tokens = md.parse(markdown, {});
     return renderPlainText(tokens, null, 0, options);
 }
