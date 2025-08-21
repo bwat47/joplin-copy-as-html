@@ -168,7 +168,8 @@ export function parseListTokens(listTokens: Token[], listContext: ListContext, i
 export function formatList(listItems: ListItem[], options: PlainTextOptions): string {
     let lines: string[] = [];
     for (const item of listItems) {
-        const indent = item.indentLevel > 1 ? '\t'.repeat(item.indentLevel - 1) : '';
+        const indentChar = options.indentType === 'tabs' ? '\t' : '    ';
+        const indent = item.indentLevel > 1 ? indentChar.repeat(item.indentLevel - 1) : '';
         const prefix = item.ordered ? `${item.index}. ` : '- ';
         lines.push(indent + prefix + item.content);
         lines.push(''); // Always add a blank line after every list item

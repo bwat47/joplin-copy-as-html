@@ -61,6 +61,7 @@ joplin.plugins.register({
                         preserveInsert: await joplin.settings.value(SETTINGS.PRESERVE_INSERT),
 						displayEmojis: await joplin.settings.value(SETTINGS.DISPLAY_EMOJIS),
                         hyperlinkBehavior: await joplin.settings.value(SETTINGS.HYPERLINK_BEHAVIOR),
+						indentType: await joplin.settings.value(SETTINGS.INDENT_TYPE),
                     };
                     const plainTextOptions = validatePlainTextSettings(plainTextSettings);
 
@@ -197,6 +198,19 @@ joplin.plugins.register({
 				public: true,
 				label: 'Plain text hyperlink behavior',
 				description: 'How external HTTP/HTTPS links should appear in plain text output.',
+			},
+			[SETTINGS.INDENT_TYPE]: {
+				value: 'spaces',
+				type: SettingItemType.String,
+				isEnum: true,
+				options: {
+					'spaces': '4 Spaces',
+					'tabs': 'Tabs'
+				},
+				section: 'copyAsHtml',
+				public: true,
+				label: 'List indentation type',
+				description: 'How nested lists should be indented in plain text output.',
 			},
 		});
 

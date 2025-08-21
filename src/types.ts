@@ -34,6 +34,7 @@ export interface PlainTextOptions {
     preserveInsert: boolean;
     displayEmojis: boolean;
     hyperlinkBehavior: 'title' | 'url' | 'markdown';
+    indentType: 'spaces' | 'tabs';
 }
 
 export interface TableRow {

@@ -18,6 +18,10 @@ export function validatePlainTextSettings(settings: unknown): PlainTextOptions {
             typeof s.hyperlinkBehavior === 'string' && ['title', 'url', 'markdown'].includes(s.hyperlinkBehavior)
                 ? (s.hyperlinkBehavior as 'title' | 'url' | 'markdown')
                 : 'title',
+        indentType:
+            typeof s.indentType === 'string' && ['spaces', 'tabs'].includes(s.indentType)
+                ? (s.indentType as 'spaces' | 'tabs')
+                : 'spaces',
     };
 }
 

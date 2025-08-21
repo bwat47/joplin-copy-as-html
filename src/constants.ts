@@ -13,6 +13,7 @@ export const SETTINGS = {
 	PRESERVE_INSERT: 'preserveInsert',
 	DISPLAY_EMOJIS: 'displayEmojis',
 	HYPERLINK_BEHAVIOR: 'hyperlinkBehavior',
+	INDENT_TYPE: 'indentType',
 };
 
 // Regex patterns for Joplin resource and image handling

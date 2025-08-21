@@ -31,7 +31,7 @@ By default, the plugin will populate the clipboard with an HTML fragment, e.g:
 <html>
    <body>
       <!--StartFragment-->
-      <h2 id="test-heading">Test Heading</h2>
+      <h2>Test Heading</h2>
       <p>Test paragraph 1</p>
       <p>Test paragraph 2</p>
       <!--EndFragment-->
@@ -55,7 +55,7 @@ The plugin will adhere to Joplin's settings for whether or not to render:
 
 - Soft Breaks
 - Typographer
-- Likify
+- Linkify
 - ==mark==
 - Footnotes
 - Table of Contents
