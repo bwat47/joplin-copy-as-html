@@ -484,7 +484,9 @@ export function renderPlainText(
         } else if (!inCode && t.type === 'link_close') {
             result = handleLinkCloseToken(linkStack, options, result);
         } else if (t.type === 'emoji') {
+        if (options.displayEmojis) {
             result += t.content;
+        }
         } else if (t.type === 'text') {
             // Replace [^n] and [^text]: with [n] and [text]: (don't mutate original token)
             let content = t.content.replace(/\[\^([^\]]+)\]/g, '[$1]');
