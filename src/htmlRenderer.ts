@@ -23,7 +23,16 @@
 
 import joplin from 'api';
 import { JSDOM } from 'jsdom';
-import { CONSTANTS, REGEX_PATTERNS, SETTINGS, JOPLIN_SETTINGS } from './constants';
+import {
+    CONSTANTS,
+    REGEX_PATTERNS,
+    SETTINGS,
+    JOPLIN_SETTINGS,
+    HTML_CONSTANTS,
+    PLUGIN_DEFAULTS,
+    LINK_RESOURCE_MATCHERS,
+    SANITIZE_STYLE_PATTERNS,
+} from './constants';
 import { ImageDimensions, MarkdownSegment, JoplinFileData, JoplinResource, HtmlOptions } from './types';
 import { validateHtmlSettings } from './utils';
 import { safePluginUse, loadPluginsConditionally, PluginConfig } from './pluginUtils';
@@ -93,8 +102,8 @@ import { defaultStylesheet } from './defaultStylesheet';
  * @param italic Whether to italicize the message.
  * @returns HTML span string.
  */
-function createErrorSpan(message: string, italic: boolean = false): string {
-    const style = `color: red;${italic ? ' font-style: italic;' : ''}`;
+function createErrorSpan(message: string, italic = false): string {
+    const style = `color: ${HTML_CONSTANTS.ERROR_COLOR};${italic ? ' font-style: italic;' : ''}`;
     return `<span style="${style}">${message}</span>`;
 }
 
@@ -112,14 +121,9 @@ function createResourceError(id: string, reason: string): string {
  */
 function sanitizeStyle(style: string): string {
     if (!style || typeof style !== 'string') return '';
-
-    return style
-        .replace(/javascript\s*:/gi, '')
-        .replace(/expression\s*\(/gi, '')
-        .replace(/@import[^;]*;?/gi, '')
-        .replace(/url\s*\(\s*["']?javascript:/gi, 'url(')
-        .replace(/behavior\s*:/gi, '')
-        .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '');
+    let out = style;
+    for (const pat of SANITIZE_STYLE_PATTERNS) out = out.replace(pat, '');
+    return out.trim();
 }
 
 /**
@@ -189,12 +193,12 @@ export function extractImageDimensions(
                         style: styleMatch ? sanitizeStyle(styleMatch[1]) : undefined,
                         resourceId: resourceId,
                     });
-                    const result = `![${dimensionKey}](://${resourceId})`;
+                    const result = `![${dimensionKey}](:/${resourceId})`;
                     counter++;
                     return result;
                 }
                 // No dimensions to preserve, convert to standard markdown
-                return `![](://${resourceId})`;
+                return `![](:/${resourceId})`;
             });
         }
 
@@ -489,21 +493,16 @@ export async function processHtmlConversion(selection: string, options?: HtmlOpt
             enabled: globalMultimdTableEnabled,
             plugin: markdownItMultimdTable,
             name: 'markdown-it-multimd-table',
-            options: {
-                multiline: true,
-                rowspan: true,
-                headerless: true,
-                multibody: true,
-            },
+            options: PLUGIN_DEFAULTS.MULTIMD_TABLE,
         },
         {
             enabled: globalTocEnabled,
             plugin: markdownItTocDoneRight,
             name: 'markdown-it-toc-done-right',
             options: {
-                placeholder: '\\[\\[toc\\]\\]',
+                placeholder: HTML_CONSTANTS.TOC_PLACEHOLDER_PATTERN,
                 slugify: (s: string) => s.trim().toLowerCase().replace(/\s+/g, '-'),
-                containerId: 'toc',
+                containerId: HTML_CONSTANTS.TOC_CONTAINER_ID,
                 listType: 'ul',
             },
         },
@@ -531,9 +530,7 @@ export async function processHtmlConversion(selection: string, options?: HtmlOpt
         if (hrefIdx >= 0) {
             const href = token.attrs![hrefIdx][1] || '';
             // Match :/id, :/id#..., :/id?..., and joplin://resource/id variants
-            const m =
-                href.match(/^:\/([a-f0-9]{32})(?:$|[/?#])/i) ||
-                href.match(/^joplin:\/\/resource\/([a-f0-9]{32})(?:$|[/?#])/i);
+            const m = LINK_RESOURCE_MATCHERS.map((rx) => href.match(rx)).find(Boolean);
             if (m) token.attrPush(['data-resource-id', m[1]]);
         }
         return defaultLinkOpen(tokens, idx, opts, env, self);
