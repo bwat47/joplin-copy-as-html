@@ -1,5 +1,27 @@
 # Joplin Copy as HTML Plugin: Code Documentation
 
+## Project Structure
+
+```
+copy-as-html/
+├─ manifest.json                # Joplin plugin manifest
+├─ package.json                 # NPM metadata and build scripts
+├─ CODE_DOCUMENTATION.md        # This documentation
+├─ README.md                    # User-facing overview (if present)
+├─ src/
+│  ├─ index.ts                  # Plugin entry: registers commands & settings
+│  ├─ constants.ts              # Shared constants, regex patterns, grouped configs
+│  ├─ types.ts                  # TypeScript interfaces & option types
+│  ├─ utils.ts                  # Validation & small shared helpers
+│  ├─ pluginUtils.ts            # markdown-it plugin loading utilities
+│  ├─ htmlRenderer.ts           # HTML conversion pipeline
+│  ├─ plainTextRenderer.ts      # Plain text conversion pipeline
+│  ├─ defaultStylesheet.ts      # Default CSS for full HTML export
+│  └─ (possible future modules) # e.g. additional format renderers
+├─ dist/                        # Compiled plugin output (build artifact)
+└─ node_modules/                # Installed dependencies
+```
+
 ## Overview
 
 This plugin enables users to copy selected markdown from the Joplin editor in two formats:
