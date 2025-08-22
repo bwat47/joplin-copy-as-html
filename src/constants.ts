@@ -19,7 +19,6 @@
 export const SETTINGS = {
     EMBED_IMAGES: 'embedImages',
     EXPORT_FULL_HTML: 'exportFullHtml',
-    JOPLIN_RESOURCE_LINK_BEHAVIOR: 'joplinResourceLinkBehavior',
     PRESERVE_SUPERSCRIPT: 'preserveSuperscript',
     PRESERVE_SUBSCRIPT: 'preserveSubscript',
     PRESERVE_EMPHASIS: 'preserveEmphasis',

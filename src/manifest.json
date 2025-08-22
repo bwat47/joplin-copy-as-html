@@ -31,7 +31,7 @@
         "embedImages": {
             "type": "bool",
             "label": "Embed images as base64",
-            "description": "If enabled, images in selection will be embedded as base64.",
+            "description": "If enabled, images in selection will be embedded as base64 in HTML output.",
             "value": true
         },
         "exportFullHtml": {
@@ -103,7 +103,7 @@
         "hyperlinkBehavior": {
             "type": "enum",
             "label": "Plain Text hyperlink behavior",
-            "description": "How external hyperlinks should be displayed in plain text output.",
+            "description": "How external HTTP/HTTPS links should appear in plain text output.",
             "options": {
                 "title": "Link Title",
                 "url": "Link URL",
