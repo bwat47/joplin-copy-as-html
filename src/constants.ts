@@ -128,3 +128,9 @@ export const INLINE_MARKERS = {
     INSERT: '++', // inserted / underline
     STRIKETHROUGH: '~~', // strike
 } as const;
+
+// Regex patterns for footnote references and definitions
+export const PLAIN_TEXT_REGEX = {
+    FOOTNOTE_REF: /\[\^([^\]]+)\]/g,
+    FOOTNOTE_DEF: /\[\^([^\]]+)\]:/g,
+} as const;

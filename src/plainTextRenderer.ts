@@ -44,7 +44,7 @@ try {
 }
 
 import { PlainTextOptions, TableData, TableRow, ListItem } from './types';
-import { PLAIN_TEXT_CONSTANTS, INLINE_MARKERS } from './constants';
+import { PLAIN_TEXT_CONSTANTS, INLINE_MARKERS, PLAIN_TEXT_REGEX } from './constants';
 import stringWidth from 'string-width';
 
 type LinkStackItem = { href: string; title: string };
@@ -332,6 +332,13 @@ function collapseExtraBlankLines(text: string): string {
     return text.replace(/\n{3,}/g, '\n'.repeat(PLAIN_TEXT_CONSTANTS.MAX_PARAGRAPH_NEWLINES));
 }
 
+// Helper: normalize heading tag (e.g. 'h3' -> 3 clamped 1..6)
+function normalizeHeadingLevel(tag?: string): number {
+    if (!tag || tag[0] !== 'h') return 1;
+    const n = parseInt(tag.slice(1), 10);
+    return Math.min(6, Math.max(1, isNaN(n) ? 1 : n));
+}
+
 /**
  * Recursively renders an array of markdown-it tokens into a plain text string.
  * It handles various token types to strip markdown formatting while preserving
@@ -415,7 +422,7 @@ export function renderPlainText(
             // Heading start: output heading markers if preservation enabled
             case 'heading_open':
                 if (options.preserveHeading) {
-                    const level = Math.min(6, Math.max(1, parseInt(t.tag.slice(1), 10) || 1));
+                    const level = normalizeHeadingLevel(t.tag);
                     result += PLAIN_TEXT_CONSTANTS.HEADING_PREFIX_CHAR.repeat(level) + ' ';
                 }
                 break;
@@ -471,8 +478,9 @@ export function renderPlainText(
                 break;
             // Plain text content (includes footnote label normalization & escape removal)
             case 'text': {
-                let content = t.content.replace(/\[\^([^\]]+)\]/g, '[$1]');
-                content = content.replace(/\[\^([^\]]+)\]:/g, '[$1]:');
+                let content = t.content
+                    .replace(PLAIN_TEXT_REGEX.FOOTNOTE_REF, '[$1]')
+                    .replace(PLAIN_TEXT_REGEX.FOOTNOTE_DEF, '[$1]:');
                 result = handleTextToken(t, content, linkStack, options, result);
                 break;
             }
