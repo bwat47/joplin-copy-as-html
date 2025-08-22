@@ -127,6 +127,8 @@ export const INLINE_MARKERS = {
     MARK: '==', // highlight
     INSERT: '++', // inserted / underline
     STRIKETHROUGH: '~~', // strike
+    SUB: '~', // subscript
+    SUP: '^', // superscript
 } as const;
 
 // Regex patterns for footnote references and definitions

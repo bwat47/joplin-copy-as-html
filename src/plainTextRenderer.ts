@@ -24,6 +24,8 @@ import { safePluginUse } from './pluginUtils';
 let markdownItMark: any;
 let markdownItIns: any;
 let markdownItEmoji: any;
+let markdownItSub: any;
+let markdownItSup: any;
 
 try {
     markdownItMark = require('markdown-it-mark');
@@ -41,6 +43,18 @@ try {
     markdownItEmoji = require('markdown-it-emoji');
 } catch (e) {
     console.warn('[copy-as-plain-text] markdown-it-emoji not available:', e);
+}
+
+try {
+    markdownItSub = require('markdown-it-sub');
+} catch (e) {
+    console.warn('[copy-as-plain-text] markdown-it-sub not available:', e);
+}
+
+try {
+    markdownItSup = require('markdown-it-sup');
+} catch (e) {
+    console.warn('[copy-as-plain-text] markdown-it-sup not available:', e);
 }
 
 import { PlainTextOptions, TableData, TableRow, ListItem } from './types';
@@ -299,12 +313,6 @@ export function handleTextToken(
         txt = txt.replace(/<img[^>]*>/gi, '');
         // Collapse 3+ consecutive newlines to configured max ONLY in text tokens
         txt = txt.replace(/\n{3,}/g, '\n'.repeat(PLAIN_TEXT_CONSTANTS.MAX_PARAGRAPH_NEWLINES));
-        if (!options.preserveSuperscript) {
-            txt = txt.replace(/\^([^\^]+)\^/g, '$1');
-        }
-        if (!options.preserveSubscript) {
-            txt = txt.replace(/~([^~]+)~/g, '$1');
-        }
         txt = unescape(txt);
         result += txt;
     }
@@ -467,6 +475,16 @@ export function renderPlainText(
             case 's_close':
                 if (options.preserveStrikethrough) result += INLINE_MARKERS.STRIKETHROUGH;
                 break;
+            // Subscript
+            case 'sub_open':
+            case 'sub_close':
+                if (options.preserveSubscript) result += INLINE_MARKERS.SUB;
+                break;
+            // Superscript
+            case 'sup_open':
+            case 'sup_close':
+                if (options.preserveSuperscript) result += INLINE_MARKERS.SUP;
+                break;
             // Link open: push onto stack
             case 'link_open':
                 result = handleLinkToken(t, linkStack, options, result);
@@ -536,6 +554,8 @@ export function convertMarkdownToPlainText(markdown: string, options: PlainTextO
     if (markdownItMark) safePluginUse(md, markdownItMark, undefined, 'markdown-it-mark');
     if (markdownItIns) safePluginUse(md, markdownItIns, undefined, 'markdown-it-ins');
     if (markdownItEmoji) safePluginUse(md, markdownItEmoji, undefined, 'markdown-it-emoji');
+    if (markdownItSub) safePluginUse(md, markdownItSub, undefined, 'markdown-it-sub');
+    if (markdownItSup) safePluginUse(md, markdownItSup, undefined, 'markdown-it-sup');
 
     const tokens = md.parse(markdown, {});
     return renderPlainText(tokens, null, 0, options);
