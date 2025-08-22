@@ -165,9 +165,9 @@ export function parseListTokens(
     options: PlainTextOptions
 ): ListItem[] {
     let items: ListItem[] = [];
-    let ordered = listContext && listContext.type === 'ordered';
+    const ordered = !!(listContext && listContext.type === 'ordered');
     let index =
-        listContext && listContext.type === 'ordered' && typeof listContext.index === 'number' ? listContext.index : 1;
+        ordered && typeof listContext.index === 'number' ? listContext.index : PLAIN_TEXT_CONSTANTS.ORDERED_LIST_START;
     for (let i = 0; i < listTokens.length; i++) {
         const t = listTokens[i];
         if (t.type === 'list_item_open') {
@@ -181,7 +181,10 @@ export function parseListTokens(
                 if (depth > 0) itemTokens.push(listTokens[j]);
                 j++;
             }
-            // Render the content of the list item
+            // Render the content of the list item.
+            // NOTE: Previously we passed (indentLevel + 1) which caused each nested level
+            // to increment by 2 (once here and once again when the nested list opened),
+            // doubling indentation (e.g. 8 spaces instead of 4). Use indentLevel directly.
             let content = renderPlainText(itemTokens, listContext, indentLevel, options);
             items.push({
                 content: content.trim(),
@@ -288,8 +291,8 @@ export function handleTextToken(
     } else {
         // Remove HTML <img> tags ONLY in text tokens
         txt = txt.replace(/<img[^>]*>/gi, '');
-        // Collapse 3+ consecutive newlines to 2 ONLY in text tokens
-        txt = txt.replace(/\n{3,}/g, '\n\n');
+        // Collapse 3+ consecutive newlines to configured max ONLY in text tokens
+        txt = txt.replace(/\n{3,}/g, '\n'.repeat(PLAIN_TEXT_CONSTANTS.MAX_PARAGRAPH_NEWLINES));
         if (options.preserveSuperscript) {
             txt = txt.replace(/\^([^\^]+)\^/g, '^$1^');
         } else {
@@ -323,6 +326,11 @@ export function extractBlockTokens(tokens: Token[], startIndex: number): { block
         i++;
     }
     return { blockTokens, endIndex: i - 1 };
+}
+
+// Helper: collapse >2 blank lines
+function collapseExtraBlankLines(text: string): string {
+    return text.replace(/\n{3,}/g, '\n'.repeat(PLAIN_TEXT_CONSTANTS.MAX_PARAGRAPH_NEWLINES));
 }
 
 /**
@@ -404,7 +412,8 @@ export function renderPlainText(
             result += renderPlainText(t.children, listContext, indentLevel, options, inCode);
         } else if (t.type === 'heading_open') {
             if (options.preserveHeading) {
-                result += PLAIN_TEXT_CONSTANTS.HEADING_PREFIX_CHAR.repeat(parseInt(t.tag[1])) + ' ';
+                const level = Math.min(6, Math.max(1, parseInt(t.tag.slice(1), 10) || 1));
+                result += PLAIN_TEXT_CONSTANTS.HEADING_PREFIX_CHAR.repeat(level) + ' ';
             }
         } else if (t.type === 'heading_close') {
             // Ensure blank line(s) after headings
@@ -471,7 +480,7 @@ export function renderPlainText(
             if (k < tokens.length && tokens[k].type === 'blockquote_open') {
                 result = result.replace(/\n*$/, '\n\n');
             }
-            result = result.replace(/\n{3,}/g, '\n'.repeat(PLAIN_TEXT_CONSTANTS.MAX_PARAGRAPH_NEWLINES));
+            result = collapseExtraBlankLines(result);
         }
     }
     return result;
