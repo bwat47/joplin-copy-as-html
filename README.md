@@ -105,6 +105,11 @@ The following options are provided for external hyperlinks (only impacts markdow
 
 - Markdown Format - Displays full markdown link formatting with title and URL.
 
+The following options are provided for indentation style:
+
+- Tabs
+- (4) Spaces (default)
+
 ### Markdown emoji
 
 Copy as Plain Text supports the markdown-it emoji plugin, so emoji such as :white_check_mark: will be displayed in the plain text output. This can be disabled if desired via the Display emojis setting.
