@@ -389,94 +389,106 @@ export function renderPlainText(
             continue;
         }
 
-        if (t.type === 'fence' || t.type === 'code_block') {
-            // Only strip outer fences if they are the only thing on the first and last line
-            const lines = t.content.split('\n');
-            if (
-                lines.length > 2 &&
-                lines[0].trim().startsWith(PLAIN_TEXT_CONSTANTS.CODE_FENCE_MARKER) &&
-                lines[lines.length - 1].trim().startsWith(PLAIN_TEXT_CONSTANTS.CODE_FENCE_MARKER)
-            ) {
-                // Remove first and last line (the fences)
-                result += lines.slice(1, -1).join('\n') + '\n';
-            } else {
-                result += t.content + '\n';
+        switch (t.type) {
+            case 'fence':
+            case 'code_block': {
+                const lines = t.content.split('\n');
+                if (
+                    lines.length > 2 &&
+                    lines[0].trim().startsWith(PLAIN_TEXT_CONSTANTS.CODE_FENCE_MARKER) &&
+                    lines[lines.length - 1].trim().startsWith(PLAIN_TEXT_CONSTANTS.CODE_FENCE_MARKER)
+                ) {
+                    result += lines.slice(1, -1).join('\n') + '\n';
+                } else {
+                    result += t.content + '\n';
+                }
+                break;
             }
-        } else if (t.type === 'code_inline') {
-            // Inline code: preserve literal content without markdown markers
-            result += t.content;
-        } else if (t.type === 'inline' && t.children) {
-            // Inline container: recursively render child tokens (em, strong, links, text, etc.)
-            result += renderPlainText(t.children, listContext, indentLevel, options);
-        } else if (t.type === 'heading_open') {
-            if (options.preserveHeading) {
-                const level = Math.min(6, Math.max(1, parseInt(t.tag.slice(1), 10) || 1));
-                result += PLAIN_TEXT_CONSTANTS.HEADING_PREFIX_CHAR.repeat(level) + ' ';
-            }
-        } else if (t.type === 'heading_close') {
-            // Ensure blank line(s) after headings
-            result += '\n\n';
-        } else if (t.type === 'hr' || t.type === 'thematic_break') {
-            // Horizontal rule: preserve as markdown '---' if requested, otherwise emit spacing
-            if (options.preserveHorizontalRule) {
-                result += `${PLAIN_TEXT_CONSTANTS.HORIZONTAL_RULE_MARKER}\n\n`;
-            } else {
-                // keep a blank line separator for readability
-                result += '\n\n';
-            }
-            // emit the original markup only when the corresponding setting is enabled
-        } else if (t.type === 'em_open') {
-            if (options.preserveEmphasis) result += t.markup;
-        } else if (t.type === 'em_close') {
-            if (options.preserveEmphasis) result += t.markup;
-        } else if (t.type === 'strong_open') {
-            if (options.preserveBold) result += t.markup;
-        } else if (t.type === 'strong_close') {
-            if (options.preserveBold) result += t.markup;
-        } else if (t.type === 'mark_open') {
-            if (options.preserveMark) result += '==';
-        } else if (t.type === 'mark_close') {
-            if (options.preserveMark) result += '==';
-        } else if (t.type === 'ins_open') {
-            if (options.preserveInsert) result += '++';
-        } else if (t.type === 'ins_close') {
-            if (options.preserveInsert) result += '++';
-        } else if (t.type === 's_open') {
-            if (options.preserveStrikethrough) result += '~~';
-        } else if (t.type === 's_close') {
-            if (options.preserveStrikethrough) result += '~~';
-        } else if (t.type === 'link_open') {
-            result = handleLinkToken(t, linkStack, options, result);
-        } else if (t.type === 'link_close') {
-            result = handleLinkCloseToken(linkStack, options, result);
-        } else if (t.type === 'emoji') {
-            if (options.displayEmojis) {
+            case 'code_inline':
                 result += t.content;
+                break;
+            case 'inline':
+                if (t.children) result += renderPlainText(t.children, listContext, indentLevel, options);
+                break;
+            case 'heading_open':
+                if (options.preserveHeading) {
+                    const level = Math.min(6, Math.max(1, parseInt(t.tag.slice(1), 10) || 1));
+                    result += PLAIN_TEXT_CONSTANTS.HEADING_PREFIX_CHAR.repeat(level) + ' ';
+                }
+                break;
+            case 'heading_close':
+                result += '\n\n';
+                break;
+            case 'hr':
+            case 'thematic_break':
+                if (options.preserveHorizontalRule) {
+                    result += `${PLAIN_TEXT_CONSTANTS.HORIZONTAL_RULE_MARKER}\n\n`;
+                } else {
+                    result += '\n\n';
+                }
+                break;
+            case 'em_open':
+            case 'em_close':
+                if (options.preserveEmphasis) result += t.markup;
+                break;
+            case 'strong_open':
+            case 'strong_close':
+                if (options.preserveBold) result += t.markup;
+                break;
+            case 'mark_open':
+            case 'mark_close':
+                if (options.preserveMark) result += '==';
+                break;
+            case 'ins_open':
+            case 'ins_close':
+                if (options.preserveInsert) result += '++';
+                break;
+            case 's_open':
+            case 's_close':
+                if (options.preserveStrikethrough) result += '~~';
+                break;
+            case 'link_open':
+                result = handleLinkToken(t, linkStack, options, result);
+                break;
+            case 'link_close':
+                result = handleLinkCloseToken(linkStack, options, result);
+                break;
+            case 'emoji':
+                if (options.displayEmojis) result += t.content;
+                break;
+            case 'text': {
+                let content = t.content.replace(/\[\^([^\]]+)\]/g, '[$1]');
+                content = content.replace(/\[\^([^\]]+)\]:/g, '[$1]:');
+                result = handleTextToken(t, content, linkStack, options, result);
+                break;
             }
-        } else if (t.type === 'text') {
-            let content = t.content.replace(/\[\^([^\]]+)\]/g, '[$1]');
-            content = content.replace(/\[\^([^\]]+)\]:/g, '[$1]:');
-            result = handleTextToken(t, content, linkStack, options, result);
-        } else if (t.type === 'softbreak' || t.type === 'hardbreak') {
-            result += '\n';
-        } else if (t.type === 'paragraph_close') {
-            result += '\n\n';
-        } else if (t.type === 'blockquote_close') {
-            result += '\n\n';
-            let k = i + 1;
-            while (
-                k < tokens.length &&
-                (tokens[k].type === 'paragraph_open' ||
-                    tokens[k].type === 'paragraph_close' ||
-                    tokens[k].type === 'softbreak' ||
-                    tokens[k].type === 'hardbreak')
-            ) {
-                k++;
+            case 'softbreak':
+            case 'hardbreak':
+                result += '\n';
+                break;
+            case 'paragraph_close':
+                result += '\n\n';
+                break;
+            case 'blockquote_close': {
+                result += '\n\n';
+                let k = i + 1;
+                while (
+                    k < tokens.length &&
+                    (tokens[k].type === 'paragraph_open' ||
+                        tokens[k].type === 'paragraph_close' ||
+                        tokens[k].type === 'softbreak' ||
+                        tokens[k].type === 'hardbreak')
+                ) {
+                    k++;
+                }
+                if (k < tokens.length && tokens[k].type === 'blockquote_open') {
+                    result = result.replace(/\n*$/, '\n\n');
+                }
+                result = collapseExtraBlankLines(result);
+                break;
             }
-            if (k < tokens.length && tokens[k].type === 'blockquote_open') {
-                result = result.replace(/\n*$/, '\n\n');
-            }
-            result = collapseExtraBlankLines(result);
+            default:
+                break;
         }
     }
     return result;
