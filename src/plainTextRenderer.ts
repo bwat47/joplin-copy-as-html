@@ -340,7 +340,6 @@ function collapseExtraBlankLines(text: string): string {
  * @param listContext The current list context (ordered or bullet) for indentation.
  * @param indentLevel The current level of indentation for nested structures.
  * @param options The user-configured options for preserving markdown formatting.
- * @param inCode A flag to indicate if the renderer is currently inside a code block.
  * @returns The generated plain text string.
  */
 export function renderPlainText(
@@ -390,6 +389,7 @@ export function renderPlainText(
         }
 
         switch (t.type) {
+            // Code fences / indented code blocks: preserve raw code, optionally strip outer fence lines
             case 'fence':
             case 'code_block': {
                 const lines = t.content.split('\n');
@@ -404,21 +404,26 @@ export function renderPlainText(
                 }
                 break;
             }
+            // Inline code: emit literal content
             case 'code_inline':
                 result += t.content;
                 break;
+            // Inline container: recurse into its child tokens (emphasis, links, text, etc.)
             case 'inline':
                 if (t.children) result += renderPlainText(t.children, listContext, indentLevel, options);
                 break;
+            // Heading start: output heading markers if preservation enabled
             case 'heading_open':
                 if (options.preserveHeading) {
                     const level = Math.min(6, Math.max(1, parseInt(t.tag.slice(1), 10) || 1));
                     result += PLAIN_TEXT_CONSTANTS.HEADING_PREFIX_CHAR.repeat(level) + ' ';
                 }
                 break;
+            // Heading end: ensure blank line separation
             case 'heading_close':
                 result += '\n\n';
                 break;
+            // Horizontal rules / thematic breaks
             case 'hr':
             case 'thematic_break':
                 if (options.preserveHorizontalRule) {
@@ -427,48 +432,60 @@ export function renderPlainText(
                     result += '\n\n';
                 }
                 break;
+            // Emphasis (italic) markers
             case 'em_open':
             case 'em_close':
                 if (options.preserveEmphasis) result += t.markup;
                 break;
+            // Strong (bold) markers
             case 'strong_open':
             case 'strong_close':
                 if (options.preserveBold) result += t.markup;
                 break;
+            // Highlight / mark
             case 'mark_open':
             case 'mark_close':
                 if (options.preserveMark) result += '==';
                 break;
+            // Insert / underline
             case 'ins_open':
             case 'ins_close':
                 if (options.preserveInsert) result += '++';
                 break;
+            // Strikethrough
             case 's_open':
             case 's_close':
                 if (options.preserveStrikethrough) result += '~~';
                 break;
+            // Link open: push onto stack
             case 'link_open':
                 result = handleLinkToken(t, linkStack, options, result);
                 break;
+            // Link close: pop and append URL/markdown per option
             case 'link_close':
                 result = handleLinkCloseToken(linkStack, options, result);
                 break;
+            // Emoji: include only if enabled
             case 'emoji':
                 if (options.displayEmojis) result += t.content;
                 break;
+            // Plain text content (includes footnote label normalization & escape removal)
             case 'text': {
                 let content = t.content.replace(/\[\^([^\]]+)\]/g, '[$1]');
                 content = content.replace(/\[\^([^\]]+)\]:/g, '[$1]:');
                 result = handleTextToken(t, content, linkStack, options, result);
                 break;
             }
+            // Soft / hard line breaks
             case 'softbreak':
             case 'hardbreak':
                 result += '\n';
                 break;
+            // Paragraph end: ensure separation
             case 'paragraph_close':
                 result += '\n\n';
                 break;
+            // Blockquote end: normalize spacing & collapse extra blank lines
             case 'blockquote_close': {
                 result += '\n\n';
                 let k = i + 1;
@@ -487,6 +504,7 @@ export function renderPlainText(
                 result = collapseExtraBlankLines(result);
                 break;
             }
+            // Unhandled token types: ignore
             default:
                 break;
         }
