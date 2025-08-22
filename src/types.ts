@@ -27,13 +27,6 @@ export interface MarkdownSegment {
     content: string;
 }
 
-export interface PluginOptions {
-    sub?: { enabled: boolean };
-    sup?: { enabled: boolean };
-    mark?: { enabled: boolean };
-    insert?: { enabled: boolean };
-}
-
 export interface HtmlOptions {
     embedImages: boolean;
     exportFullHtml: boolean;

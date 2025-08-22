@@ -21,7 +21,7 @@ export const SETTINGS = {
     EXPORT_FULL_HTML: 'exportFullHtml',
     JOPLIN_RESOURCE_LINK_BEHAVIOR: 'joplinResourceLinkBehavior',
     PRESERVE_SUPERSCRIPT: 'preserveSuperscript',
-    PRESERVE_SUBSCRIPT: 'preserveSubScript',
+    PRESERVE_SUBSCRIPT: 'preserveSubscript',
     PRESERVE_EMPHASIS: 'preserveEmphasis',
     PRESERVE_BOLD: 'preserveBold',
     PRESERVE_HEADING: 'preserveHeading',

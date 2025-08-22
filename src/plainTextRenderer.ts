@@ -299,14 +299,10 @@ export function handleTextToken(
         txt = txt.replace(/<img[^>]*>/gi, '');
         // Collapse 3+ consecutive newlines to configured max ONLY in text tokens
         txt = txt.replace(/\n{3,}/g, '\n'.repeat(PLAIN_TEXT_CONSTANTS.MAX_PARAGRAPH_NEWLINES));
-        if (options.preserveSuperscript) {
-            txt = txt.replace(/\^([^\^]+)\^/g, '^$1^');
-        } else {
+        if (!options.preserveSuperscript) {
             txt = txt.replace(/\^([^\^]+)\^/g, '$1');
         }
-        if (options.preserveSubscript) {
-            txt = txt.replace(/~([^~]+)~/g, '~$1~');
-        } else {
+        if (!options.preserveSubscript) {
             txt = txt.replace(/~([^~]+)~/g, '$1');
         }
         txt = unescape(txt);
