@@ -35,7 +35,9 @@ export const SETTINGS = {
 
 // Regex patterns for Joplin resource and image handling
 export const REGEX_PATTERNS = {
-    CODE_BLOCKS: /(```[\s\S]*?```|`[^`\n]*`)/g,
+    // Matches fenced code blocks, inline code, and indented code blocks.
+    // The 'm' flag is crucial for `^` to match the start of each line for indented blocks.
+    CODE_BLOCKS: /(```[\s\S]*?```|`[^`\n]*`|^(?: {4}|\t).+)/gm,
     HTML_IMG: /<img[^>]*>/gi,
     MARKDOWN_IMG: /!\[[^\]]*\]\(:\/[^)]+\)/gi,
     // Matches HTML <img> tags with a Joplin resource ID in the src attribute.
