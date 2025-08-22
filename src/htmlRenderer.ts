@@ -582,20 +582,17 @@ export async function processHtmlConversion(selection: string, options?: HtmlOpt
 
     // Optionally wrap as a full HTML document with user stylesheet
     if (options.exportFullHtml) {
+        // Instead of returning a full document (which the clipboard host will wrap again),
+        // just inject the stylesheet at the top of the fragment to avoid nested <html>/<body>.
         const userStylesheet = await getUserStylesheet();
-        const styleTag = userStylesheet ? `<style type="text/css">\n${userStylesheet}\n</style>` : '';
-        fragment = `<!DOCTYPE html>
-<html>
-<head>
-<meta charset="UTF-8">
-${styleTag}
-</head>
-<body>
-${fragment}
-</body>
-</html>`;
+        if (userStylesheet) {
+            const styleTag = `<style type="text/css">\n${userStylesheet}\n</style>`;
+            // Insert style only if not already present
+            if (!/<!doctype/i.test(fragment) && !/<style[\s>]/i.test(fragment)) {
+                fragment = `${styleTag}\n${fragment}`;
+            }
+        }
     }
-
     return fragment;
 }
 
