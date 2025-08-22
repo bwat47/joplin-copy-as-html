@@ -81,21 +81,26 @@ export function parseTableTokens(
     let tableRows: TableRow[] = [];
     let currentRow: string[] = [];
     let isHeaderRow = false;
-    for (let k = 0; k < tableTokens.length; k++) {
-        const tk = tableTokens[k];
+    for (let tokenIndex = 0; tokenIndex < tableTokens.length; tokenIndex++) {
+        const tk = tableTokens[tokenIndex];
         if (tk.type === 'thead_open') isHeaderRow = true;
         if (tk.type === 'thead_close') isHeaderRow = false;
         if (tk.type === 'tr_open') currentRow = [];
         if (tk.type === 'th_open' || tk.type === 'td_open') {
             let cellContent = '';
-            let l = k + 1;
-            while (l < tableTokens.length && tableTokens[l].type !== 'th_close' && tableTokens[l].type !== 'td_close') {
-                if (tableTokens[l].type === 'inline' && tableTokens[l].children) {
-                    cellContent += renderPlainText(tableTokens[l].children, listContext, indentLevel, options);
-                } else if (tableTokens[l].type === 'text') {
-                    cellContent += tableTokens[l].content;
+            let cellIndex = tokenIndex + 1;
+            while (
+                cellIndex < tableTokens.length &&
+                tableTokens[cellIndex].type !== 'th_close' &&
+                tableTokens[cellIndex].type !== 'td_close'
+            ) {
+                const inner = tableTokens[cellIndex];
+                if (inner.type === 'inline' && inner.children) {
+                    cellContent += renderPlainText(inner.children, listContext, indentLevel, options);
+                } else if (inner.type === 'text') {
+                    cellContent += inner.content;
                 }
-                l++;
+                cellIndex++;
             }
             currentRow.push(cellContent.trim());
         }
@@ -164,28 +169,30 @@ export function parseListTokens(
     indentLevel: number,
     options: PlainTextOptions
 ): ListItem[] {
-    let items: ListItem[] = [];
+    const items: ListItem[] = [];
     const ordered = !!(listContext && listContext.type === 'ordered');
     let index =
         ordered && typeof listContext.index === 'number' ? listContext.index : PLAIN_TEXT_CONSTANTS.ORDERED_LIST_START;
+
     for (let i = 0; i < listTokens.length; i++) {
-        const t = listTokens[i];
-        if (t.type === 'list_item_open') {
+        const token = listTokens[i];
+        if (token.type === 'list_item_open') {
             // Collect all tokens for this list item
-            let itemTokens = [];
-            let depth = 1;
-            let j = i + 1;
-            while (j < listTokens.length && depth > 0) {
-                if (listTokens[j].type === 'list_item_open') depth++;
-                if (listTokens[j].type === 'list_item_close') depth--;
-                if (depth > 0) itemTokens.push(listTokens[j]);
-                j++;
+            const itemTokens: Token[] = [];
+            let nestingDepth = 1;
+            let scanIndex = i + 1;
+            while (scanIndex < listTokens.length && nestingDepth > 0) {
+                const scanTok = listTokens[scanIndex];
+                if (scanTok.type === 'list_item_open') nestingDepth++;
+                if (scanTok.type === 'list_item_close') nestingDepth--;
+                if (nestingDepth > 0) itemTokens.push(scanTok);
+                scanIndex++;
             }
             // Render the content of the list item.
             // NOTE: Previously we passed (indentLevel + 1) which caused each nested level
             // to increment by 2 (once here and once again when the nested list opened),
             // doubling indentation (e.g. 8 spaces instead of 4). Use indentLevel directly.
-            let content = renderPlainText(itemTokens, listContext, indentLevel, options);
+            const content = renderPlainText(itemTokens, listContext, indentLevel, options);
             items.push({
                 content: content.trim(),
                 ordered,
@@ -193,7 +200,7 @@ export function parseListTokens(
                 indentLevel,
             });
             if (ordered) index++;
-            i = j - 1;
+            i = scanIndex - 1;
         }
     }
     return items;
