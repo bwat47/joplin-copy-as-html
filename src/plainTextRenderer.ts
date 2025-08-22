@@ -44,7 +44,7 @@ try {
 }
 
 import { PlainTextOptions, TableData, TableRow, ListItem } from './types';
-import { PLAIN_TEXT_CONSTANTS } from './constants';
+import { PLAIN_TEXT_CONSTANTS, INLINE_MARKERS } from './constants';
 import stringWidth from 'string-width';
 
 type LinkStackItem = { href: string; title: string };
@@ -445,17 +445,17 @@ export function renderPlainText(
             // Highlight / mark
             case 'mark_open':
             case 'mark_close':
-                if (options.preserveMark) result += '==';
+                if (options.preserveMark) result += INLINE_MARKERS.MARK;
                 break;
             // Insert / underline
             case 'ins_open':
             case 'ins_close':
-                if (options.preserveInsert) result += '++';
+                if (options.preserveInsert) result += INLINE_MARKERS.INSERT;
                 break;
             // Strikethrough
             case 's_open':
             case 's_close':
-                if (options.preserveStrikethrough) result += '~~';
+                if (options.preserveStrikethrough) result += INLINE_MARKERS.STRIKETHROUGH;
                 break;
             // Link open: push onto stack
             case 'link_open':

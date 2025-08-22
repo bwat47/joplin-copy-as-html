@@ -121,3 +121,10 @@ export const PLAIN_TEXT_CONSTANTS = {
     SPACES_PER_INDENT: 4,
     TABLE_CELL_PADDING: 2,
 } as const;
+
+// Inline markdown markers used when preserving formatting (centralized to avoid magic strings)
+export const INLINE_MARKERS = {
+    MARK: '==', // highlight
+    INSERT: '++', // inserted / underline
+    STRIKETHROUGH: '~~', // strike
+} as const;
