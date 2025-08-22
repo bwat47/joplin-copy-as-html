@@ -277,11 +277,10 @@ export function handleTextToken(
     content: string,
     linkStack: LinkStackItem[],
     options: PlainTextOptions,
-    inCode: boolean,
     result: string
 ): string {
     let txt = content;
-    if (!inCode && linkStack.length && linkStack[linkStack.length - 1].href) {
+    if (linkStack.length && linkStack[linkStack.length - 1].href) {
         // If inside an external link, capture the title for later
         linkStack[linkStack.length - 1].title += txt;
         if (options.hyperlinkBehavior === 'title') {
@@ -348,8 +347,7 @@ export function renderPlainText(
     tokens: Token[],
     listContext: ListContext = null,
     indentLevel: number = 0,
-    options: PlainTextOptions,
-    inCode: boolean = false
+    options: PlainTextOptions
 ): string {
     let result = '';
     let linkStack: LinkStackItem[] = [];
@@ -409,7 +407,7 @@ export function renderPlainText(
             result += t.content;
         } else if (t.type === 'inline' && t.children) {
             // Inline container: recursively render child tokens (em, strong, links, text, etc.)
-            result += renderPlainText(t.children, listContext, indentLevel, options, inCode);
+            result += renderPlainText(t.children, listContext, indentLevel, options);
         } else if (t.type === 'heading_open') {
             if (options.preserveHeading) {
                 const level = Math.min(6, Math.max(1, parseInt(t.tag.slice(1), 10) || 1));
@@ -427,40 +425,38 @@ export function renderPlainText(
                 result += '\n\n';
             }
             // emit the original markup only when the corresponding setting is enabled
-        } else if (!inCode && t.type === 'em_open') {
+        } else if (t.type === 'em_open') {
             if (options.preserveEmphasis) result += t.markup;
-        } else if (!inCode && t.type === 'em_close') {
+        } else if (t.type === 'em_close') {
             if (options.preserveEmphasis) result += t.markup;
-        } else if (!inCode && t.type === 'strong_open') {
+        } else if (t.type === 'strong_open') {
             if (options.preserveBold) result += t.markup;
-        } else if (!inCode && t.type === 'strong_close') {
+        } else if (t.type === 'strong_close') {
             if (options.preserveBold) result += t.markup;
-        } else if (!inCode && t.type === 'mark_open') {
+        } else if (t.type === 'mark_open') {
             if (options.preserveMark) result += '==';
-        } else if (!inCode && t.type === 'mark_close') {
+        } else if (t.type === 'mark_close') {
             if (options.preserveMark) result += '==';
-        } else if (!inCode && t.type === 'ins_open') {
+        } else if (t.type === 'ins_open') {
             if (options.preserveInsert) result += '++';
-        } else if (!inCode && t.type === 'ins_close') {
+        } else if (t.type === 'ins_close') {
             if (options.preserveInsert) result += '++';
-        } else if (!inCode && t.type === 's_open') {
+        } else if (t.type === 's_open') {
             if (options.preserveStrikethrough) result += '~~';
-        } else if (!inCode && t.type === 's_close') {
+        } else if (t.type === 's_close') {
             if (options.preserveStrikethrough) result += '~~';
-        } else if (!inCode && t.type === 'link_open') {
+        } else if (t.type === 'link_open') {
             result = handleLinkToken(t, linkStack, options, result);
-        } else if (!inCode && t.type === 'link_close') {
+        } else if (t.type === 'link_close') {
             result = handleLinkCloseToken(linkStack, options, result);
         } else if (t.type === 'emoji') {
             if (options.displayEmojis) {
                 result += t.content;
             }
         } else if (t.type === 'text') {
-            // Replace [^n] and [^text]: with [n] and [text]: (don't mutate original token)
             let content = t.content.replace(/\[\^([^\]]+)\]/g, '[$1]');
             content = content.replace(/\[\^([^\]]+)\]:/g, '[$1]:');
-            // Pass modified content as separate parameter
-            result = handleTextToken(t, content, linkStack, options, inCode, result);
+            result = handleTextToken(t, content, linkStack, options, result);
         } else if (t.type === 'softbreak' || t.type === 'hardbreak') {
             result += '\n';
         } else if (t.type === 'paragraph_close') {
