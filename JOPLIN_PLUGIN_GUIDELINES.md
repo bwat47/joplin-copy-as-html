@@ -24,6 +24,11 @@ src/
 - **Feature modules**: Separate complex logic into focused modules
 - **Main entry**: Keep index.ts lean - just plugin registration and command binding
 
+### Asset Management
+
+- For features with a UI component, provide default assets (e.g., stylesheets, icons) to ensure a good out-of-the-box experience.
+- Store these assets in a dedicated file (e.g., `defaultStylesheet.ts`) or directory.
+
 ## TypeScript Best Practices
 
 ### Type Safety
@@ -156,12 +161,18 @@ if (!validateResourceId(id)) {
 }
 ```
 
+### Advanced Reusable Utilities
+
+- For complex, recurring problems (e.g., handling diverse external library patterns), create dedicated utility modules (e.g., `pluginUtils.ts`).
+- This encapsulates complex logic and promotes reuse across the plugin or even future plugins.
+
 ### Documentation Standards
 
 - Use JSDoc for complex functions
 - Comment architectural decisions (e.g., why JSDOM over regex)
 - Document regex patterns with examples
 - Explain non-obvious business logic
+- For larger plugins, create a high-level `CODE_DOCUMENTATION.md` file to explain the architecture, design choices, and overall structure.
 
 ## Joplin-Specific Patterns
 
@@ -247,6 +258,7 @@ await joplin.commands.register({
 - Use timeouts for potentially long-running operations
 - Consider memory usage with large data processing
 - Avoid blocking the UI thread for intensive operations
+- Use caching or deduplication for resource-intensive operations (e.g., fetching the same resource multiple times in a single operation).
 - Clean up resources (event listeners, intervals) appropriately
 
 ### Async Patterns
@@ -258,6 +270,14 @@ const result = await Promise.race([
     new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), TIMEOUT_MS)),
 ]);
 ```
+
+## Build and Development
+
+### Standardized Scripts
+
+- Standardize build, linting, and formatting scripts in `package.json`.
+- Use common names like `dist` (for building the plugin), `lint` (for checking code quality), and `format` (for auto-formatting).
+- This promotes a consistent development environment across projects.
 
 ## Testing and Maintenance
 
