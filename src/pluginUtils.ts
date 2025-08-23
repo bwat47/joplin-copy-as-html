@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-require-imports */
+
 /**
  * @fileoverview Plugin Loading Utilities - Safe markdown-it plugin management
  *
@@ -26,7 +28,12 @@ import MarkdownIt = require('markdown-it');
  * This is the complex function that was hard to get right,
  * so we share it to avoid duplicating the logic.
  */
-export function safePluginUse(md: MarkdownIt, plugin: any, options?: any, pluginName: string = 'unknown'): boolean {
+export function safePluginUse(
+    md: MarkdownIt,
+    plugin: unknown,
+    options?: unknown,
+    pluginName: string = 'unknown'
+): boolean {
     if (!plugin) {
         console.warn(`[copy-as-html] Plugin ${pluginName} is null or undefined`);
         return false;
@@ -38,43 +45,52 @@ export function safePluginUse(md: MarkdownIt, plugin: any, options?: any, plugin
 
         if (typeof plugin === 'function') {
             pluginFunc = plugin;
-        } else if (plugin && typeof plugin.default === 'function') {
-            pluginFunc = plugin.default;
-        } else if (plugin && plugin.plugin && typeof plugin.plugin === 'function') {
-            pluginFunc = plugin.plugin;
+        } else if (
+            typeof plugin === 'object' &&
+            plugin !== null &&
+            'default' in plugin &&
+            typeof (plugin as { default: unknown }).default === 'function'
+        ) {
+            pluginFunc = (plugin as { default: unknown }).default;
+        } else if (
+            typeof plugin === 'object' &&
+            plugin !== null &&
+            'plugin' in plugin &&
+            typeof (plugin as { plugin: unknown }).plugin === 'function'
+        ) {
+            pluginFunc = (plugin as { plugin: unknown }).plugin;
         } else if (plugin && typeof plugin === 'object') {
             // For object plugins, look for common export patterns
-            if (typeof plugin.markdownit === 'function') {
-                pluginFunc = plugin.markdownit;
-            } else if (typeof plugin.render === 'function') {
-                pluginFunc = plugin.render;
-            } else if (typeof plugin.parse === 'function') {
-                pluginFunc = plugin.parse;
-            } else if (plugin.full && typeof plugin.full === 'function') {
-                // For markdown-it-emoji which exports {bare, full, light}
-                pluginFunc = plugin.full;
-            } else if (plugin.light && typeof plugin.light === 'function') {
-                // Alternative emoji option
-                pluginFunc = plugin.light;
-            } else if (plugin.bare && typeof plugin.bare === 'function') {
-                // Another emoji option
-                pluginFunc = plugin.bare;
+            if ('markdownit' in plugin && typeof (plugin as { markdownit: unknown }).markdownit === 'function') {
+                pluginFunc = (plugin as { markdownit: unknown }).markdownit;
+            } else if ('render' in plugin && typeof (plugin as { render: unknown }).render === 'function') {
+                pluginFunc = (plugin as { render: unknown }).render;
+            } else if ('parse' in plugin && typeof (plugin as { parse: unknown }).parse === 'function') {
+                pluginFunc = (plugin as { parse: unknown }).parse;
+            } else if ('full' in plugin && typeof (plugin as { full: unknown }).full === 'function') {
+                pluginFunc = (plugin as { full: unknown }).full;
+            } else if ('light' in plugin && typeof (plugin as { light: unknown }).light === 'function') {
+                pluginFunc = (plugin as { light: unknown }).light;
+            } else if ('bare' in plugin && typeof (plugin as { bare: unknown }).bare === 'function') {
+                pluginFunc = (plugin as { bare: unknown }).bare;
             } else {
                 // Try to find any function in the object
-                const funcKeys = Object.keys(plugin).filter((key) => typeof plugin[key] === 'function');
+                const funcKeys = Object.keys(plugin).filter(
+                    (key) => typeof (plugin as Record<string, unknown>)[key] === 'function'
+                );
                 if (funcKeys.length === 1) {
-                    pluginFunc = plugin[funcKeys[0]];
+                    pluginFunc = (plugin as Record<string, unknown>)[funcKeys[0]];
                 } else if (funcKeys.length > 1) {
                     // If multiple functions, log them for debugging
                     console.warn(`[copy-as-html] Plugin ${pluginName} has multiple functions:`, funcKeys);
                     // For multi-function plugins, try common patterns first
                     if (funcKeys.includes('full')) {
-                        pluginFunc = plugin.full;
+                        pluginFunc = (plugin as Record<string, unknown>).full;
                     } else if (funcKeys.includes('default')) {
-                        pluginFunc = plugin.default;
+                        pluginFunc = (plugin as Record<string, unknown>).default;
                     } else {
                         // Use the first available function
-                        pluginFunc = plugin[funcKeys[0]];
+                        pluginFunc = (plugin as Record<string, unknown>)[funcKeys[0]];
                     }
                 } else {
                     console.warn(
@@ -110,9 +126,9 @@ export function safePluginUse(md: MarkdownIt, plugin: any, options?: any, plugin
  */
 export interface PluginConfig {
     enabled: boolean;
-    plugin: any;
+    plugin: unknown;
     name: string;
-    options?: any;
+    options?: unknown;
 }
 
 /**

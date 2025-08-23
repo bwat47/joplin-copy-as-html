@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-require-imports */
+
 /**
  * @fileoverview Plain Text Renderer - Converts markdown to formatted plain text
  *
@@ -21,11 +23,11 @@ import type { Token } from 'markdown-it';
 import * as MarkdownIt from 'markdown-it';
 import { safePluginUse } from './pluginUtils';
 // Use safe imports to prevent conflicts with htmlRenderer
-let markdownItMark: any;
-let markdownItIns: any;
-let markdownItEmoji: any;
-let markdownItSub: any;
-let markdownItSup: any;
+let markdownItMark: unknown;
+let markdownItIns: unknown;
+let markdownItEmoji: unknown;
+let markdownItSub: unknown;
+let markdownItSup: unknown;
 
 try {
     markdownItMark = require('markdown-it-mark');
@@ -92,7 +94,7 @@ export function parseTableTokens(
     listContext: ListContext,
     indentLevel: number
 ): TableData {
-    let tableRows: TableRow[] = [];
+    const tableRows: TableRow[] = [];
     let currentRow: string[] = [];
     let isHeaderRow = false;
     for (let tokenIndex = 0; tokenIndex < tableTokens.length; tokenIndex++) {
@@ -129,9 +131,9 @@ export function parseTableTokens(
  * Calculates the maximum width for each column in the table for aligned formatting.
  */
 export function calculateColumnWidths(tableData: TableData): number[] {
-    let colWidths: number[] = [];
+    const colWidths: number[] = [];
     for (let r = 0; r < tableData.rows.length; r++) {
-        let cells = tableData.rows[r].cells;
+        const cells = tableData.rows[r].cells;
         for (let c = 0; c < cells.length; c++) {
             colWidths[c] = Math.max(colWidths[c] || 0, stringWidth(cells[c]));
         }
@@ -151,10 +153,10 @@ export function formatTable(tableData: TableData, colWidths: number[]): string {
     let result = '';
     let headerDone = false;
     for (let r = 0; r < tableData.rows.length; r++) {
-        let paddedCells = tableData.rows[r].cells.map((c, i) => padCell(c, colWidths[i]));
+        const paddedCells = tableData.rows[r].cells.map((c, i) => padCell(c, colWidths[i]));
         result += paddedCells.join(' '.repeat(PLAIN_TEXT_CONSTANTS.TABLE_CELL_PADDING)) + '\n';
         if (tableData.rows[r].isHeader && !headerDone && tableData.rows.length > 1) {
-            let sepCells = colWidths.map((w) => '-'.repeat(Math.max(PLAIN_TEXT_CONSTANTS.MIN_COLUMN_WIDTH, w)));
+            const sepCells = colWidths.map((w) => '-'.repeat(Math.max(PLAIN_TEXT_CONSTANTS.MIN_COLUMN_WIDTH, w)));
             result += sepCells.join('  ') + '\n';
             headerDone = true;
         }
@@ -224,7 +226,7 @@ export function parseListTokens(
  * Formats the list items as a human-readable plain text string.
  */
 export function formatList(listItems: ListItem[], options: PlainTextOptions): string {
-    let lines: string[] = [];
+    const lines: string[] = [];
     for (const item of listItems) {
         const indentChar = options.indentType === 'tabs' ? '\t' : ' '.repeat(PLAIN_TEXT_CONSTANTS.SPACES_PER_INDENT);
         const indent = item.indentLevel > 1 ? indentChar.repeat(item.indentLevel - 1) : '';
@@ -264,7 +266,7 @@ export function handleLinkToken(
     result: string
 ): string {
     // Only handle external HTTP/HTTPS links for special behavior
-    const hrefAttr = t.attrs?.find((attr: any) => attr[0] === 'href');
+    const hrefAttr = t.attrs?.find((attr: unknown) => Array.isArray(attr) && attr[0] === 'href');
     const href = hrefAttr ? hrefAttr[1] : '';
     if (isExternalHttpUrl(href)) {
         linkStack.push({ href, title: '' });
@@ -367,7 +369,7 @@ export function renderPlainText(
     options: PlainTextOptions
 ): string {
     let result = '';
-    let linkStack: LinkStackItem[] = [];
+    const linkStack: LinkStackItem[] = [];
     for (let i = 0; i < tokens.length; i++) {
         const t = tokens[i];
 
@@ -499,7 +501,7 @@ export function renderPlainText(
                 break;
             // Plain text content (includes footnote label normalization & escape removal)
             case 'text': {
-                let content = t.content
+                const content = t.content
                     .replace(PLAIN_TEXT_REGEX.FOOTNOTE_REF, '[$1]')
                     .replace(PLAIN_TEXT_REGEX.FOOTNOTE_DEF, '[$1]:');
                 result = handleTextToken(t, content, linkStack, options, result);

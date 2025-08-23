@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-require-imports */
+
 /**
  * @fileoverview HTML Renderer - Converts markdown to clean, portable HTML
  *
@@ -35,7 +37,7 @@ import {
 } from './constants';
 import { ImageDimensions, MarkdownSegment, JoplinFileData, JoplinResource, HtmlOptions } from './types';
 import { validateHtmlSettings } from './utils';
-import { safePluginUse, loadPluginsConditionally, PluginConfig } from './pluginUtils';
+import { safePluginUse, loadPluginsConditionally } from './pluginUtils';
 import * as fs from 'fs/promises';
 import * as path from 'path';
 import MarkdownIt = require('markdown-it');
@@ -44,13 +46,13 @@ import markdownItIns = require('markdown-it-ins');
 import markdownItSub = require('markdown-it-sub');
 import markdownItSup = require('markdown-it-sup');
 // Import additional plugins with try-catch to prevent conflicts
-let markdownItAbbr: any;
-let markdownItDeflist: any;
-let markdownItEmoji: any;
-let markdownItFootnote: any;
-let markdownItMultimdTable: any;
-let markdownItTocDoneRight: any;
-let markdownItTaskLists: any;
+let markdownItAbbr: unknown;
+let markdownItDeflist: unknown;
+let markdownItEmoji: unknown;
+let markdownItFootnote: unknown;
+let markdownItMultimdTable: unknown;
+let markdownItTocDoneRight: unknown;
+let markdownItTaskLists: unknown;
 
 try {
     markdownItAbbr = require('markdown-it-abbr');
@@ -145,7 +147,7 @@ export function extractImageDimensions(
 
     // Split markdown into code/non-code segments
     const codeBlockRegex = REGEX_PATTERNS.CODE_BLOCKS;
-    let segments: MarkdownSegment[] = [];
+    const segments: MarkdownSegment[] = [];
     let lastIndex = 0;
     let match;
 
@@ -273,7 +275,7 @@ export function applyPreservedDimensions(html: string, dimensions: Map<string, I
 export async function replaceAsync(
     str: string,
     regex: RegExp,
-    asyncFn: (match: string, ...args: any[]) => Promise<string>
+    asyncFn: (match: string, ...args: unknown[]) => Promise<string>
 ): Promise<string> {
     const promises: Promise<string>[] = [];
     str.replace(regex, (match, ...args) => {
@@ -404,7 +406,7 @@ async function safeGetGlobalSetting(key: string, defaultValue: boolean = false):
     try {
         const value = await joplin.settings.globalValue(key);
         return !!value;
-    } catch (err) {
+    } catch {
         console.warn(`[copy-as-html] Global setting '${key}' not found, using default:`, defaultValue);
         return defaultValue;
     }
