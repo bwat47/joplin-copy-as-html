@@ -25,7 +25,6 @@ body, input {
 
 code, kbd, pre {
   font-family: "Roboto Mono", Monaco, "Courier New", Courier, monospace;
-  background-color: #f5f5f5;
 }
 
 pre {
