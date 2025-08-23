@@ -31,6 +31,36 @@ This plugin enables users to copy selected markdown from the Joplin editor in tw
 
 The plugin is designed for seamless integration with external applications like email clients, word processors, and other text editors.
 
+## Building and Running
+
+The plugin is written in TypeScript and uses Webpack for bundling. The project uses `npm` for package management. The following commands are available in `package.json`:
+
+*   **`npm run dist`**: Builds the plugin and creates a `.jpl` (Joplin Plugin) file in the `publish/` directory. This is the main build command.
+*   **`npm run prepare`**: This command is an alias for `npm run dist`.
+*   **`npm run updateVersion`**: Increases the version number in `package.json` and `src/manifest.json`.
+*   **`npm run update`**: Updates the Joplin plugin generator.
+*   **`npm run lint`**: Lints the TypeScript source files using ESLint.
+*   **`npm run lint:fix`**: Lints the TypeScript source files and automatically fixes issues.
+*   **`npm run format`**: Formats the TypeScript source files using Prettier.
+
+To build the plugin, run the following command:
+
+```bash
+npm run dist
+```
+
+This will generate a `.jpl` file in the `publish/` directory, which can be installed in Joplin.
+
+## Development Conventions
+
+*   **Language**: The project is written in TypeScript.
+*   **Formatting**: The project uses Prettier for code formatting. The configuration is in `.prettierrc.js`.
+*   **Linting**: The project uses ESLint for linting. The configuration is in `.eslintrc.js`.
+*   **Bundling**: The project uses Webpack for bundling. The configuration is in `webpack.config.js`.
+*   **Plugin Manifest**: The plugin manifest is located at `src/manifest.json`.
+*   **Main Entry Point**: The main entry point of the plugin is `src/index.ts`.
+*   **Source Code**: The source code is located in the `src/` directory.
+
 ## Main Features and Design Choices
 
 ### HTML Output Features
