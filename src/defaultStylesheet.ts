@@ -21,13 +21,13 @@
 export const defaultStylesheet = `
 body,
 input {
-	font-family: Aptos, Calibri, Arial, 'Helvetica Neue', Helvetica, sans-serif;
+	font-family: Aptos, Calibri, Arial, 'Helvetica Neue', Helvetica, 'Liberation Sans', sans-serif;
 }
 
 code,
 kbd,
 pre {
-	font-family: 'Aptos Mono', 'Cascadia Code', 'Consolas', 'Source Code Pro', Menlo, Monaco, 'DejaVu Sans Mono', monospace;
+	font-family: 'Aptos Mono', 'Cascadia Code', 'Consolas', 'Source Code Pro', Menlo, Monaco, 'Liberation Mono', monospace;
 }
 
 pre {
