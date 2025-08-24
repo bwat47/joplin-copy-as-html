@@ -98,7 +98,6 @@ export const LINK_RESOURCE_MATCHERS: RegExp[] = [
     /^joplin:\/\/resource\/([a-f0-9]{32})(?:$|[/?#])/i,
 ];
 
-
 // Plain text renderer specific (values not already in CONSTANTS)
 export const PLAIN_TEXT_CONSTANTS = {
     ORDERED_LIST_START: 1,
