@@ -98,15 +98,6 @@ export const LINK_RESOURCE_MATCHERS: RegExp[] = [
     /^joplin:\/\/resource\/([a-f0-9]{32})(?:$|[/?#])/i,
 ];
 
-// Style sanitization patterns (security hardening)
-export const SANITIZE_STYLE_PATTERNS: RegExp[] = [
-    /javascript\s*:/gi,
-    /expression\s*\(/gi,
-    /@import[^;]*;?/gi,
-    /url\s*\(\s*["']?javascript:/gi,
-    /behavior\s*:/gi,
-    /<script[^>]*>[\s\S]*?<\/script>/gi,
-];
 
 // Plain text renderer specific (values not already in CONSTANTS)
 export const PLAIN_TEXT_CONSTANTS = {

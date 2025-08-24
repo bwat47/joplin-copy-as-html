@@ -18,7 +18,6 @@
 export interface ImageDimensions {
     width?: string;
     height?: string;
-    style?: string;
     resourceId?: string;
 }
 
