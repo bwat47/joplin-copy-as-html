@@ -155,3 +155,238 @@ Data   More Data
         expect(result).toBe(expected);
     });
 });
+
+// List rendering tests
+
+describe('List rendering', () => {
+    it('should handle nested bulleted lists with correct indentation', () => {
+        const markdown = `
+- Item 1
+  - Nested Item 1.1
+  - Nested Item 1.2
+- Item 2
+`;
+        const result = convertMarkdownToPlainText(markdown, { ...defaultOptions, indentType: 'spaces' });
+        const expected = `- Item 1
+
+    - Nested Item 1.1
+
+    - Nested Item 1.2
+
+- Item 2
+`;
+        expect(result).toBe(expected);
+    });
+
+    it('should handle nested ordered lists with correct indentation using tabs', () => {
+        const markdown = `
+1. Item 1
+   1. Nested 1.1
+2. Item 2
+`;
+        const result = convertMarkdownToPlainText(markdown, { ...defaultOptions, indentType: 'tabs' });
+        // prettier-ignore
+        const expected =
+`1. Item 1
+
+\t1. Nested 1.1
+
+2. Item 2
+`;
+        expect(result).toBe(expected);
+    });
+    it('should handle nested bulleted lists with correct indentation using spaces', () => {
+        const markdown = `
+- Item 1
+  - Nested Item 1.1
+- Item 2
+`;
+        const result = convertMarkdownToPlainText(markdown, { ...defaultOptions, indentType: 'spaces' });
+
+        // prettier-ignore
+        const expected = 
+`- Item 1
+
+    - Nested Item 1.1
+
+- Item 2
+`;
+        expect(result).toBe(expected);
+    });
+});
+
+// Character preservation tests
+
+describe('Character Preservation Options', () => {
+    it('should preserve heading characters when enabled', () => {
+        const markdown = `## This is a heading`;
+        const options = { ...defaultOptions, preserveHeading: true };
+        const result = convertMarkdownToPlainText(markdown, options);
+        expect(result.trim()).toBe('## This is a heading');
+    });
+
+    it('should strip heading characters by default', () => {
+        const markdown = `## This is a heading`;
+        const result = convertMarkdownToPlainText(markdown, defaultOptions);
+        expect(result.trim()).toBe('This is a heading');
+    });
+
+    it('should preserve strikethrough characters when enabled', () => {
+        const markdown = '~~deleted text~~';
+        const options = { ...defaultOptions, preserveStrikethrough: true };
+        const result = convertMarkdownToPlainText(markdown, options);
+        expect(result.trim()).toBe('~~deleted text~~');
+    });
+
+    it('should render a horizontal rule when preserved', () => {
+        const markdown = '---';
+        const options = { ...defaultOptions, preserveHorizontalRule: true };
+        const result = convertMarkdownToPlainText(markdown, options);
+        expect(result.trim()).toBe('---');
+    });
+
+    it('should preserve highlight characters (mark) when enabled', () => {
+        const markdown = '==highlighted text==';
+        const options = { ...defaultOptions, preserveMark: true };
+        const result = convertMarkdownToPlainText(markdown, options);
+        expect(result.trim()).toBe('==highlighted text==');
+    });
+
+    it('should strip highlight characters by default', () => {
+        const markdown = '==highlighted text==';
+        const result = convertMarkdownToPlainText(markdown, defaultOptions);
+        expect(result.trim()).toBe('highlighted text');
+    });
+
+    it('should preserve insert characters when enabled', () => {
+        const markdown = '++inserted text++';
+        const options = { ...defaultOptions, preserveInsert: true };
+        const result = convertMarkdownToPlainText(markdown, options);
+        expect(result.trim()).toBe('++inserted text++');
+    });
+
+    it('should strip insert characters by default', () => {
+        const markdown = '++inserted text++';
+        const result = convertMarkdownToPlainText(markdown, defaultOptions);
+        expect(result.trim()).toBe('inserted text');
+    });
+
+    it('should preserve subscript characters when enabled', () => {
+        const markdown = 'H~2~O';
+        const options = { ...defaultOptions, preserveSubscript: true };
+        const result = convertMarkdownToPlainText(markdown, options);
+        expect(result.trim()).toBe('H~2~O');
+    });
+
+    it('should strip subscript characters by default', () => {
+        const markdown = 'H~2~O';
+        const result = convertMarkdownToPlainText(markdown, defaultOptions);
+        expect(result.trim()).toBe('H2O');
+    });
+
+    it('should preserve superscript characters when enabled', () => {
+        const markdown = 'x^2^';
+        const options = { ...defaultOptions, preserveSuperscript: true };
+        const result = convertMarkdownToPlainText(markdown, options);
+        expect(result.trim()).toBe('x^2^');
+    });
+
+    it('should strip superscript characters by default', () => {
+        const markdown = 'x^2^';
+        const result = convertMarkdownToPlainText(markdown, defaultOptions);
+        expect(result.trim()).toBe('x2');
+    });
+});
+
+// Display emoji
+
+describe('Emoji Handling', () => {
+    it('should display emojis when the setting is enabled', () => {
+        const markdown = 'Joplin is great :tada:';
+        // The displayEmojis option is true in defaultOptions, so we can just use that
+        const result = convertMarkdownToPlainText(markdown, defaultOptions);
+        expect(result.trim()).toBe('Joplin is great 🎉');
+    });
+
+    it('should strip emojis when the setting is disabled', () => {
+        const markdown = 'Joplin is great :tada:';
+        const options = { ...defaultOptions, displayEmojis: false };
+        const result = convertMarkdownToPlainText(markdown, options);
+        expect(result.trim()).toBe('Joplin is great');
+    });
+});
+
+// Complex Structures and Edge Cases
+
+describe('Complex Structures and Edge Cases', () => {
+    it('should handle a single blockquote', () => {
+        const markdown = '> This is a quote.';
+        const result = convertMarkdownToPlainText(markdown, defaultOptions);
+        // Your current implementation correctly renders the text content of a blockquote.
+        // This test confirms that behavior.
+        expect(result.trim()).toBe('This is a quote.');
+    });
+
+    it('should handle nested blockquotes', () => {
+        const markdown = `
+> Level 1
+>
+> > Level 2
+>
+> Back to Level 1
+`;
+        const result = convertMarkdownToPlainText(markdown, defaultOptions);
+        const expected = `Level 1
+
+Level 2
+
+Back to Level 1`;
+        expect(result.trim()).toBe(expected);
+    });
+
+    it('should correctly render a complex document with nested elements', () => {
+        const markdown = `
+# Main Heading
+Some introductory text.
+
+> ## A Quote with a Heading
+>
+> - List item 1
+> - **Bold** and *italic* item 2
+>   - Nested list
+
+Final paragraph.
+`;
+        const options = { ...defaultOptions, preserveHeading: true, preserveBold: true, preserveEmphasis: true };
+        const result = convertMarkdownToPlainText(markdown, options);
+
+        // prettier-ignore
+        const expected = 
+`# Main Heading
+
+Some introductory text.
+
+## A Quote with a Heading
+
+- List item 1
+
+- **Bold** and *italic* item 2
+
+    - Nested list
+
+Final paragraph.`;
+        expect(result.trim()).toBe(expected);
+    });
+
+    it('should return an empty string for empty input', () => {
+        const markdown = '';
+        const result = convertMarkdownToPlainText(markdown, defaultOptions);
+        expect(result).toBe('');
+    });
+
+    it('should return an empty string for input with only whitespace', () => {
+        const markdown = ' \n \t \n ';
+        const result = convertMarkdownToPlainText(markdown, defaultOptions);
+        expect(result.trim()).toBe('');
+    });
+});
