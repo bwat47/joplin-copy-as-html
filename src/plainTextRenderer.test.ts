@@ -485,6 +485,95 @@ function test() {
     });
 });
 
+// Line Break Handling
+describe('Line Break Handling', () => {
+    it('should convert soft line breaks to newlines', () => {
+        const markdown = 'Line one\nLine two';
+        const result = convertMarkdownToPlainText(markdown, defaultOptions);
+        expect(result.trim()).toBe('Line one\nLine two');
+    });
+
+    it('should convert hard line breaks to newlines', () => {
+        const markdown = 'Line one  \nLine two'; // Two spaces + newline = hard break
+        const result = convertMarkdownToPlainText(markdown, defaultOptions);
+        expect(result.trim()).toBe('Line one\nLine two');
+    });
+
+    it('should handle backslash hard line breaks', () => {
+        const markdown = 'Line one\\\nLine two'; // Backslash + newline = hard break
+        const result = convertMarkdownToPlainText(markdown, defaultOptions);
+        expect(result.trim()).toBe('Line one\nLine two');
+    });
+
+    it('should handle mixed line break scenarios', () => {
+        const markdown = `First paragraph with soft break
+and continuation.
+
+Second paragraph with hard break  
+on new line.
+
+Third paragraph with backslash break\\
+on new line.`;
+        const result = convertMarkdownToPlainText(markdown, defaultOptions);
+        const expected = `First paragraph with soft break
+and continuation.
+
+Second paragraph with hard break
+on new line.
+
+Third paragraph with backslash break
+on new line.`;
+        expect(result.trim()).toBe(expected);
+    });
+
+    it('should preserve line breaks within code blocks', () => {
+        const markdown = `\`\`\`
+line one
+line two
+line three
+\`\`\``;
+        const result = convertMarkdownToPlainText(markdown, defaultOptions);
+        expect(result.trim()).toBe('line one\nline two\nline three');
+    });
+
+    it('should handle line breaks in lists', () => {
+        const markdown = `- Item with soft break
+  continuation
+- Item with hard break  
+  new line`;
+        const result = convertMarkdownToPlainText(markdown, defaultOptions);
+        const expected = `- Item with soft break
+continuation
+
+- Item with hard break
+new line
+`;
+        expect(result).toBe(expected);
+    });
+
+    it('should handle multiple consecutive line breaks', () => {
+        const markdown = 'Line one\n\n\nLine two'; // Multiple newlines
+        const result = convertMarkdownToPlainText(markdown, defaultOptions);
+        // Should collapse to max configured newlines (likely 2)
+        expect(result.trim()).toBe('Line one\n\nLine two');
+    });
+
+    it('should handle line breaks in blockquotes', () => {
+        const markdown = `> First line
+> Second line  
+> Hard break line
+> 
+> New paragraph in quote`;
+        const result = convertMarkdownToPlainText(markdown, defaultOptions);
+        const expected = `First line
+Second line
+Hard break line
+
+New paragraph in quote`;
+        expect(result.trim()).toBe(expected);
+    });
+});
+
 // Safe plugin loading
 describe('Safe Plugin Loading', () => {
     // Store the original defaultOptions before any tests run
