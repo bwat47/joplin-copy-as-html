@@ -414,6 +414,77 @@ Final paragraph.`;
     });
 });
 
+// Code Block Handling
+describe('Code Block Handling', () => {
+    it('should preserve content of fenced code blocks', () => {
+        const markdown = '```javascript\nconst x = 1;\nconsole.log(x);\n```';
+        const result = convertMarkdownToPlainText(markdown, defaultOptions);
+        expect(result.trim()).toBe('const x = 1;\nconsole.log(x);');
+    });
+
+    it('should preserve content of fenced code blocks with language specifier', () => {
+        const markdown = '```python\nprint("Hello, World!")\n```';
+        const result = convertMarkdownToPlainText(markdown, defaultOptions);
+        expect(result.trim()).toBe('print("Hello, World!")');
+    });
+
+    it('should handle fenced code blocks without language specifier', () => {
+        const markdown = '```\nsome code here\nmore code\n```';
+        const result = convertMarkdownToPlainText(markdown, defaultOptions);
+        expect(result.trim()).toBe('some code here\nmore code');
+    });
+
+    it('should preserve indented code blocks', () => {
+        const markdown = `    const x = 1;
+    console.log(x);`;
+        const result = convertMarkdownToPlainText(markdown, defaultOptions);
+        expect(result.trim()).toBe('const x = 1;\nconsole.log(x);');
+    });
+
+    it('should preserve inline code content', () => {
+        const markdown = 'Use the `console.log()` function to debug.';
+        const result = convertMarkdownToPlainText(markdown, defaultOptions);
+        expect(result.trim()).toBe('Use the console.log() function to debug.');
+    });
+
+    it('should handle multiple inline code spans', () => {
+        const markdown = 'Variables like `x` and `y` are common in `math`.';
+        const result = convertMarkdownToPlainText(markdown, defaultOptions);
+        expect(result.trim()).toBe('Variables like x and y are common in math.');
+    });
+
+    it('should handle empty code blocks', () => {
+        const markdown = '```\n```';
+        const result = convertMarkdownToPlainText(markdown, defaultOptions);
+        expect(result.trim()).toBe('');
+    });
+
+    it('should handle code blocks with special characters', () => {
+        const markdown = '```\n<div class="test">Hello & goodbye</div>\n```';
+        const result = convertMarkdownToPlainText(markdown, defaultOptions);
+        expect(result.trim()).toBe('<div class="test">Hello & goodbye</div>');
+    });
+
+    it('should handle nested backticks in inline code', () => {
+        const markdown = 'Use `` `backticks` `` for inline code.';
+        const result = convertMarkdownToPlainText(markdown, defaultOptions);
+        expect(result.trim()).toBe('Use `backticks` for inline code.');
+    });
+
+    it('should remove fence markers but preserve content', () => {
+        const markdown = `\`\`\`typescript
+function test() {
+    return "hello";
+}
+\`\`\``;
+        const result = convertMarkdownToPlainText(markdown, defaultOptions);
+        const expected = `function test() {
+    return "hello";
+}`;
+        expect(result.trim()).toBe(expected);
+    });
+});
+
 // Safe plugin loading
 describe('Safe Plugin Loading', () => {
     // Store the original defaultOptions before any tests run
