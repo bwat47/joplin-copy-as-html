@@ -33,7 +33,6 @@ import {
     HTML_CONSTANTS,
     PLUGIN_DEFAULTS,
     LINK_RESOURCE_MATCHERS,
-    SANITIZE_STYLE_PATTERNS,
 } from './constants';
 import { ImageDimensions, MarkdownSegment, JoplinFileData, JoplinResource, HtmlOptions } from './types';
 import { validateHtmlSettings } from './utils';
@@ -117,20 +116,8 @@ function createResourceError(id: string, reason: string): string {
 }
 
 /**
- * Sanitizes CSS style attributes to prevent injection attacks
- * @param style The CSS style string to sanitize
- * @returns Sanitized CSS style string
- */
-function sanitizeStyle(style: string): string {
-    if (!style || typeof style !== 'string') return '';
-    let out = style;
-    for (const pat of SANITIZE_STYLE_PATTERNS) out = out.replace(pat, '');
-    return out.trim();
-}
-
-/**
  * Pre-processes markdown to handle HTML <img> tags before rendering.
- * It extracts dimensions (width, height, style) and replaces the <img> tag
+ * It extracts dimensions (width, height) and replaces the <img> tag
  * with a markdown equivalent containing a unique key. This key is used later
  * by applyPreservedDimensions to restore the attributes.
  * Also removes all image tags if embedImages is false.
@@ -183,16 +170,14 @@ export function extractImageDimensions(
             // Only process HTML img tags that contain Joplin resource IDs in non-code segments
             const htmlImgRegex = REGEX_PATTERNS.HTML_IMG_WITH_RESOURCE;
             processedContent = processedContent.replace(htmlImgRegex, (match, attrs, resourceId) => {
-                // Extract width, height, and style attributes
+                // Extract width and height attributes
                 const widthMatch = attrs.match(/\bwidth\s*=\s*["']?([^"'\s>]+)["']?/i);
                 const heightMatch = attrs.match(/\bheight\s*=\s*["']?([^"'\s>]+)["']?/i);
-                const styleMatch = attrs.match(/\bstyle\s*=\s*["']([^"']*)["']/i);
-                if (widthMatch || heightMatch || styleMatch) {
+                if (widthMatch || heightMatch) {
                     const dimensionKey = `${CONSTANTS.DIMENSION_KEY_PREFIX}${counter}`;
                     dimensions.set(dimensionKey, {
                         width: widthMatch ? widthMatch[1] : undefined,
                         height: heightMatch ? heightMatch[1] : undefined,
-                        style: styleMatch ? sanitizeStyle(styleMatch[1]) : undefined,
                         resourceId: resourceId,
                     });
                     const result = `![${dimensionKey}](:/${resourceId})`;
@@ -214,7 +199,7 @@ export function extractImageDimensions(
 }
 
 /**
- * Applies preserved width, height, and style attributes to <img> tags in HTML.
+ * Applies preserved width and height attributes to <img> tags in HTML.
  * @param html The HTML string to process.
  * @param dimensions Map of dimension keys to attribute objects.
  * @returns The HTML string with dimensions applied.
@@ -235,23 +220,6 @@ export function applyPreservedDimensions(html: string, dimensions: Map<string, I
             // Add height if preserved
             if (attrs.height && !newAttrs.includes('height=')) {
                 newAttrs += ` height="${attrs.height}"`;
-            }
-
-            // Add or merge style if preserved
-            if (attrs.style) {
-                const sanitizedStyle = sanitizeStyle(attrs.style);
-                const existingStyleMatch = newAttrs.match(/style\s*=\s*["']([^"']*)["']/i);
-                if (existingStyleMatch) {
-                    // Merge with existing style
-                    const existingStyle = existingStyleMatch[1];
-                    const mergedStyle = existingStyle.endsWith(';')
-                        ? existingStyle + sanitizedStyle
-                        : existingStyle + ';' + sanitizedStyle;
-                    newAttrs = newAttrs.replace(/style\s*=\s*["'][^"']*["']/i, `style="${mergedStyle}"`);
-                } else {
-                    // Add new style attribute
-                    newAttrs += ` style="${sanitizedStyle}"`;
-                }
             }
 
             // Clean up the alt attribute (remove dimension marker)

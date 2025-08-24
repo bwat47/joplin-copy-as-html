@@ -17,4 +17,9 @@ module.exports = {
 
     moduleFileExtensions: ['ts', 'js', 'json', 'node'],
     roots: ['<rootDir>/src'],
+
+    // Map joplin api alias
+    moduleNameMapper: {
+        '^api$': '<rootDir>/api',
+    },
 };
