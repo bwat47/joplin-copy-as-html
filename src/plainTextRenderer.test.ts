@@ -161,7 +161,7 @@ Data   More Data
 // List rendering tests
 
 describe('List rendering', () => {
-    it('should handle nested bulleted lists with correct indentation', () => {
+    it('should handle nested bulleted lists with correct indentation using spaces', () => {
         const markdown = `
 - Item 1
   - Nested Item 1.1
@@ -197,24 +197,6 @@ describe('List rendering', () => {
 `;
         expect(result).toBe(expected);
     });
-    it('should handle nested bulleted lists with correct indentation using spaces', () => {
-        const markdown = `
-- Item 1
-  - Nested Item 1.1
-- Item 2
-`;
-        const result = convertMarkdownToPlainText(markdown, { ...defaultOptions, indentType: 'spaces' });
-
-        // prettier-ignore
-        const expected = 
-`- Item 1
-
-    - Nested Item 1.1
-
-- Item 2
-`;
-        expect(result).toBe(expected);
-    });
 });
 
 // Character preservation tests
@@ -231,6 +213,32 @@ describe('Character Preservation Options', () => {
         const markdown = `## This is a heading`;
         const result = convertMarkdownToPlainText(markdown, defaultOptions);
         expect(result.trim()).toBe('This is a heading');
+    });
+
+    it('should preserve bold characters when enabled', () => {
+        const markdown = `**This is bold text**`;
+        const options = { ...defaultOptions, preserveBold: true };
+        const result = convertMarkdownToPlainText(markdown, options);
+        expect(result.trim()).toBe('**This is bold text**');
+    });
+
+    it('should strip bold characters by default', () => {
+        const markdown = `**This is bold text**`;
+        const result = convertMarkdownToPlainText(markdown, defaultOptions);
+        expect(result.trim()).toBe('This is bold text');
+    });
+
+    it('should preserve emphasis characters when enabled', () => {
+        const markdown = `*This is emphasis text*`;
+        const options = { ...defaultOptions, preserveEmphasis: true };
+        const result = convertMarkdownToPlainText(markdown, options);
+        expect(result.trim()).toBe('*This is emphasis text*');
+    });
+
+    it('should strip emphasis characters by default', () => {
+        const markdown = `*This is emphasis text*`;
+        const result = convertMarkdownToPlainText(markdown, defaultOptions);
+        expect(result.trim()).toBe('This is emphasis text');
     });
 
     it('should preserve strikethrough characters when enabled', () => {
