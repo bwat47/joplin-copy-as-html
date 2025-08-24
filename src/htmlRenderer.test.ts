@@ -129,6 +129,52 @@ describe('processHtmlConversion', () => {
         expect(result).toContain('<img src="data:image/jpeg;base64,');
         expect(result).toContain('alt="my image"');
     });
+
+    it('should export as full HTML document when exportFullHtml is true', async () => {
+        const markdown = '# Test Heading\n\nSome content.';
+
+        // Mock the settings
+        (joplin.settings.value as jest.Mock)
+            .mockResolvedValueOnce(false) // embedImages = false
+            .mockResolvedValueOnce(true); // exportFullHtml = true
+        (joplin.settings.globalValue as jest.Mock).mockImplementation((key) => {
+            if (key === 'profileDir') return Promise.resolve('/fake/profile/dir');
+            return Promise.resolve(false);
+        });
+
+        const result = await processHtmlConversion(markdown);
+
+        // Should be wrapped as a complete HTML document
+        expect(result).toContain('<!DOCTYPE html>');
+        expect(result).toContain('<html>');
+        expect(result).toContain('<head>');
+        expect(result).toContain('<meta charset="UTF-8">');
+        expect(result).toContain('<body>');
+        expect(result).toContain('</body>');
+        expect(result).toContain('</html>');
+        expect(result).toContain('Test Heading');
+        expect(result).toContain('Some content');
+    });
+
+    it('should export as HTML fragment when exportFullHtml is false', async () => {
+        const markdown = '# Test Heading\n\nSome content.';
+
+        // Mock the settings
+        (joplin.settings.value as jest.Mock)
+            .mockResolvedValueOnce(false) // embedImages = false
+            .mockResolvedValueOnce(false); // exportFullHtml = false
+        (joplin.settings.globalValue as jest.Mock).mockResolvedValue(false);
+
+        const result = await processHtmlConversion(markdown);
+
+        // Should be just the HTML content without document wrapper
+        expect(result).not.toContain('<!DOCTYPE html>');
+        expect(result).not.toContain('<html>');
+        expect(result).not.toContain('<head>');
+        expect(result).not.toContain('<body>');
+        expect(result).toContain('<h1>Test Heading</h1>');
+        expect(result).toContain('<p>Some content.</p>');
+    });
 });
 
 // Test adherance to Joplin global markdown settings
