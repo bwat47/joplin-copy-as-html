@@ -238,11 +238,24 @@ describe('Character Preservation Options', () => {
         expect(result.trim()).toBe('~~deleted text~~');
     });
 
+    it('should strip strikethrough characters by default', () => {
+        const markdown = '~~deleted text~~';
+        const result = convertMarkdownToPlainText(markdown, defaultOptions);
+        expect(result.trim()).toBe('deleted text');
+    });
+
     it('should render a horizontal rule when preserved', () => {
         const markdown = '---';
         const options = { ...defaultOptions, preserveHorizontalRule: true };
         const result = convertMarkdownToPlainText(markdown, options);
         expect(result.trim()).toBe('---');
+    });
+
+    it('should strip horizontal rule by default', () => {
+        const markdown = '---';
+        const result = convertMarkdownToPlainText(markdown, defaultOptions);
+        // The function correctly leaves a blank line for spacing, so the trimmed result should be empty.
+        expect(result.trim()).toBe('');
     });
 
     it('should preserve highlight characters (mark) when enabled', () => {
