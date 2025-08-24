@@ -20,7 +20,7 @@
  */
 
 import type { Token } from 'markdown-it';
-import * as MarkdownIt from 'markdown-it';
+import MarkdownIt from 'markdown-it';
 import { safePluginUse } from './pluginUtils';
 // Use safe imports to prevent conflicts with htmlRenderer
 let markdownItMark: unknown;

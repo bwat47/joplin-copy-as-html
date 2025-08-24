@@ -40,7 +40,7 @@ import { validateHtmlSettings } from './utils';
 import { safePluginUse, loadPluginsConditionally } from './pluginUtils';
 import * as fs from 'fs/promises';
 import * as path from 'path';
-import MarkdownIt = require('markdown-it');
+import MarkdownIt from 'markdown-it';
 import markdownItMark = require('markdown-it-mark');
 import markdownItIns = require('markdown-it-ins');
 import markdownItSub = require('markdown-it-sub');
