@@ -54,6 +54,14 @@ describe('Image Dimension Handling', () => {
         expect(processedMarkdown).toBe('Here is an image: ');
         expect(dimensions.size).toBe(0);
     });
+
+    it('should not process images in code blocks', () => {
+        const markdown = '```\n<img src=":/abc123" width="100"/>\n```';
+        const { processedMarkdown } = extractImageDimensions(markdown, true);
+
+        // Should remain unchanged since it's in a code block
+        expect(processedMarkdown).toContain('<img src=":/abc123" width="100"/>');
+    });
 });
 
 // Resource base64 conversion tests
