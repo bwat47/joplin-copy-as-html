@@ -202,122 +202,25 @@ describe('List rendering', () => {
 // Character preservation tests
 
 describe('Character Preservation Options', () => {
-    it('should preserve heading characters when enabled', () => {
-        const markdown = `## This is a heading`;
-        const options = { ...defaultOptions, preserveHeading: true };
-        const result = convertMarkdownToPlainText(markdown, options);
-        expect(result.trim()).toBe('## This is a heading');
-    });
+    test.each([
+        ['preserveHeading', '## This is a heading', '## This is a heading', 'This is a heading'],
+        ['preserveBold', '**This is bold text**', '**This is bold text**', 'This is bold text'],
+        ['preserveEmphasis', '*This is emphasis text*', '*This is emphasis text*', 'This is emphasis text'],
+        ['preserveStrikethrough', '~~deleted text~~', '~~deleted text~~', 'deleted text'],
+        ['preserveHorizontalRule', '---', '---', ''],
+        ['preserveMark', '==highlighted text==', '==highlighted text==', 'highlighted text'],
+        ['preserveInsert', '++inserted text++', '++inserted text++', 'inserted text'],
+        ['preserveSubscript', 'H~2~O', 'H~2~O', 'H2O'],
+        ['preserveSuperscript', 'x^2^', 'x^2^', 'x2'],
+    ])('should handle %s option correctly', (optionName, input, expectedWhenEnabled, expectedWhenDisabled) => {
+        // Test when option is enabled
+        const enabledOptions = { ...defaultOptions, [optionName]: true };
+        const enabledResult = convertMarkdownToPlainText(input, enabledOptions);
+        expect(enabledResult.trim()).toBe(expectedWhenEnabled);
 
-    it('should strip heading characters by default', () => {
-        const markdown = `## This is a heading`;
-        const result = convertMarkdownToPlainText(markdown, defaultOptions);
-        expect(result.trim()).toBe('This is a heading');
-    });
-
-    it('should preserve bold characters when enabled', () => {
-        const markdown = `**This is bold text**`;
-        const options = { ...defaultOptions, preserveBold: true };
-        const result = convertMarkdownToPlainText(markdown, options);
-        expect(result.trim()).toBe('**This is bold text**');
-    });
-
-    it('should strip bold characters by default', () => {
-        const markdown = `**This is bold text**`;
-        const result = convertMarkdownToPlainText(markdown, defaultOptions);
-        expect(result.trim()).toBe('This is bold text');
-    });
-
-    it('should preserve emphasis characters when enabled', () => {
-        const markdown = `*This is emphasis text*`;
-        const options = { ...defaultOptions, preserveEmphasis: true };
-        const result = convertMarkdownToPlainText(markdown, options);
-        expect(result.trim()).toBe('*This is emphasis text*');
-    });
-
-    it('should strip emphasis characters by default', () => {
-        const markdown = `*This is emphasis text*`;
-        const result = convertMarkdownToPlainText(markdown, defaultOptions);
-        expect(result.trim()).toBe('This is emphasis text');
-    });
-
-    it('should preserve strikethrough characters when enabled', () => {
-        const markdown = '~~deleted text~~';
-        const options = { ...defaultOptions, preserveStrikethrough: true };
-        const result = convertMarkdownToPlainText(markdown, options);
-        expect(result.trim()).toBe('~~deleted text~~');
-    });
-
-    it('should strip strikethrough characters by default', () => {
-        const markdown = '~~deleted text~~';
-        const result = convertMarkdownToPlainText(markdown, defaultOptions);
-        expect(result.trim()).toBe('deleted text');
-    });
-
-    it('should render a horizontal rule when preserved', () => {
-        const markdown = '---';
-        const options = { ...defaultOptions, preserveHorizontalRule: true };
-        const result = convertMarkdownToPlainText(markdown, options);
-        expect(result.trim()).toBe('---');
-    });
-
-    it('should strip horizontal rule by default', () => {
-        const markdown = '---';
-        const result = convertMarkdownToPlainText(markdown, defaultOptions);
-        // The function correctly leaves a blank line for spacing, so the trimmed result should be empty.
-        expect(result.trim()).toBe('');
-    });
-
-    it('should preserve highlight characters (mark) when enabled', () => {
-        const markdown = '==highlighted text==';
-        const options = { ...defaultOptions, preserveMark: true };
-        const result = convertMarkdownToPlainText(markdown, options);
-        expect(result.trim()).toBe('==highlighted text==');
-    });
-
-    it('should strip highlight characters by default', () => {
-        const markdown = '==highlighted text==';
-        const result = convertMarkdownToPlainText(markdown, defaultOptions);
-        expect(result.trim()).toBe('highlighted text');
-    });
-
-    it('should preserve insert characters when enabled', () => {
-        const markdown = '++inserted text++';
-        const options = { ...defaultOptions, preserveInsert: true };
-        const result = convertMarkdownToPlainText(markdown, options);
-        expect(result.trim()).toBe('++inserted text++');
-    });
-
-    it('should strip insert characters by default', () => {
-        const markdown = '++inserted text++';
-        const result = convertMarkdownToPlainText(markdown, defaultOptions);
-        expect(result.trim()).toBe('inserted text');
-    });
-
-    it('should preserve subscript characters when enabled', () => {
-        const markdown = 'H~2~O';
-        const options = { ...defaultOptions, preserveSubscript: true };
-        const result = convertMarkdownToPlainText(markdown, options);
-        expect(result.trim()).toBe('H~2~O');
-    });
-
-    it('should strip subscript characters by default', () => {
-        const markdown = 'H~2~O';
-        const result = convertMarkdownToPlainText(markdown, defaultOptions);
-        expect(result.trim()).toBe('H2O');
-    });
-
-    it('should preserve superscript characters when enabled', () => {
-        const markdown = 'x^2^';
-        const options = { ...defaultOptions, preserveSuperscript: true };
-        const result = convertMarkdownToPlainText(markdown, options);
-        expect(result.trim()).toBe('x^2^');
-    });
-
-    it('should strip superscript characters by default', () => {
-        const markdown = 'x^2^';
-        const result = convertMarkdownToPlainText(markdown, defaultOptions);
-        expect(result.trim()).toBe('x2');
+        // Test when option is disabled (default behavior)
+        const disabledResult = convertMarkdownToPlainText(input, defaultOptions);
+        expect(disabledResult.trim()).toBe(expectedWhenDisabled);
     });
 });
 
