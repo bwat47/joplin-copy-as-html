@@ -41,8 +41,7 @@ joplin.plugins.register({
 
                     if (typeof selection !== 'string') {
                         await joplin.views.dialogs.showToast({
-                            message:
-                                'Copy as HTML: This command only works in the Markdown editor. Switch to Markdown (code) editor and select text.',
+                            message: 'Copy as HTML: This command only works in the Markdown editor.',
                             type: ToastType.Info,
                         });
                         return;
@@ -93,8 +92,7 @@ joplin.plugins.register({
 
                     if (typeof selection !== 'string') {
                         await joplin.views.dialogs.showToast({
-                            message:
-                                'Copy as Plain Text: This command only works in the Markdown editor. Switch to Markdown (code) editor and select text.',
+                            message: 'Copy as Plain Text: This command only works in the Markdown editor.',
                             type: ToastType.Info,
                         });
                         return;
