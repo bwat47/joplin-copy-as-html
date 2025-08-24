@@ -29,10 +29,25 @@ joplin.plugins.register({
             name: 'copyAsHtml',
             label: 'Copy selection as HTML',
             iconName: 'fas fa-copy',
-            when: 'markdownEditorVisible',
             execute: async () => {
                 try {
-                    const selection = await joplin.commands.execute('editor.execCommand', { name: 'getSelection' });
+                    // Safely attempt to get selection (only valid in Markdown editor)
+                    let selection: string | null = null;
+                    try {
+                        selection = await joplin.commands.execute('editor.execCommand', { name: 'getSelection' });
+                    } catch {
+                        // Swallow; will handle below
+                    }
+
+                    if (typeof selection !== 'string') {
+                        await joplin.views.dialogs.showToast({
+                            message:
+                                'Copy as HTML: This command only works in the Markdown editor. Switch to Markdown (code) editor and select text.',
+                            type: ToastType.Info,
+                        });
+                        return;
+                    }
+
                     if (!selection) {
                         await joplin.views.dialogs.showToast({ message: 'No text selected.', type: ToastType.Info });
                         return;
@@ -66,9 +81,30 @@ joplin.plugins.register({
             name: 'copyAsPlainText',
             label: 'Copy selection as Plain Text',
             iconName: 'fas fa-copy',
-            when: 'markdownEditorVisible',
             execute: async () => {
                 try {
+                    // Safely attempt to get selection (only valid in Markdown editor)
+                    let selection: string | null = null;
+                    try {
+                        selection = await joplin.commands.execute('editor.execCommand', { name: 'getSelection' });
+                    } catch {
+                        // Swallow; will handle below
+                    }
+
+                    if (typeof selection !== 'string') {
+                        await joplin.views.dialogs.showToast({
+                            message:
+                                'Copy as Plain Text: This command only works in the Markdown editor. Switch to Markdown (code) editor and select text.',
+                            type: ToastType.Info,
+                        });
+                        return;
+                    }
+
+                    if (!selection) {
+                        await joplin.views.dialogs.showToast({ message: 'No text selected.', type: ToastType.Info });
+                        return;
+                    }
+
                     // Gather settings
                     const plainTextSettings = {
                         preserveSuperscript: await joplin.settings.value(SETTINGS.PRESERVE_SUPERSCRIPT),
@@ -85,13 +121,6 @@ joplin.plugins.register({
                         indentType: await joplin.settings.value(SETTINGS.INDENT_TYPE),
                     };
                     const plainTextOptions = validatePlainTextSettings(plainTextSettings);
-
-                    // Get selected markdown
-                    const selection = await joplin.commands.execute('editor.execCommand', { name: 'getSelection' });
-                    if (!selection) {
-                        await joplin.views.dialogs.showToast({ message: 'No text selected.', type: ToastType.Info });
-                        return;
-                    }
 
                     const plainText = convertMarkdownToPlainText(selection, plainTextOptions);
                     await joplin.clipboard.writeText(plainText);
