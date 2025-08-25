@@ -341,7 +341,8 @@ export function extractBlockTokens(tokens: Token[], startIndex: number): { block
 }
 
 // Helper: collapse >2 blank lines
-function collapseExtraBlankLines(text: string): string {
+// (Was previously internal) Exported for targeted unit testing of newline collapse behavior.
+export function collapseExtraBlankLines(text: string): string {
     return text.replace(/\n{3,}/g, '\n'.repeat(PLAIN_TEXT_CONSTANTS.MAX_PARAGRAPH_NEWLINES));
 }
 

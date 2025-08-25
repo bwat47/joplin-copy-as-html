@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-require-imports */
 
-import { unescape, convertMarkdownToPlainText } from './plainTextRenderer';
+import { unescape, convertMarkdownToPlainText, collapseExtraBlankLines } from './plainTextRenderer';
 import { PlainTextOptions } from './types';
 import MarkdownIt from 'markdown-it';
 
@@ -546,5 +546,51 @@ describe('Safe Plugin Loading', () => {
         expect(result.trim()).toBe('==highlighted==');
 
         // Jest automatically un-hoists the mock after the test, so no cleanup is needed
+    });
+});
+
+// Blank Line Collapsing (direct helper tests)
+describe('Blank Line Collapsing (direct helper tests)', () => {
+    interface Case {
+        input: string;
+        expected: string;
+        note?: string;
+    }
+    const cases: Case[] = [
+        {
+            input: 'A\n\n\n\nB',
+            expected: 'A\n\nB',
+            note: 'Collapse 4 consecutive newlines between text to 2',
+        },
+        {
+            input: '\n\n\nA',
+            expected: '\n\nA',
+            note: 'Leading 3 newlines collapsed to 2 (contract: allow at most 2)',
+        },
+        {
+            // Inside a code fence we do NOT call collapseExtraBlankLines via renderer;
+            // this test shows that if applied naively it would also collapse, hence we
+            // separately test render behavior below.
+            input: 'line1\n\n\nline2\n',
+            expected: 'line1\n\nline2\n',
+            note: 'Pure helper collapses interior triple newlines',
+        },
+    ];
+
+    for (const c of cases) {
+        it(c.note || JSON.stringify(c.input), () => {
+            expect(collapseExtraBlankLines(c.input)).toBe(c.expected);
+        });
+    }
+});
+
+describe('Blank Line Collapsing (render context)', () => {
+    it('should not collapse blank lines inside fenced code but should collapse outside', () => {
+        const markdown = '```\nline1\n\n\nline2\n```\n\n\n\nAfter';
+        const rendered = convertMarkdownToPlainText(markdown, defaultOptions);
+        // Fenced content: collapseExtraBlankLines is never applied there, so triple newline preserved.
+        // Outside fence: trailing 4 newlines after fence should collapse to 2.
+        const expected = 'line1\n\n\nline2\n\nAfter';
+        expect(rendered.trim()).toBe(expected);
     });
 });
