@@ -477,6 +477,39 @@ New paragraph in quote`;
     });
 });
 
+// Footnotes
+
+describe('Footnote Handling', () => {
+    it('should convert footnote references [^id] to [id]', () => {
+        const markdown = 'This is a reference [^note1] inside text.';
+        const result = convertMarkdownToPlainText(markdown, defaultOptions);
+        expect(result.trim()).toBe('This is a reference [note1] inside text.');
+    });
+
+    it('should convert footnote definition labels [^id]: to [id]:', () => {
+        const markdown = '[^note1]: This is the note definition.';
+        const result = convertMarkdownToPlainText(markdown, defaultOptions);
+        // Definition label should lose the caret.
+        expect(result.trim()).toBe('[note1]: This is the note definition.');
+    });
+
+    it('should handle mixed references and definitions separated by blank lines', () => {
+        const markdown = `
+Text referencing [^a] and also [^b].
+
+[^a]: First footnote
+[^b]: Second footnote
+`;
+        const result = convertMarkdownToPlainText(markdown, defaultOptions).trim();
+
+        const expected = `Text referencing [a] and also [b].
+
+[a]: First footnote
+[b]: Second footnote`;
+        expect(result).toBe(expected);
+    });
+});
+
 // Safe plugin loading
 describe('Safe Plugin Loading', () => {
     // Store the original defaultOptions before any tests run
