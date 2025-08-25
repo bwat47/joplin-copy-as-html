@@ -19,7 +19,7 @@
 import { PlainTextOptions, HtmlOptions } from './types';
 
 export function validatePlainTextSettings(settings: unknown): PlainTextOptions {
-    const s = settings as Partial<PlainTextOptions>;
+    const s = (settings || {}) as Partial<PlainTextOptions>;
     return {
         preserveSuperscript: validateBooleanSetting(s.preserveSuperscript),
         preserveSubscript: validateBooleanSetting(s.preserveSubscript),
@@ -44,7 +44,7 @@ export function validatePlainTextSettings(settings: unknown): PlainTextOptions {
 }
 
 export function validateHtmlSettings(settings: unknown): HtmlOptions {
-    const s = settings as Partial<HtmlOptions>;
+    const s = (settings || {}) as Partial<HtmlOptions>;
     return {
         embedImages: validateBooleanSetting(s.embedImages, true),
         exportFullHtml: validateBooleanSetting(s.exportFullHtml, false),
