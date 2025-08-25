@@ -255,7 +255,7 @@ describe('convertResourceToBase64', () => {
 // HTML conversion tests
 
 describe('processHtmlConversion', () => {
-    it('should process a simple markdown string without images', async () => {
+    it('should process a simple markdown string without images when embedImages is false', async () => {
         // Mock the settings the function will ask for
         mockHtmlSettings({ embedImages: false, exportFullHtml: false });
         mockGlobalPlugins([]);
@@ -277,8 +277,30 @@ describe('processHtmlConversion', () => {
 
         const result = await processHtmlConversion(markdown);
 
-        expect(result).toContain('<img src="data:image/jpeg;base64,');
-        expect(result).toContain('alt="my image"');
+        // Parse (handles fragment or full doc)
+        const { JSDOM } = require('jsdom');
+        const containerHtml = result.startsWith('<!DOCTYPE') ? result : `<div id="root">${result}</div>`;
+        const dom = new JSDOM(containerHtml);
+        const imgs = Array.from(dom.window.document.querySelectorAll('img')) as HTMLImageElement[];
+        expect(imgs).toHaveLength(1);
+
+        const img = imgs[0] as HTMLImageElement;
+        const src = img.getAttribute('src') as string;
+        const alt = img.getAttribute('alt') as string;
+
+        // Alt text preserved
+        expect(alt).toBe('my image');
+
+        // Data URI correctness
+        expect(src).toMatch(/^data:image\/jpeg;base64,[A-Za-z0-9+/=]+$/);
+        const expectedBase64 = Buffer.from('fake-jpeg-data').toString('base64');
+        expect(src).toBe(`data:image/jpeg;base64,${expectedBase64}`);
+
+        // Original resource reference should be gone
+        expect(result).not.toMatch(new RegExp(`:/${resourceId}`));
+
+        // No leftover dimension placeholders
+        expect(result).not.toContain('DIMENSION_0');
     });
 
     it('should export as full HTML document when exportFullHtml is true', async () => {
