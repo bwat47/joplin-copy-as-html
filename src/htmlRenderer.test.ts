@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-require-imports */
 // This mock will be hoisted to the top by Jest, applying to all tests in this file.
 jest.mock('api', () => ({
     __esModule: true, // This property helps Jest handle default exports correctly.
@@ -139,8 +140,16 @@ describe('applyPreservedDimensions', () => {
 
         const result = applyPreservedDimensions(html, dimensions);
 
-        expect(result).toContain('width="100"');
-        expect(result).not.toContain('height=');
+        // Parse to make robust assertions
+        const { JSDOM } = require('jsdom');
+        const dom = new JSDOM(`<div>${result}</div>`);
+        const img = dom.window.document.querySelector('img');
+        expect(img).not.toBeNull();
+        expect(img!.getAttribute('src')).toBe(':/abc123');
+        expect(img!.getAttribute('width')).toBe('100');
+        expect(img!.hasAttribute('height')).toBe(false);
+        // Alt marker cleaned
+        expect(img!.getAttribute('alt')).toBe('');
     });
 
     it('should apply only height when width is undefined', () => {
@@ -149,8 +158,15 @@ describe('applyPreservedDimensions', () => {
 
         const result = applyPreservedDimensions(html, dimensions);
 
-        expect(result).toContain('height="200"');
-        expect(result).not.toContain('width=');
+        const { JSDOM } = require('jsdom');
+        const dom = new JSDOM(`<div>${result}</div>`);
+        const img = dom.window.document.querySelector('img');
+        expect(img).not.toBeNull();
+        expect(img!.getAttribute('src')).toBe(':/abc123');
+        expect(img!.getAttribute('height')).toBe('200');
+        expect(img!.hasAttribute('width')).toBe(false);
+        // Alt marker cleaned
+        expect(img!.getAttribute('alt')).toBe('');
     });
 
     it('should handle multiple dimension keys in HTML', () => {
