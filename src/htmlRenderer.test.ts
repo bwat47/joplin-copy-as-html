@@ -28,23 +28,48 @@ beforeEach(() => {
     (joplin.settings.globalValue as jest.Mock).mockClear();
 });
 
-// Image Dimension Handling tests
+// Image Dimension Handling - Component Tests
 
-describe('Image Dimension Handling', () => {
-    it('should extract and apply width and height attributes', () => {
+describe('extractImageDimensions', () => {
+    test.each([
+        [
+            'width only',
+            '<img src=":/abcdef1234567890abcdef1234567890" width="100"/>',
+            { width: '100', height: undefined },
+        ],
+        [
+            'height only',
+            '<img src=":/abcdef1234567890abcdef1234567890" height="200"/>',
+            { width: undefined, height: '200' },
+        ],
+        [
+            'both attributes',
+            '<img src=":/abcdef1234567890abcdef1234567890" width="100" height="200"/>',
+            { width: '100', height: '200' },
+        ],
+    ])('should extract %s from img tags', (_description, input, expected) => {
+        const { dimensions } = extractImageDimensions(input, true);
+
+        expect(dimensions.size).toBe(1);
+        const dimension = dimensions.values().next().value;
+        expect(dimension.width).toBe(expected.width);
+        expect(dimension.height).toBe(expected.height);
+        expect(dimension.resourceId).toBe('abcdef1234567890abcdef1234567890');
+    });
+
+    it('should create no dimensions for images without width/height', () => {
+        const markdown = '<img src=":/abcdef1234567890abcdef1234567890"/>';
+        const { dimensions } = extractImageDimensions(markdown, true);
+
+        expect(dimensions.size).toBe(0);
+    });
+
+    it('should transform img tags to markdown with dimension keys', () => {
         const resourceId = 'a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4';
         const markdown = `<img src=":/${resourceId}" width="100" height="200"/>`;
-        const { processedMarkdown, dimensions } = extractImageDimensions(markdown, true);
+        const { processedMarkdown } = extractImageDimensions(markdown, true);
 
-        // Check that the markdown was correctly transformed
-        expect(processedMarkdown).toContain(`!\[DIMENSION_0\](:/${resourceId})`);
-
-        const renderedHtml = `<img src=":/${resourceId}" alt="DIMENSION_0">`;
-        const finalHtml = applyPreservedDimensions(renderedHtml, dimensions);
-
-        expect(finalHtml).toContain('width="100"');
-        expect(finalHtml).toContain('height="200"');
-        expect(finalHtml).not.toContain('alt="DIMENSION_0"'); // Ensure the placeholder is removed
+        expect(processedMarkdown).toContain(`![DIMENSION_0](:/${resourceId})`);
     });
 
     it('should strip all image tags when embedImages is false', () => {
@@ -61,6 +86,93 @@ describe('Image Dimension Handling', () => {
 
         // Should remain unchanged since it's in a code block
         expect(processedMarkdown).toContain('<img src=":/abc123" width="100"/>');
+    });
+
+    it('should handle multiple images with incremented dimension keys', () => {
+        const markdown =
+            '<img src=":/abcdef1234567890abcdef1234567890" width="100"/><img src=":/fedcba0987654321fedcba0987654321" height="200"/>';
+        const { processedMarkdown, dimensions } = extractImageDimensions(markdown, true);
+
+        expect(dimensions.size).toBe(2);
+        expect(processedMarkdown).toContain('![DIMENSION_0](:');
+        expect(processedMarkdown).toContain('![DIMENSION_1](:');
+    });
+});
+
+describe('applyPreservedDimensions', () => {
+    it('should apply width and height to matching img tags', () => {
+        const html = '<img src=":/abc123" alt="DIMENSION_0">';
+        const dimensions = new Map([['DIMENSION_0', { width: '100', height: '200', resourceId: 'abc123' }]]);
+
+        const result = applyPreservedDimensions(html, dimensions);
+
+        expect(result).toContain('width="100"');
+        expect(result).toContain('height="200"');
+        expect(result).toContain('alt=""'); // Should clean up the marker
+    });
+
+    it('should apply only width when height is undefined', () => {
+        const html = '<img src=":/abc123" alt="DIMENSION_0">';
+        const dimensions = new Map([['DIMENSION_0', { width: '100', height: undefined, resourceId: 'abc123' }]]);
+
+        const result = applyPreservedDimensions(html, dimensions);
+
+        expect(result).toContain('width="100"');
+        expect(result).not.toContain('height=');
+    });
+
+    it('should apply only height when width is undefined', () => {
+        const html = '<img src=":/abc123" alt="DIMENSION_0">';
+        const dimensions = new Map([['DIMENSION_0', { width: undefined, height: '200', resourceId: 'abc123' }]]);
+
+        const result = applyPreservedDimensions(html, dimensions);
+
+        expect(result).toContain('height="200"');
+        expect(result).not.toContain('width=');
+    });
+
+    it('should handle multiple dimension keys in HTML', () => {
+        const html = '<img src=":/abc123" alt="DIMENSION_0"><img src=":/def456" alt="DIMENSION_1">';
+        const dimensions = new Map([
+            ['DIMENSION_0', { width: '100', height: undefined, resourceId: 'abc123' }],
+            ['DIMENSION_1', { width: undefined, height: '200', resourceId: 'def456' }],
+        ]);
+
+        const result = applyPreservedDimensions(html, dimensions);
+
+        expect(result).toContain('width="100"');
+        expect(result).toContain('height="200"');
+    });
+
+    it('should return unchanged HTML when no dimensions match', () => {
+        const html = '<img src=":/abc123" alt="some-other-alt">';
+        const dimensions = new Map([['DIMENSION_0', { width: '100', height: '200', resourceId: 'abc123' }]]);
+
+        const result = applyPreservedDimensions(html, dimensions);
+
+        expect(result).toBe(html); // Should be unchanged
+    });
+});
+
+// Integration test to ensure components work together
+describe('Image Dimension Integration', () => {
+    it('should extract and apply dimensions in full pipeline', () => {
+        const resourceId = 'a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4';
+        const markdown = `<img src=":/${resourceId}" width="100" height="200"/>`;
+
+        // Extract dimensions
+        const { processedMarkdown, dimensions } = extractImageDimensions(markdown, true);
+        expect(processedMarkdown).toContain(`![DIMENSION_0](:/${resourceId})`);
+
+        // Simulate rendered HTML from markdown processor
+        const renderedHtml = `<img src=":/${resourceId}" alt="DIMENSION_0">`;
+
+        // Apply preserved dimensions
+        const finalHtml = applyPreservedDimensions(renderedHtml, dimensions);
+
+        expect(finalHtml).toContain('width="100"');
+        expect(finalHtml).toContain('height="200"');
+        expect(finalHtml).not.toContain('alt="DIMENSION_0"');
     });
 });
 
