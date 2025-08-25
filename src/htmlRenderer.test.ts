@@ -94,14 +94,30 @@ describe('extractImageDimensions', () => {
         expect(processedMarkdown).toContain('<img src=":/abc123" width="100"/>');
     });
 
-    it('should handle multiple images with incremented dimension keys', () => {
-        const markdown =
-            '<img src=":/abcdef1234567890abcdef1234567890" width="100"/><img src=":/fedcba0987654321fedcba0987654321" height="200"/>';
+    it('should handle multiple images with distinct incremented dimension keys', () => {
+        const id1 = 'abcdef1234567890abcdef1234567890';
+        const id2 = 'fedcba0987654321fedcba0987654321';
+        const markdown = `<img src=":/${id1}" width="100"/>` + `<img src=":/${id2}" height="200"/>`;
+
         const { processedMarkdown, dimensions } = extractImageDimensions(markdown, true);
 
+        // Map should contain two distinct entries
         expect(dimensions.size).toBe(2);
-        expect(processedMarkdown).toContain('![DIMENSION_0](:');
-        expect(processedMarkdown).toContain('![DIMENSION_1](:');
+        expect([...dimensions.keys()].sort()).toEqual(['DIMENSION_0', 'DIMENSION_1']);
+
+        // Count occurrences of each placeholder (must be exactly one each)
+        const dim0Count = (processedMarkdown.match(/!\[DIMENSION_0]\(:\/[0-9a-f]{32}\)/g) || []).length;
+        const dim1Count = (processedMarkdown.match(/!\[DIMENSION_1]\(:\/[0-9a-f]{32}\)/g) || []).length;
+        expect(dim0Count).toBe(1);
+        expect(dim1Count).toBe(1);
+
+        // Ensure they reference the correct resource IDs in order
+        const placeholderMatches = [...processedMarkdown.matchAll(/!\[(DIMENSION_\d+)]\(:\/([0-9a-f]{32})\)/g)];
+        expect(placeholderMatches.length).toBe(2);
+        expect(placeholderMatches[0][1]).toBe('DIMENSION_0');
+        expect(placeholderMatches[0][2]).toBe(id1);
+        expect(placeholderMatches[1][1]).toBe('DIMENSION_1');
+        expect(placeholderMatches[1][2]).toBe(id2);
     });
 });
 
