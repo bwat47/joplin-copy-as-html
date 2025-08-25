@@ -572,6 +572,10 @@ ${fragment}
 
 async function getUserStylesheet(): Promise<string> {
     const profileDir = await joplin.settings.globalValue('profileDir');
+    // Guard: test mocks (or some environments) may return false/undefined.
+    if (typeof profileDir !== 'string' || !profileDir) {
+        return defaultStylesheet;
+    }
     const cssPath = path.join(profileDir, 'copy-as-html-user.css');
     try {
         return await fs.readFile(cssPath, 'utf8');

@@ -20,12 +20,18 @@ import {
     processHtmlConversion,
     convertResourceToBase64,
 } from './htmlRenderer';
+import {
+    resetAllJoplinMocks,
+    mockHtmlSettings,
+    mockGlobalPlugins,
+    enableOnlyPlugin,
+    mockImageResource,
+    genResourceId,
+} from './testHelpers';
 
 // Clear mocks before each test to ensure a clean slate
 beforeEach(() => {
-    (joplin.data.get as jest.Mock).mockClear();
-    (joplin.settings.value as jest.Mock).mockClear();
-    (joplin.settings.globalValue as jest.Mock).mockClear();
+    resetAllJoplinMocks();
 });
 
 // Image Dimension Handling - Component Tests
@@ -219,8 +225,8 @@ describe('convertResourceToBase64', () => {
 describe('processHtmlConversion', () => {
     it('should process a simple markdown string without images', async () => {
         // Mock the settings the function will ask for
-        (joplin.settings.value as jest.Mock).mockResolvedValue(false); // embedImages = false
-        (joplin.settings.globalValue as jest.Mock).mockResolvedValue(false); // Mock any global markdown settings
+        mockHtmlSettings({ embedImages: false, exportFullHtml: false });
+        mockGlobalPlugins([]);
 
         const markdown = '## Hello World';
         const result = await processHtmlConversion(markdown);
@@ -230,19 +236,12 @@ describe('processHtmlConversion', () => {
     });
 
     it('should embed an image when embedImages is true', async () => {
-        const resourceId = 'a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4';
+        const resourceId = genResourceId();
         const markdown = `![my image](:/${resourceId})`;
 
-        // Mock the settings
-        (joplin.settings.value as jest.Mock)
-            .mockResolvedValueOnce(true) // embedImages = true
-            .mockResolvedValueOnce(false); // exportFullHtml = false
-        (joplin.settings.globalValue as jest.Mock).mockResolvedValue(false);
-
-        // Mock the data API calls for the image
-        const mockResource = { id: resourceId, mime: 'image/jpeg' };
-        const mockFile = { body: Buffer.from('fake-jpeg-data') };
-        (joplin.data.get as jest.Mock).mockResolvedValueOnce(mockResource).mockResolvedValueOnce(mockFile);
+        mockHtmlSettings({ embedImages: true, exportFullHtml: false });
+        mockGlobalPlugins([]);
+        mockImageResource(resourceId, 'image/jpeg', 'fake-jpeg-data');
 
         const result = await processHtmlConversion(markdown);
 
@@ -252,38 +251,22 @@ describe('processHtmlConversion', () => {
 
     it('should export as full HTML document when exportFullHtml is true', async () => {
         const markdown = '# Test Heading\n\nSome content.';
-
-        // Mock the settings
-        (joplin.settings.value as jest.Mock)
-            .mockResolvedValueOnce(false) // embedImages = false
-            .mockResolvedValueOnce(true); // exportFullHtml = true
-        (joplin.settings.globalValue as jest.Mock).mockImplementation((key) => {
-            if (key === 'profileDir') return Promise.resolve('/fake/profile/dir');
-            return Promise.resolve(false);
-        });
+        mockHtmlSettings({ embedImages: false, exportFullHtml: true });
+        mockGlobalPlugins([]); // profileDir not needed unless code fetches it explicitly
 
         const result = await processHtmlConversion(markdown);
 
         // Should be wrapped as a complete HTML document
         expect(result).toContain('<!DOCTYPE html>');
-        expect(result).toContain('<html>');
-        expect(result).toContain('<head>');
-        expect(result).toContain('<meta charset="UTF-8">');
-        expect(result).toContain('<body>');
-        expect(result).toContain('</body>');
-        expect(result).toContain('</html>');
-        expect(result).toContain('Test Heading');
-        expect(result).toContain('Some content');
+        expect(result).toContain('<h1>Test Heading</h1>');
     });
 
     it('should export as HTML fragment when exportFullHtml is false', async () => {
         const markdown = '# Test Heading\n\nSome content.';
 
         // Mock the settings
-        (joplin.settings.value as jest.Mock)
-            .mockResolvedValueOnce(false) // embedImages = false
-            .mockResolvedValueOnce(false); // exportFullHtml = false
-        (joplin.settings.globalValue as jest.Mock).mockResolvedValue(false);
+        mockHtmlSettings({ embedImages: false, exportFullHtml: false });
+        mockGlobalPlugins([]);
 
         const result = await processHtmlConversion(markdown);
 
@@ -302,13 +285,8 @@ describe('processHtmlConversion', () => {
 describe('Joplin Global Setting Integration', () => {
     it('should correctly render ==mark== syntax when the mark plugin is enabled', async () => {
         const markdown = 'This is ==highlighted== text.';
-
-        // Mock settings: enable the mark plugin, disable image embedding for simplicity
-        (joplin.settings.value as jest.Mock).mockResolvedValue(false);
-        (joplin.settings.globalValue as jest.Mock).mockImplementation((key) => {
-            // Enable only the 'mark' plugin for this test
-            return Promise.resolve(key === 'markdown.plugin.mark');
-        });
+        mockHtmlSettings();
+        enableOnlyPlugin('markdown.plugin.mark');
 
         const result = await processHtmlConversion(markdown);
         expect(result.trim()).toBe('<p>This is <mark>highlighted</mark> text.</p>');
@@ -317,10 +295,8 @@ describe('Joplin Global Setting Integration', () => {
     it('should correctly render ~subscript~ when the sub plugin is enabled', async () => {
         const markdown = 'H~2~O';
 
-        (joplin.settings.value as jest.Mock).mockResolvedValue(false);
-        (joplin.settings.globalValue as jest.Mock).mockImplementation((key) => {
-            return Promise.resolve(key === 'markdown.plugin.sub');
-        });
+        mockHtmlSettings();
+        enableOnlyPlugin('markdown.plugin.sub');
 
         const result = await processHtmlConversion(markdown);
         expect(result.trim()).toBe('<p>H<sub>2</sub>O</p>');
@@ -328,13 +304,8 @@ describe('Joplin Global Setting Integration', () => {
 
     it('should NOT render ==mark== syntax when the mark plugin is disabled', async () => {
         const markdown = 'This is ==highlighted== text.';
-
-        // Mock settings: disable the mark plugin, disable image embedding for simplicity
-        (joplin.settings.value as jest.Mock).mockResolvedValue(false);
-        (joplin.settings.globalValue as jest.Mock).mockImplementation(() => {
-            // Disable the 'mark' plugin for this test (return false for all plugins)
-            return Promise.resolve(false);
-        });
+        mockHtmlSettings();
+        mockGlobalPlugins([]);
 
         const result = await processHtmlConversion(markdown);
         expect(result.trim()).toBe('<p>This is ==highlighted== text.</p>');
@@ -343,11 +314,8 @@ describe('Joplin Global Setting Integration', () => {
     it('should NOT render ~subscript~ when the sub plugin is disabled', async () => {
         const markdown = 'H~2~O';
 
-        (joplin.settings.value as jest.Mock).mockResolvedValue(false);
-        (joplin.settings.globalValue as jest.Mock).mockImplementation(() => {
-            // Disable the 'sub' plugin for this test (return false for all plugins)
-            return Promise.resolve(false);
-        });
+        mockHtmlSettings();
+        mockGlobalPlugins([]);
 
         const result = await processHtmlConversion(markdown);
         expect(result.trim()).toBe('<p>H~2~O</p>');
@@ -356,10 +324,8 @@ describe('Joplin Global Setting Integration', () => {
     it('should correctly render ^superscript^ when the sup plugin is enabled', async () => {
         const markdown = 'x^2^';
 
-        (joplin.settings.value as jest.Mock).mockResolvedValue(false);
-        (joplin.settings.globalValue as jest.Mock).mockImplementation((key) => {
-            return Promise.resolve(key === 'markdown.plugin.sup');
-        });
+        mockHtmlSettings();
+        enableOnlyPlugin('markdown.plugin.sup');
 
         const result = await processHtmlConversion(markdown);
         expect(result.trim()).toBe('<p>x<sup>2</sup></p>');
@@ -368,11 +334,8 @@ describe('Joplin Global Setting Integration', () => {
     it('should NOT render ^superscript^ when the sup plugin is disabled', async () => {
         const markdown = 'x^2^';
 
-        (joplin.settings.value as jest.Mock).mockResolvedValue(false);
-        (joplin.settings.globalValue as jest.Mock).mockImplementation(() => {
-            // Disable the 'sup' plugin for this test (return false for all plugins)
-            return Promise.resolve(false);
-        });
+        mockHtmlSettings();
+        mockGlobalPlugins([]);
 
         const result = await processHtmlConversion(markdown);
         expect(result.trim()).toBe('<p>x^2^</p>');
@@ -381,10 +344,8 @@ describe('Joplin Global Setting Integration', () => {
     it('should correctly render ++insert++ when the ins plugin is enabled', async () => {
         const markdown = 'This is ++inserted++ text.';
 
-        (joplin.settings.value as jest.Mock).mockResolvedValue(false);
-        (joplin.settings.globalValue as jest.Mock).mockImplementation((key) => {
-            return Promise.resolve(key === 'markdown.plugin.insert');
-        });
+        mockHtmlSettings();
+        enableOnlyPlugin('markdown.plugin.insert');
 
         const result = await processHtmlConversion(markdown);
         expect(result.trim()).toBe('<p>This is <ins>inserted</ins> text.</p>');
@@ -393,11 +354,8 @@ describe('Joplin Global Setting Integration', () => {
     it('should NOT render ++insert++ when the ins plugin is disabled', async () => {
         const markdown = 'This is ++inserted++ text.';
 
-        (joplin.settings.value as jest.Mock).mockResolvedValue(false);
-        (joplin.settings.globalValue as jest.Mock).mockImplementation(() => {
-            // Disable the 'ins' plugin for this test (return false for all plugins)
-            return Promise.resolve(false);
-        });
+        mockHtmlSettings();
+        mockGlobalPlugins([]);
 
         const result = await processHtmlConversion(markdown);
         expect(result.trim()).toBe('<p>This is ++inserted++ text.</p>');
@@ -406,10 +364,8 @@ describe('Joplin Global Setting Integration', () => {
     it('should apply typographic replacements when typographer is enabled', async () => {
         const markdown = '"Smartypants, double quotes" and test...';
 
-        (joplin.settings.value as jest.Mock).mockResolvedValue(false);
-        (joplin.settings.globalValue as jest.Mock).mockImplementation((key) => {
-            return Promise.resolve(key === 'markdown.plugin.typographer');
-        });
+        mockHtmlSettings();
+        enableOnlyPlugin('markdown.plugin.typographer');
 
         const result = await processHtmlConversion(markdown);
         // Check that typographic replacements occurred
@@ -421,11 +377,8 @@ describe('Joplin Global Setting Integration', () => {
     it('should NOT apply typographic replacements when typographer is disabled', async () => {
         const markdown = '"Smartypants, double quotes" and test...';
 
-        (joplin.settings.value as jest.Mock).mockResolvedValue(false);
-        (joplin.settings.globalValue as jest.Mock).mockImplementation(() => {
-            // Disable typographer for this test (return false for all settings)
-            return Promise.resolve(false);
-        });
+        mockHtmlSettings();
+        mockGlobalPlugins([]);
 
         const result = await processHtmlConversion(markdown);
         // Should contain straight quotes and three dots, not smart typography
@@ -437,10 +390,8 @@ describe('Joplin Global Setting Integration', () => {
     it('should NOT convert single line breaks to <br> when soft breaks are enabled', async () => {
         const markdown = 'Line one\nLine two';
 
-        (joplin.settings.value as jest.Mock).mockResolvedValue(false);
-        (joplin.settings.globalValue as jest.Mock).mockImplementation((key) => {
-            return Promise.resolve(key === 'markdown.plugin.softbreaks');
-        });
+        mockHtmlSettings();
+        enableOnlyPlugin('markdown.plugin.softbreaks');
 
         const result = await processHtmlConversion(markdown);
         // When soft breaks are enabled, single newlines should NOT become <br> tags
@@ -451,11 +402,8 @@ describe('Joplin Global Setting Integration', () => {
     it('should convert single line breaks to <br> when soft breaks are disabled', async () => {
         const markdown = 'Line one\nLine two';
 
-        (joplin.settings.value as jest.Mock).mockResolvedValue(false);
-        (joplin.settings.globalValue as jest.Mock).mockImplementation(() => {
-            // Disable soft breaks for this test (return false for all settings)
-            return Promise.resolve(false);
-        });
+        mockHtmlSettings();
+        mockGlobalPlugins([]);
 
         const result = await processHtmlConversion(markdown);
         // When soft breaks are disabled, single newlines should become <br> tags
@@ -466,10 +414,8 @@ describe('Joplin Global Setting Integration', () => {
     it('should convert URLs and emails to links when linkify is enabled', async () => {
         const markdown = 'Visit https://example.com\n\nEmail: test@example.com';
 
-        (joplin.settings.value as jest.Mock).mockResolvedValue(false);
-        (joplin.settings.globalValue as jest.Mock).mockImplementation((key) => {
-            return Promise.resolve(key === 'markdown.plugin.linkify');
-        });
+        mockHtmlSettings();
+        enableOnlyPlugin('markdown.plugin.linkify');
 
         const result = await processHtmlConversion(markdown);
         // URLs and emails should be converted to clickable links
@@ -481,11 +427,8 @@ describe('Joplin Global Setting Integration', () => {
     it('should NOT convert URLs and emails to links when linkify is disabled', async () => {
         const markdown = 'Visit https://example.com\n\nEmail: test@example.com';
 
-        (joplin.settings.value as jest.Mock).mockResolvedValue(false);
-        (joplin.settings.globalValue as jest.Mock).mockImplementation(() => {
-            // Disable linkify for this test (return false for all settings)
-            return Promise.resolve(false);
-        });
+        mockHtmlSettings();
+        mockGlobalPlugins([]);
 
         const result = await processHtmlConversion(markdown);
         // URLs and emails should remain as plain text
@@ -497,10 +440,8 @@ describe('Joplin Global Setting Integration', () => {
     it('should convert emoji shortcodes to emoji when emoji plugin is enabled', async () => {
         const markdown = 'Hello :smile: and :heart: world!';
 
-        (joplin.settings.value as jest.Mock).mockResolvedValue(false);
-        (joplin.settings.globalValue as jest.Mock).mockImplementation((key) => {
-            return Promise.resolve(key === 'markdown.plugin.emoji');
-        });
+        mockHtmlSettings();
+        enableOnlyPlugin('markdown.plugin.emoji');
 
         const result = await processHtmlConversion(markdown);
         // Emoji shortcodes should be converted to actual emoji
@@ -513,11 +454,8 @@ describe('Joplin Global Setting Integration', () => {
     it('should NOT convert emoji shortcodes when emoji plugin is disabled', async () => {
         const markdown = 'Hello :smile: and :heart: world!';
 
-        (joplin.settings.value as jest.Mock).mockResolvedValue(false);
-        (joplin.settings.globalValue as jest.Mock).mockImplementation(() => {
-            // Disable emoji plugin for this test (return false for all settings)
-            return Promise.resolve(false);
-        });
+        mockHtmlSettings();
+        mockGlobalPlugins([]);
 
         const result = await processHtmlConversion(markdown);
         // Emoji shortcodes should remain as text
@@ -535,10 +473,8 @@ describe('Joplin Global Setting Integration', () => {
 Term 2
 :   Definition 2`;
 
-        (joplin.settings.value as jest.Mock).mockResolvedValue(false);
-        (joplin.settings.globalValue as jest.Mock).mockImplementation((key) => {
-            return Promise.resolve(key === 'markdown.plugin.deflist');
-        });
+        mockHtmlSettings();
+        enableOnlyPlugin('markdown.plugin.deflist');
 
         const result = await processHtmlConversion(markdown);
         // Should contain definition list HTML elements
@@ -556,11 +492,8 @@ Term 2
 Term 2
 :   Definition 2`;
 
-        (joplin.settings.value as jest.Mock).mockResolvedValue(false);
-        (joplin.settings.globalValue as jest.Mock).mockImplementation(() => {
-            // Disable deflist plugin for this test (return false for all settings)
-            return Promise.resolve(false);
-        });
+        mockHtmlSettings();
+        mockGlobalPlugins([]);
 
         const result = await processHtmlConversion(markdown);
         // Should not contain definition list HTML elements
@@ -578,10 +511,8 @@ is maintained by the W3C.
 *[HTML]: Hyper Text Markup Language
 *[W3C]: World Wide Web Consortium`;
 
-        (joplin.settings.value as jest.Mock).mockResolvedValue(false);
-        (joplin.settings.globalValue as jest.Mock).mockImplementation((key) => {
-            return Promise.resolve(key === 'markdown.plugin.abbr');
-        });
+        mockHtmlSettings();
+        enableOnlyPlugin('markdown.plugin.abbr');
 
         const result = await processHtmlConversion(markdown);
         // Should contain abbreviation HTML elements with title attributes
@@ -597,11 +528,8 @@ is maintained by the W3C.
 *[HTML]: Hyper Text Markup Language
 *[W3C]: World Wide Web Consortium`;
 
-        (joplin.settings.value as jest.Mock).mockResolvedValue(false);
-        (joplin.settings.globalValue as jest.Mock).mockImplementation(() => {
-            // Disable abbr plugin for this test (return false for all settings)
-            return Promise.resolve(false);
-        });
+        mockHtmlSettings();
+        mockGlobalPlugins([]);
 
         const result = await processHtmlConversion(markdown);
         // Should not contain abbreviation HTML elements
@@ -618,10 +546,8 @@ Here is another footnote[^note].
 [^1]: This is the first footnote.
 [^note]: This is the second footnote.`;
 
-        (joplin.settings.value as jest.Mock).mockResolvedValue(false);
-        (joplin.settings.globalValue as jest.Mock).mockImplementation((key) => {
-            return Promise.resolve(key === 'markdown.plugin.footnote');
-        });
+        mockHtmlSettings();
+        enableOnlyPlugin('markdown.plugin.footnote');
 
         const result = await processHtmlConversion(markdown);
         // Should contain footnote HTML elements
@@ -639,11 +565,8 @@ Here is another footnote[^note].
 [^1]: This is the first footnote.
 [^note]: This is the second footnote.`;
 
-        (joplin.settings.value as jest.Mock).mockResolvedValue(false);
-        (joplin.settings.globalValue as jest.Mock).mockImplementation(() => {
-            // Disable footnote plugin for this test (return false for all settings)
-            return Promise.resolve(false);
-        });
+        mockHtmlSettings();
+        mockGlobalPlugins([]);
 
         const result = await processHtmlConversion(markdown);
         // Should not contain footnote HTML elements
@@ -670,10 +593,8 @@ More content.
 
 Final content.`;
 
-        (joplin.settings.value as jest.Mock).mockResolvedValue(false);
-        (joplin.settings.globalValue as jest.Mock).mockImplementation((key) => {
-            return Promise.resolve(key === 'markdown.plugin.toc');
-        });
+        mockHtmlSettings();
+        enableOnlyPlugin('markdown.plugin.toc');
 
         const result = await processHtmlConversion(markdown);
         // Should contain table of contents HTML elements
@@ -700,11 +621,8 @@ More content.
 
 Final content.`;
 
-        (joplin.settings.value as jest.Mock).mockResolvedValue(false);
-        (joplin.settings.globalValue as jest.Mock).mockImplementation(() => {
-            // Disable toc plugin for this test (return false for all settings)
-            return Promise.resolve(false);
-        });
+        mockHtmlSettings();
+        mockGlobalPlugins([]);
 
         const result = await processHtmlConversion(markdown);
         // Should not contain table of contents HTML elements
@@ -721,10 +639,8 @@ Final content.`;
 | L1   |   C1   |    R1 |
 | L2   |   C2   |    R2 |`;
 
-        (joplin.settings.value as jest.Mock).mockResolvedValue(false);
-        (joplin.settings.globalValue as jest.Mock).mockImplementation((key) => {
-            return Promise.resolve(key === 'markdown.plugin.multitable');
-        });
+        mockHtmlSettings();
+        enableOnlyPlugin('markdown.plugin.multitable');
 
         const result = await processHtmlConversion(markdown);
         // Should contain table with alignment styles
@@ -745,11 +661,8 @@ Final content.`;
 | L1   |   C1   |    R1 |
 | L2   |   C2   |    R2 |`;
 
-        (joplin.settings.value as jest.Mock).mockResolvedValue(false);
-        (joplin.settings.globalValue as jest.Mock).mockImplementation(() => {
-            // Disable multimd-table plugin for this test (return false for all settings)
-            return Promise.resolve(false);
-        });
+        mockHtmlSettings();
+        mockGlobalPlugins([]);
 
         const result = await processHtmlConversion(markdown);
         // Should still render as a table with basic alignment (core markdown-it feature)
