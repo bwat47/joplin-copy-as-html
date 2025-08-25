@@ -550,7 +550,8 @@ export async function processHtmlConversion(selection: string, options?: HtmlOpt
         fragment = html.trim();
     }
 
-    // Optionally wrap as a full HTML document with user stylesheet
+    // Optionally wrap as a full HTML document with user stylesheet. Note that Clipboard host (chromium/electron) will wrap again,
+    // This produces a nested <html>/<body>. Tested targets (Outlook web/win32, Gmail, MS Word) accept this without issue.
     if (options.exportFullHtml) {
         const userStylesheet = await getUserStylesheet();
         const styleTag = userStylesheet ? `<style type="text/css">\n${userStylesheet}\n</style>` : '';
