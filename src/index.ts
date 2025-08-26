@@ -278,19 +278,69 @@ joplin.plugins.register({
             },
         });
 
-        // Register keyboard shortcut for HTML copy
-        await joplin.views.menuItems.create('copyAsHtmlShortcut', 'copyAsHtml', MenuItemLocation.EditorContextMenu, {
+        // Note: We'll register context menu items dynamically through the filter
+        // to avoid showing them in rich text editor where they don't work
+
+        // Register keyboard shortcut for HTML copy (Tools menu as fallback)
+        await joplin.views.menuItems.create('copyAsHtmlShortcut', 'copyAsHtml', MenuItemLocation.Tools, {
             accelerator: 'Ctrl+Shift+C',
         });
 
-        // Register keyboard shortcut for plain text copy
-        await joplin.views.menuItems.create(
-            'copyAsPlainTextShortcut',
-            'copyAsPlainText',
-            MenuItemLocation.EditorContextMenu,
-            {
-                accelerator: 'Ctrl+Alt+C',
+        // Register keyboard shortcut for plain text copy (Tools menu as fallback)
+        await joplin.views.menuItems.create('copyAsPlainTextShortcut', 'copyAsPlainText', MenuItemLocation.Tools, {
+            accelerator: 'Ctrl+Alt+C',
+        });
+
+        // Filter context menu to dynamically add our commands only in markdown editor
+        joplin.workspace.filterEditorContextMenu(async (contextMenu) => {
+            // Debug: log what we see in the context menu
+            console.log(
+                '[copy-as-html] Context menu items:',
+                contextMenu.items.map((item) => item.commandName)
+            );
+
+            // Simple approach: try to execute a markdown-specific command
+            // If it succeeds, we're in the markdown editor
+            let isMarkdownEditor = false;
+            try {
+                // Try to get the cursor position - this should only work in markdown editor
+                await joplin.commands.execute('editor.execCommand', {
+                    name: 'getCursor',
+                });
+                isMarkdownEditor = true;
+                console.log('[copy-as-html] Detected markdown editor - adding context menu items');
+            } catch {
+                // If getCursor fails, we're likely in rich text editor
+                isMarkdownEditor = false;
+                console.log('[copy-as-html] Detected rich text editor - not adding context menu items');
             }
-        );
+
+            // Only add our commands to the context menu if we're in markdown editor
+            if (isMarkdownEditor) {
+                // Check if our commands are already in the menu to avoid duplicates
+                const hasHtmlCommand = contextMenu.items.some((item) => item.commandName === 'copyAsHtml');
+                const hasPlainTextCommand = contextMenu.items.some((item) => item.commandName === 'copyAsPlainText');
+
+                if (!hasHtmlCommand) {
+                    contextMenu.items.push({
+                        commandName: 'copyAsHtml',
+                        label: 'Copy selection as HTML',
+                        accelerator: 'Ctrl+Shift+C',
+                    });
+                }
+
+                if (!hasPlainTextCommand) {
+                    contextMenu.items.push({
+                        commandName: 'copyAsPlainText',
+                        label: 'Copy selection as Plain Text',
+                        accelerator: 'Ctrl+Alt+C',
+                    });
+                }
+
+                console.log('[copy-as-html] Added context menu items, total:', contextMenu.items.length);
+            }
+
+            return contextMenu;
+        });
     },
 });
