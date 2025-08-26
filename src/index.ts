@@ -281,13 +281,13 @@ joplin.plugins.register({
         // Note: We'll register context menu items dynamically through the filter
         // to avoid showing them in rich text editor where they don't work
 
-        // Register keyboard shortcut for HTML copy (Tools menu as fallback)
-        await joplin.views.menuItems.create('copyAsHtmlShortcut', 'copyAsHtml', MenuItemLocation.Tools, {
+        // Register keyboard shortcut for HTML copy (Edit menu as fallback)
+        await joplin.views.menuItems.create('copyAsHtmlShortcut', 'copyAsHtml', MenuItemLocation.Edit, {
             accelerator: 'Ctrl+Shift+C',
         });
 
-        // Register keyboard shortcut for plain text copy (Tools menu as fallback)
-        await joplin.views.menuItems.create('copyAsPlainTextShortcut', 'copyAsPlainText', MenuItemLocation.Tools, {
+        // Register keyboard shortcut for plain text copy (Edit menu as fallback)
+        await joplin.views.menuItems.create('copyAsPlainTextShortcut', 'copyAsPlainText', MenuItemLocation.Edit, {
             accelerator: 'Ctrl+Alt+C',
         });
 
