@@ -170,6 +170,10 @@ export function extractImageDimensions(
             // Only process HTML img tags that contain Joplin resource IDs in non-code segments
             const htmlImgRegex = REGEX_PATTERNS.HTML_IMG_WITH_RESOURCE;
             processedContent = processedContent.replace(htmlImgRegex, (match, attrs, resourceId) => {
+                // Extract existing alt attribute
+                const altMatch = attrs.match(/\balt\s*=\s*["']([^"']*)["']/i);
+                const originalAlt = altMatch ? altMatch[1] : '';
+
                 // Extract width and height attributes
                 const widthMatch = attrs.match(/\bwidth\s*=\s*["']?([^"'\s>]+)["']?/i);
                 const heightMatch = attrs.match(/\bheight\s*=\s*["']?([^"'\s>]+)["']?/i);
@@ -179,12 +183,16 @@ export function extractImageDimensions(
                         width: widthMatch ? widthMatch[1] : undefined,
                         height: heightMatch ? heightMatch[1] : undefined,
                         resourceId: resourceId,
+                        originalAlt: originalAlt,
                     });
                     const result = `![${dimensionKey}](:/${resourceId})`;
                     counter++;
                     return result;
                 }
                 // No dimensions to preserve, convert to standard markdown
+                if (originalAlt) {
+                    return `![${originalAlt}](:/${resourceId})`;
+                }
                 return `![](:/${resourceId})`;
             });
         }
@@ -222,9 +230,10 @@ export function applyPreservedDimensions(html: string, dimensions: Map<string, I
                 newAttrs += ` height="${attrs.height}"`;
             }
 
-            // Clean up the alt attribute (remove dimension marker)
+            // Replace the dimension key with the original alt text
             const escapedPrefix = CONSTANTS.DIMENSION_KEY_PREFIX.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-            newAttrs = newAttrs.replace(new RegExp(`alt\\s*=\\s*["']${escapedPrefix}\\d+["']`), 'alt=""');
+            const originalAlt = attrs.originalAlt || '';
+            newAttrs = newAttrs.replace(new RegExp(`alt\\s*=\\s*["']${escapedPrefix}\\d+["']`), `alt="${originalAlt}"`);
 
             return `<img${newAttrs}>`;
         });

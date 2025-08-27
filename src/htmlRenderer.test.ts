@@ -61,6 +61,7 @@ describe('extractImageDimensions', () => {
         expect(dimension.width).toBe(expected.width);
         expect(dimension.height).toBe(expected.height);
         expect(dimension.resourceId).toBe('abcdef1234567890abcdef1234567890');
+        expect(dimension.originalAlt).toBe('');
     });
 
     it('should create no dimensions for images without width/height', () => {
@@ -106,47 +107,88 @@ describe('extractImageDimensions', () => {
         expect(processedMarkdown).toContain('![DIMENSION_0](:');
         expect(processedMarkdown).toContain('![DIMENSION_1](:');
     });
+
+    it('should preserve original alt text in dimensions map', () => {
+        const markdown = '<img src=":/abcdef1234567890abcdef1234567890" alt="My Image" width="100" height="200"/>';
+        const { processedMarkdown, dimensions } = extractImageDimensions(markdown, true);
+
+        expect(dimensions.size).toBe(1);
+        const dimension = dimensions.values().next().value;
+        expect(dimension.originalAlt).toBe('My Image');
+        expect(processedMarkdown).toContain('![DIMENSION_0](:');
+    });
+
+    it('should handle empty alt text', () => {
+        const markdown = '<img src=":/abcdef1234567890abcdef1234567890" alt="" width="100"/>';
+        const { dimensions } = extractImageDimensions(markdown, true);
+
+        const dimension = dimensions.values().next().value;
+        expect(dimension.originalAlt).toBe('');
+    });
+
+    it('should handle missing alt attribute', () => {
+        const markdown = '<img src=":/abcdef1234567890abcdef1234567890" width="100"/>';
+        const { dimensions } = extractImageDimensions(markdown, true);
+
+        const dimension = dimensions.values().next().value;
+        expect(dimension.originalAlt).toBe('');
+    });
+
+    it('should preserve alt text even when no dimensions to preserve', () => {
+        const markdown = '<img src=":/abcdef1234567890abcdef1234567890" alt="Important Image">';
+        const { processedMarkdown } = extractImageDimensions(markdown, true);
+
+        // Should preserve alt text in markdown format when no dimensions
+        expect(processedMarkdown).toContain('![Important Image](:');
+        expect(processedMarkdown).not.toContain('![](:');
+    });
 });
 
 describe('applyPreservedDimensions', () => {
     it('should apply width and height to matching img tags', () => {
         const html = '<img src=":/abc123" alt="DIMENSION_0">';
-        const dimensions = new Map([['DIMENSION_0', { width: '100', height: '200', resourceId: 'abc123' }]]);
+        const dimensions = new Map([
+            ['DIMENSION_0', { width: '100', height: '200', resourceId: 'abc123', originalAlt: '' }],
+        ]);
 
         const result = applyPreservedDimensions(html, dimensions);
 
         expect(result).toContain('width="100"');
         expect(result).toContain('height="200"');
-        expect(result).toContain('alt=""'); // Should clean up the marker
+        expect(result).toContain('alt=""'); // Should use empty original alt
     });
 
     it('should apply only width when height is undefined', () => {
         const html = '<img src=":/abc123" alt="DIMENSION_0">';
-        const dimensions = new Map([['DIMENSION_0', { width: '100', height: undefined, resourceId: 'abc123' }]]);
+        const dimensions = new Map([
+            ['DIMENSION_0', { width: '100', height: undefined, resourceId: 'abc123', originalAlt: '' }],
+        ]);
 
         const result = applyPreservedDimensions(html, dimensions);
 
         expect(result).toContain('width="100"');
         expect(result).not.toContain('height=');
-        expect(result).toContain('alt=""'); // Should clean up the marker
+        expect(result).toContain('alt=""'); // Should use empty original alt
     });
 
     it('should apply only height when width is undefined', () => {
         const html = '<img src=":/abc123" alt="DIMENSION_0">';
-        const dimensions = new Map([['DIMENSION_0', { width: undefined, height: '200', resourceId: 'abc123' }]]);
+        const dimensions = new Map([
+            ['DIMENSION_0', { width: undefined, height: '200', resourceId: 'abc123', originalAlt: '' }],
+        ]);
 
         const result = applyPreservedDimensions(html, dimensions);
 
         expect(result).toContain('height="200"');
         expect(result).not.toContain('width=');
-        expect(result).toContain('alt=""'); // Should clean up the marker
+        expect(result).toContain('alt=""'); // Should use empty original alt
     });
 
     it('should handle multiple dimension keys in HTML', () => {
         const html = '<img src=":/abc123" alt="DIMENSION_0"><img src=":/def456" alt="DIMENSION_1">';
         const dimensions = new Map([
-            ['DIMENSION_0', { width: '100', height: undefined, resourceId: 'abc123' }],
-            ['DIMENSION_1', { width: undefined, height: '200', resourceId: 'def456' }],
+            ['DIMENSION_0', { width: '100', height: undefined, resourceId: 'abc123', originalAlt: '' }],
+            ['DIMENSION_1', { width: undefined, height: '200', resourceId: 'def456', originalAlt: '' }],
         ]);
 
         const result = applyPreservedDimensions(html, dimensions);
@@ -157,11 +199,56 @@ describe('applyPreservedDimensions', () => {
 
     it('should return unchanged HTML when no dimensions match', () => {
         const html = '<img src=":/abc123" alt="some-other-alt">';
-        const dimensions = new Map([['DIMENSION_0', { width: '100', height: '200', resourceId: 'abc123' }]]);
+        const dimensions = new Map([
+            ['DIMENSION_0', { width: '100', height: '200', resourceId: 'abc123', originalAlt: '' }],
+        ]);
 
         const result = applyPreservedDimensions(html, dimensions);
 
         expect(result).toBe(html); // Should be unchanged
+    });
+
+    it('should restore original alt text when applying dimensions', () => {
+        const html = '<img src=":/abc123" alt="DIMENSION_0">';
+        const dimensions = new Map([
+            [
+                'DIMENSION_0',
+                {
+                    width: '100',
+                    height: '200',
+                    resourceId: 'abc123',
+                    originalAlt: 'My Important Image',
+                },
+            ],
+        ]);
+
+        const result = applyPreservedDimensions(html, dimensions);
+
+        expect(result).toContain('width="100"');
+        expect(result).toContain('height="200"');
+        expect(result).toContain('alt="My Important Image"');
+        expect(result).not.toContain('alt="DIMENSION_0"');
+    });
+
+    it('should handle original alt text with special characters', () => {
+        const html = '<img src=":/abc123" alt="DIMENSION_0">';
+        const dimensions = new Map([
+            [
+                'DIMENSION_0',
+                {
+                    width: '100',
+                    resourceId: 'abc123',
+                    originalAlt: 'Image with "quotes" & ampersands',
+                    height: undefined,
+                },
+            ],
+        ]);
+
+        const result = applyPreservedDimensions(html, dimensions);
+
+        expect(result).toContain('width="100"');
+        expect(result).toContain('alt="Image with "quotes" & ampersands"');
+        expect(result).not.toContain('DIMENSION_0');
     });
 });
 
@@ -183,7 +270,32 @@ describe('Image Dimension Integration', () => {
 
         expect(finalHtml).toContain('width="100"');
         expect(finalHtml).toContain('height="200"');
-        expect(finalHtml).not.toContain('alt="DIMENSION_0"');
+        expect(finalHtml).toContain('alt=""'); // Empty original alt
+        expect(finalHtml).not.toContain('DIMENSION_0');
+    });
+
+    it('should extract and apply dimensions with alt text preservation in full pipeline', () => {
+        const resourceId = 'a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4';
+        const markdown = `<img src=":/${resourceId}" alt="Test Chart" width="100" height="200"/>`;
+
+        // Extract dimensions
+        const { processedMarkdown, dimensions } = extractImageDimensions(markdown, true);
+        expect(processedMarkdown).toContain(`![DIMENSION_0](:/${resourceId})`);
+
+        // Verify alt text is preserved in dimensions
+        const dimension = dimensions.get('DIMENSION_0');
+        expect(dimension?.originalAlt).toBe('Test Chart');
+
+        // Simulate rendered HTML from markdown processor
+        const renderedHtml = `<img src=":/${resourceId}" alt="DIMENSION_0">`;
+
+        // Apply preserved dimensions
+        const finalHtml = applyPreservedDimensions(renderedHtml, dimensions);
+
+        expect(finalHtml).toContain('width="100"');
+        expect(finalHtml).toContain('height="200"');
+        expect(finalHtml).toContain('alt="Test Chart"');
+        expect(finalHtml).not.toContain('DIMENSION_0');
     });
 });
 

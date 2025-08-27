@@ -19,6 +19,7 @@ export interface ImageDimensions {
     width?: string;
     height?: string;
     resourceId?: string;
+    originalAlt?: string;
 }
 
 export interface MarkdownSegment {
