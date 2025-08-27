@@ -376,6 +376,14 @@ export async function convertResourceToBase64(id: string): Promise<string> {
     }
 }
 
+/**
+ * Converts a markdown selection to processed HTML.
+ * This includes embedding images as base64, preserving image dimensions,
+ * and cleaning the final HTML for portability.
+ * @param selection The markdown string selected by the user.
+ * @param options HTML processing options, including embedImages and exportFullHtml settings.
+ * @returns A promise that resolves to the final HTML string (either a fragment or a full document).
+ */
 export async function processHtmlConversion(selection: string, options?: HtmlOptions): Promise<string> {
     // Get HTML settings if not provided
     if (!options) {
