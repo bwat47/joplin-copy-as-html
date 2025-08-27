@@ -35,7 +35,7 @@ import {
     LINK_RESOURCE_MATCHERS,
 } from './constants';
 import { ImageDimensions, MarkdownSegment, JoplinFileData, JoplinResource, HtmlOptions } from './types';
-import { validateHtmlSettings } from './utils';
+import { validateHtmlSettings, safeGetGlobalSetting } from './utils';
 import { safePluginUse, loadPluginsConditionally } from './pluginUtils';
 import * as fs from 'fs/promises';
 import * as path from 'path';
@@ -376,27 +376,6 @@ export async function convertResourceToBase64(id: string): Promise<string> {
     }
 }
 
-/**
- * Safe function to get global setting value with fallback
- */
-async function safeGetGlobalSetting(key: string, defaultValue: boolean = false): Promise<boolean> {
-    try {
-        const value = await joplin.settings.globalValue(key);
-        return !!value;
-    } catch {
-        console.warn(`[copy-as-html] Global setting '${key}' not found, using default:`, defaultValue);
-        return defaultValue;
-    }
-}
-
-/**
- * Converts a markdown selection to processed HTML.
- * This includes embedding images as base64, preserving image dimensions,
- * and cleaning the final HTML for portability.
- * @param selection The markdown string selected by the user.
- * @param options HTML processing options, including embedImages and exportFullHtml settings.
- * @returns A promise that resolves to the final HTML string (either a fragment or a full document).
- */
 export async function processHtmlConversion(selection: string, options?: HtmlOptions): Promise<string> {
     // Get HTML settings if not provided
     if (!options) {
