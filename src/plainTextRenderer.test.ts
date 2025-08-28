@@ -1,6 +1,13 @@
 /* eslint-disable @typescript-eslint/no-require-imports */
 
-import { unescape, convertMarkdownToPlainText, collapseExtraBlankLines } from './plainTextRenderer';
+import { convertMarkdownToPlainText } from './plainTextRenderer';
+import {
+    unescape,
+    collapseExtraBlankLines,
+    formatTable,
+    parseTableTokens,
+    calculateColumnWidths,
+} from './plainText/tokenRenderers';
 import { PlainTextOptions } from './types';
 import MarkdownIt from 'markdown-it';
 
@@ -82,7 +89,6 @@ const generateTableTokens = (markdown: string) => {
 };
 
 // Table Tests
-import { formatTable, parseTableTokens, calculateColumnWidths } from './plainTextRenderer';
 
 describe('Table Rendering', () => {
     it('should format a simple table with correct padding', () => {
