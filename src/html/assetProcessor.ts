@@ -239,6 +239,15 @@ async function withTimeout<T>(
 
 const pendingResourceRequests = new Map<string, Promise<string>>();
 
+// Narrow unknown resource objects returned by the Joplin API (runtime validation)
+function isMinimalJoplinResource(obj: unknown): obj is Pick<JoplinResource, 'id' | 'mime'> {
+    return (
+        !!obj &&
+        typeof (obj as { id?: unknown }).id === 'string' &&
+        typeof (obj as { mime?: unknown }).mime === 'string'
+    );
+}
+
 async function getResourceWithDedupe(id: string): Promise<string> {
     if (pendingResourceRequests.has(id)) {
         return pendingResourceRequests.get(id)!;
@@ -259,8 +268,20 @@ export async function convertResourceToBase64(id: string): Promise<string> {
         return createResourceError(id, 'is not a valid Joplin resource ID.');
     }
     try {
-        const resource = (await joplin.data.get(['resources', id], { fields: ['id', 'mime'] })) as JoplinResource;
-        if (!resource || !resource.mime.startsWith('image/')) {
+        const rawResource = await joplin.data.get(['resources', id], { fields: ['id', 'mime'] });
+
+        // Not found: preserve existing combined not-found/not-image messaging
+        if (!rawResource) {
+            return createResourceError(id, 'could not be found or is not an image.');
+        }
+
+        // Validate shape before casting to avoid runtime crashes on unexpected data
+        if (!isMinimalJoplinResource(rawResource)) {
+            return createResourceError(id, 'metadata could not be retrieved');
+        }
+
+        const resource: JoplinResource = rawResource as JoplinResource;
+        if (!resource.mime.toLowerCase().startsWith('image/')) {
             return createResourceError(id, 'could not be found or is not an image.');
         }
 
