@@ -67,6 +67,9 @@ The plugin will adhere to Joplin's settings for whether or not to render:
 - ++Insert++
 - Multimarkdown Table
 
+> [!note]
+> Mermaid/Math are not supported, they will render as plain text (code).
+
 ## Copy as Plain Text
 
 "Copy selection as Plain Text" is provided as a right click context menu option and as a keyboard shortcut (ctrl + alt + c by default).
