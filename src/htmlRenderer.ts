@@ -8,7 +8,7 @@
  * - domPostProcess: Cleans the final HTML using JSDOM.
  *
  * @author bwat47
- * @since 1.0.0
+ * @since 1.0.16
  */
 
 import joplin from 'api';

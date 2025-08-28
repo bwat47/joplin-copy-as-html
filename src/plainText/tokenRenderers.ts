@@ -5,7 +5,7 @@
  * a formatted plain text string. It preserves structure like lists and tables.
  *
  * @author bwat47
- * @since 1.0.0
+ * @since 1.1.8
  */
 
 import type { Token } from 'markdown-it';

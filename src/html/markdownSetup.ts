@@ -7,7 +7,7 @@
  * It loads all necessary plugins conditionally based on global Joplin settings.
  *
  * @author bwat47
- * @since 1.0.0
+ * @since 1.1.8
  */
 
 import MarkdownIt from 'markdown-it';

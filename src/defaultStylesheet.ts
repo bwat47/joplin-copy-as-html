@@ -15,7 +15,7 @@
  * Users can override this by creating their own copy-as-html-user.css file.
  *
  * @author bwat47
- * @since 1.0.0
+ * @since 1.1.0
  */
 
 export const defaultStylesheet = `

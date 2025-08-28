@@ -13,7 +13,7 @@
  * more self-documenting by giving context to numeric values and string patterns.
  *
  * @author bwat47
- * @since 1.0.0
+ * @since 1.0.16
  */
 
 export const SETTINGS = {

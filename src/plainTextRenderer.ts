@@ -7,7 +7,7 @@
  * - tokenRenderers: Renders the parsed tokens to a plain text string.
  *
  * @author bwat47
- * @since 1.0.0
+ * @since 1.0.16
  */
 
 import { PlainTextOptions } from './types';
