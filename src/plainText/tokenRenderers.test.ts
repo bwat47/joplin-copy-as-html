@@ -43,10 +43,10 @@ const generateTableTokens = (markdown: string) => {
 
 describe('unescape', () => {
     it('should remove backslash escapes from markdown characters', () => {
-        expect(unescape('This is \*bold\*')).toBe('This is *bold*');
-        expect(unescape('And this is \_italic\_')).toBe('And this is _italic_');
-        expect(unescape('A \`code\` block')).toBe('A `code` block');
-        expect(unescape('A heading \#hash')).toBe('A heading #hash');
+        expect(unescape('This is \*bold\*')).toBe('This is *bold*'); // eslint-disable-line no-useless-escape
+        expect(unescape('And this is \_italic\_')).toBe('And this is _italic_'); // eslint-disable-line no-useless-escape
+        expect(unescape('A \`code\` block')).toBe('A `code` block'); // eslint-disable-line no-useless-escape
+        expect(unescape('A heading \#hash')).toBe('A heading #hash'); // eslint-disable-line no-useless-escape
     });
 
     it('should not affect unescaped text', () => {
