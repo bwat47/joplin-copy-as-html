@@ -19,6 +19,19 @@ import * as fs from 'fs/promises';
 import * as path from 'path';
 import { defaultStylesheet } from '../defaultStylesheet';
 
+// HTML attribute escaper (kept narrow for alt attribute usage). Extracted for reuse & to avoid
+// recreating the function within tight loops.
+function escapeHtmlAttr(value: string): string {
+    return (
+        value
+            // Do not double-encode existing entities: only replace '&' not starting an entity pattern
+            .replace(/&(?![a-zA-Z0-9#]+;)/g, '&amp;')
+            .replace(/"/g, '&quot;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+    );
+}
+
 /**
  * Creates a consistent error HTML span for resource errors.
  * @param message The error message to display.
@@ -155,7 +168,10 @@ export function applyPreservedDimensions(html: string, dimensions: Map<string, I
             // Replace the dimension key with the original alt text
             const escapedPrefix = CONSTANTS.DIMENSION_KEY_PREFIX.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
             const originalAlt = attrs.originalAlt || '';
-            newAttrs = newAttrs.replace(new RegExp(`alt\\s*=\\s*["']${escapedPrefix}\\d+["']`), `alt="${originalAlt}"`);
+            newAttrs = newAttrs.replace(
+                new RegExp(`alt\\s*=\\s*["']${escapedPrefix}\\d+["']`),
+                `alt="${escapeHtmlAttr(originalAlt)}"`
+            );
 
             return `<img${newAttrs}>`;
         });

@@ -15,9 +15,7 @@ jest.mock('api', () => ({
 
 import joplin from 'api';
 import { extractImageDimensions, applyPreservedDimensions, convertResourceToBase64 } from './assetProcessor';
-import {
-    resetAllJoplinMocks,
-} from '../testHelpers';
+import { resetAllJoplinMocks } from '../testHelpers';
 
 // Clear mocks before each test to ensure a clean slate
 beforeEach(() => {
@@ -237,8 +235,45 @@ describe('applyPreservedDimensions', () => {
         const result = applyPreservedDimensions(html, dimensions);
 
         expect(result).toContain('width="100"');
-        expect(result).toContain('alt="Image with "quotes" & ampersands"');
+        // Quotes should be encoded, standalone & becomes &amp;
+        expect(result).toContain('alt="Image with &quot;quotes&quot; &amp; ampersands"');
         expect(result).not.toContain('DIMENSION_0');
+    });
+
+    it('escapes HTML significant characters in original alt', () => {
+        const html = '<img src=":/abc123" alt="DIMENSION_0">';
+        const dimensions = new Map([
+            [
+                'DIMENSION_0',
+                {
+                    width: undefined,
+                    height: undefined,
+                    resourceId: 'abc123',
+                    originalAlt: '5 < 6 & 7 > 3',
+                },
+            ],
+        ]);
+        const result = applyPreservedDimensions(html, dimensions);
+        expect(result).toContain('alt="5 &lt; 6 &amp; 7 &gt; 3"');
+    });
+
+    it('does not double-encode existing entities in alt', () => {
+        const html = '<img src=":/abc123" alt="DIMENSION_0">';
+        const dimensions = new Map([
+            [
+                'DIMENSION_0',
+                {
+                    width: undefined,
+                    height: undefined,
+                    resourceId: 'abc123',
+                    originalAlt: 'Already &lt; encoded &amp; entity',
+                },
+            ],
+        ]);
+        const result = applyPreservedDimensions(html, dimensions);
+        // &lt; and &amp; should remain exactly once
+        expect(result.match(/&lt;/g)?.length).toBe(1);
+        expect(result.match(/&amp;/g)?.length).toBe(1); // original &amp; only
     });
 });
 
