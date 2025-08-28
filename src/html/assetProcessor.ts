@@ -316,8 +316,8 @@ export async function getUserStylesheet(): Promise<string> {
 /**
  * Processes the HTML to embed images as base64.
  * @param html The HTML string to process.
- * @param embedImages Whether to embed images.
- * @returns The processed HTML.
+ * @param embedImages If true, converts Joplin resource URLs to base64 data URIs
+ * @returns HTML with embedded images or original HTML if embedImages is false
  */
 export async function processEmbeddedImages(html: string, embedImages: boolean): Promise<string> {
     if (!embedImages) {
