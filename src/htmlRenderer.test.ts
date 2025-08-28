@@ -14,12 +14,8 @@ jest.mock('api', () => ({
 }));
 
 import joplin from 'api';
-import {
-    extractImageDimensions,
-    applyPreservedDimensions,
-    processHtmlConversion,
-    convertResourceToBase64,
-} from './htmlRenderer';
+import { processHtmlConversion } from './htmlRenderer';
+import { extractImageDimensions, applyPreservedDimensions, convertResourceToBase64 } from './html/assetProcessor';
 import {
     resetAllJoplinMocks,
     mockHtmlSettings,
