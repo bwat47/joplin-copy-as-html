@@ -203,12 +203,7 @@ export function renderListFromTokens(
 /**
  * Handles opening of a markdown link token.
  */
-export function handleLinkToken(
-    t: Token,
-    linkStack: LinkStackItem[],
-    options: PlainTextOptions,
-    result: string
-): string {
+export function handleLinkToken(t: Token, linkStack: LinkStackItem[], result: string): string {
     const hrefAttr = t.attrs?.find((attr: unknown) => Array.isArray(attr) && attr[0] === 'href');
     const href = hrefAttr ? hrefAttr[1] : '';
     if (isExternalHttpUrl(href)) {
@@ -406,7 +401,7 @@ export function renderPlainText(
                 if (options.preserveSuperscript) result += INLINE_MARKERS.SUP;
                 break;
             case 'link_open':
-                result = handleLinkToken(t, linkStack, options, result);
+                result = handleLinkToken(t, linkStack, result);
                 break;
             case 'link_close':
                 result = handleLinkCloseToken(linkStack, options, result);
