@@ -220,7 +220,7 @@ export function handleLinkToken(
 }
 
 /**
- * Handles closing of a markdown link token.
+ * Handles closing of a markdown link token, popping from the stack and appending link text as needed
  */
 export function handleLinkCloseToken(linkStack: LinkStackItem[], options: PlainTextOptions, result: string): string {
     const link = linkStack.pop();
