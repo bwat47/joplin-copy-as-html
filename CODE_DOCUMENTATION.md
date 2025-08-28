@@ -4,22 +4,28 @@
 
 ```
 copy-as-html/
-├─ manifest.json                # Joplin plugin manifest
-├─ package.json                 # NPM metadata and build scripts
-├─ CODE_DOCUMENTATION.md        # This documentation
-├─ README.md                    # User-facing overview (if present)
+├─ manifest.json                     # Joplin plugin manifest
+├─ package.json                      # NPM metadata and build scripts
+├─ CODE_DOCUMENTATION.md             # This documentation
+├─ README.md                         # User-facing overview (if present)
 ├─ src/
-│  ├─ index.ts                  # Plugin entry: registers commands & settings
-│  ├─ constants.ts              # Shared constants, regex patterns, grouped configs
-│  ├─ types.ts                  # TypeScript interfaces & option types
-│  ├─ utils.ts                  # Validation & small shared helpers
-│  ├─ pluginUtils.ts            # markdown-it plugin loading utilities
-│  ├─ htmlRenderer.ts           # HTML conversion pipeline
-│  ├─ plainTextRenderer.ts      # Plain text conversion pipeline
-│  ├─ defaultStylesheet.ts      # Default CSS for full HTML export
-│  └─ (possible future modules) # e.g. additional format renderers
-├─ dist/                        # Compiled plugin output (build artifact)
-└─ node_modules/                # Installed dependencies
+│  ├─ index.ts                       # Plugin entry: registers commands & settings
+│  ├─ constants.ts                   # Shared constants, regex patterns, grouped configs
+│  ├─ types.ts                       # TypeScript interfaces & option types
+│  ├─ utils.ts                       # Validation & small shared helpers
+│  ├─ pluginUtils.ts                 # markdown-it plugin loading utilities
+│  ├─ defaultStylesheet.ts           # Default CSS for full HTML export
+│  ├─ htmlRenderer.ts                # High-level HTML conversion orchestrator (delegates to html/ files)
+│  ├─ plainTextRenderer.ts           # High-level plain text conversion orchestrator (delegates to plainTest/ files)
+│  ├─ html/
+│  │  ├─ assetProcessor.ts           # Image/resource embedding, dimension extraction, stylesheet
+│  │  ├─ domPostProcess.ts           # JSDOM fragment extraction & cleanup (currently only cleans joplin resource links)
+│  │  ├─ markdownSetup.ts            # markdown-it instance + plugin loading for HTML path
+│  └─ plainText/
+│     ├─ tokenRenderers.ts           # Core token → text rendering logic (tables, lists, links, inline)
+│     ├─ markdownSetup.ts            # markdown-it instance + plugin loading for plain text path
+├─ dist/                             # Compiled plugin output (build artifact)
+└─ node_modules/                     # Installed dependencies
 ```
 
 ## Overview
@@ -35,13 +41,13 @@ The plugin is designed for seamless integration with external applications like 
 
 The plugin is written in TypeScript and uses Webpack for bundling. The project uses `npm` for package management. The following commands are available in `package.json`:
 
-*   **`npm run dist`**: Builds the plugin and creates a `.jpl` (Joplin Plugin) file in the `publish/` directory. This is the main build command.
-*   **`npm run prepare`**: This command is an alias for `npm run dist`.
-*   **`npm run updateVersion`**: Increases the version number in `package.json` and `src/manifest.json`.
-*   **`npm run update`**: Updates the Joplin plugin generator.
-*   **`npm run lint`**: Lints the TypeScript source files using ESLint.
-*   **`npm run lint:fix`**: Lints the TypeScript source files and automatically fixes issues.
-*   **`npm run format`**: Formats the TypeScript source files using Prettier.
+- **`npm run dist`**: Builds the plugin and creates a `.jpl` (Joplin Plugin) file in the `publish/` directory. This is the main build command.
+- **`npm run prepare`**: This command is an alias for `npm run dist`.
+- **`npm run updateVersion`**: Increases the version number in `package.json` and `src/manifest.json`.
+- **`npm run update`**: Updates the Joplin plugin generator.
+- **`npm run lint`**: Lints the TypeScript source files using ESLint.
+- **`npm run lint:fix`**: Lints the TypeScript source files and automatically fixes issues.
+- **`npm run format`**: Formats the TypeScript source files using Prettier.
 
 To build the plugin, run the following command:
 
@@ -53,13 +59,13 @@ This will generate a `.jpl` file in the `publish/` directory, which can be insta
 
 ## Development Conventions
 
-*   **Language**: The project is written in TypeScript.
-*   **Formatting**: The project uses Prettier for code formatting. The configuration is in `.prettierrc.js`.
-*   **Linting**: The project uses ESLint for linting. The configuration is in `.eslintrc.js`.
-*   **Bundling**: The project uses Webpack for bundling. The configuration is in `webpack.config.js`.
-*   **Plugin Manifest**: The plugin manifest is located at `src/manifest.json`.
-*   **Main Entry Point**: The main entry point of the plugin is `src/index.ts`.
-*   **Source Code**: The source code is located in the `src/` directory.
+- **Language**: The project is written in TypeScript.
+- **Formatting**: The project uses Prettier for code formatting. The configuration is in `.prettierrc.js`.
+- **Linting**: The project uses ESLint for linting. The configuration is in `eslint.config.mjs`.
+- **Bundling**: The project uses Webpack for bundling. The configuration is in `webpack.config.js`.
+- **Plugin Manifest**: The plugin manifest is located at `src/manifest.json`.
+- **Main Entry Point**: The main entry point of the plugin is `src/index.ts`.
+- **Source Code**: The source code is located in the `src/` directory.
 
 ## Main Features and Design Choices
 
@@ -70,7 +76,6 @@ This will generate a `.jpl` file in the `publish/` directory, which can be insta
 - **Image Embedding**: Optionally converts Joplin resource images to base64 data URLs for portability
 - **Dimension Preservation**: Maintains original image dimensions (width, height, style) from HTML `<img>` tags through markdown-it pipeline
 - **Resource Loading Optimization**: Timeout protection and request deduplication prevent API overwhelm
-- **Fragment Extraction**: Uses JSDOM to extract clean HTML fragments, removing Joplin-specific wrapper elements
 - **Link Cleaning**: Converts Joplin resource links to plain text for external compatibility
 
 ### Plain Text Output Features
@@ -135,54 +140,97 @@ Shared utilities for safe markdown-it plugin loading:
 - ES module exports: `export default function(md) {...}`
 
 **Why This Exists:**
-Originally developed to solve plugin loading conflicts between HTML and plain text renderers. The complex detection logic handles the diversity of npm package export patterns, with special handling for plugins like markdown-it-emoji that export multiple variants.
+Originally developed to solve plugin loading conflicts between HTML and plain text renderers. The detection logic handles the diversity of npm package export patterns, with special handling for plugins like markdown-it-emoji that export multiple variants.
 
 ### Feature Modules
 
-#### `src/htmlRenderer.ts`
+#### `src/htmlRenderer.ts` (Orchestrator)
 
-Complete HTML processing pipeline:
+Now a thin coordination layer. It:
 
-**Key Functions:**
+1. Pre-processes selection (image dimension extraction) via `html/assetProcessor.ts`.
+2. Builds a configured markdown-it instance with `html/markdownSetup.ts`.
+3. Renders markdown → HTML.
+4. Runs post-processing (`applyPreservedDimensions`, base64 embedding, DOM cleanup) using helpers in `html/assetProcessor.ts` & `html/domPostProcess.ts`.
 
-- **`extractImageDimensions`**: Preserves image dimensions while converting HTML `<img>` tags to markdown
-- **`applyPreservedDimensions`**: Restores preserved dimensions to rendered HTML `<img>` tags
-- **`convertResourceToBase64`**: Async conversion of Joplin resources to base64 data URLs with timeout handling
-- **`getResourceWithDedupe`**: Simple deduplication to prevent duplicate requests within a single operation
-- **`withTimeout`**: Ensures proper cleanup of timeout timers to prevent memory leaks
-- **`processHtmlConversion`**: Main orchestrator that coordinates the entire HTML conversion process
+Key benefit: HTML-specific responsibilities moved out of a monolith into focused modules, improving testability and isolating side-effects (filesystem, Joplin API calls).
 
-**Processing Flow:**
+#### `src/html/assetProcessor.ts`
 
-1. Read Joplin global markdown settings using safe fallbacks
-2. Configure markdown-it instance to match Joplin's behavior exactly
-3. Extract and preserve image dimensions from HTML tags
-4. Load markdown-it plugins conditionally based on Joplin settings
-5. Render markdown to HTML using configured markdown-it instance
-6. Re-apply preserved image dimensions to rendered HTML
-7. Convert resource URLs to base64 with simple deduplication (if enabled)
-8. Extract clean HTML fragment using JSDOM
-9. Remove Joplin-specific elements and convert resource links to text
+Responsibilities:
 
-#### `src/plainTextRenderer.ts`
+- Extract & preserve `<img>` dimensions (`extractImageDimensions`, `applyPreservedDimensions`).
+- Resource validation, deduped base64 embedding (`convertResourceToBase64` + in-module dedupe map).
+- Timeout-safe resource fetch (`withTimeout`).
+- User stylesheet resolution with fallback to bundled default (`getUserStylesheet`).
 
-Comprehensive plain text conversion system:
+Recent enhancement: Added runtime shape guard (`isMinimalJoplinResource`) to avoid crashes when `mime` metadata is missing, returning a targeted error span instead.
 
-**Core Functions:**
+#### `src/html/domPostProcess.ts`
 
-- **`renderPlainText`**: Main recursive token processor with formatting options
-- **`convertMarkdownToPlainText`**: Entry point that initializes markdown-it and processes tokens
-- **`parseTableTokens`/`formatTable`**: Table processing with aligned columns and headers using string-width
-- **`parseListTokens`/`formatList`**: List processing with proper indentation and numbering
-- **`handleLinkToken`/`handleLinkCloseToken`**: External link processing with configurable output
-- **`extractBlockTokens`**: Safe token extraction for nested structures
+Responsibilities:
 
-**Token Processing:**
+- JSDOM parsing of rendered document.
+- Currently only used to clean up joplin resource links, but may be used for more in the future (e.g. mermaid diagram support).
 
-- Recursive processing of markdown-it token trees
-- Context-aware formatting (respects code blocks, preserves structure)
-- Block-level element spacing management
-- Selective markdown preservation based on user settings
+#### `src/html/markdownSetup.ts`
+
+Responsibilities:
+
+- Constructs markdown-it instance for HTML path using shared plugin loader.
+- Mirrors Joplin global markdown plugin settings.
+
+#### `src/plainTextRenderer.ts` (Orchestrator)
+
+Coordinates:
+
+1. markdown-it construction (`plainText/markdownSetup.ts`).
+2. Token tree → text rendering (`plainText/tokenRenderers.ts`).
+3. Returns collapsed/plain output respecting user preservation settings.
+
+#### `src/plainText/tokenRenderers.ts`
+
+Core pure rendering logic:
+
+- Table parsing / width calculation / aligned formatting.
+- List extraction & indentation (tab or space driven by settings).
+- Link handling (stack-based; supports title / URL / markdown modes).
+- Inline formatting preservation (bold/italic/etc.) governed by options.
+- Footnote reference / definition normalization.
+- Blank line collapsing outside code fences.
+
+Refactor Notes:
+
+- Removed unused `options` parameter from `handleLinkToken` (behavior unchanged; option-dependent logic lives in `handleTextToken` and `handleLinkCloseToken`).
+
+#### `src/plainText/markdownSetup.ts`
+
+Responsibilities:
+
+- Builds markdown-it with appropriate plugin set for plain text path.
+- Gracefully skips optional plugins (e.g., `markdown-it-mark`) with warning only.
+
+#### Test Layout Update
+
+- `plainTextRenderer.test.ts`: High-level integration behavior (lists, links, code blocks, footnotes, emoji, plugin availability, formatting preservation).
+- `plainText/tokenRenderers.test.ts`: Unit tests for pure helper/token rendering functions (tables, unescape, blank line collapsing).
+- `htmlRenderer.test.ts`: High-level integration behavior (HTML conversion, image embedding, adherence to Joplin markdown settings).
+- `html/assetProcessor.test.ts`: Asset-related behaviors (dimensions, resource embedding, error handling).
+
+#### Legacy Monolith Decomposition Rationale
+
+Previous single-file renderers mixed:
+
+- Parsing configuration
+- Token traversal
+- Asset IO / filesystem access
+- Resource fetching & timeout control
+
+The split isolates pure logic (easier unit testing & reasoning) from side-effectful code (API calls, DOM operations), enabling:
+
+- More granular tests (fast, no heavy mocks for pure functions).
+- Lower cognitive load when modifying a concern (e.g., adding a new inline preservation option touches only `tokenRenderers.ts`).
+- Safer future extensions.
 
 #### `src/index.ts`
 
@@ -200,6 +248,23 @@ Plugin registration and command implementation:
 - **copyAsPlainText**: Selection → plain text processing → clipboard → user feedback
 - Consistent error handling with toast notifications
 - Context menu integration with keyboard shortcuts (Ctrl+Shift+C, Ctrl+Alt+C)
+
+**Dynamic Context Menu Registration:**
+
+To avoid showing actions that only work in the Markdown editor inside the Rich Text editor, the plugin does not statically declare context menu items. Instead it uses `joplin.workspace.filterEditorContextMenu` each time the editor context menu is about to be shown:
+
+1. Inside the filter callback we perform a lightweight capability probe by attempting a markdown‑only command (`editor.execCommand` with `getCursor`).
+2. If the probe succeeds we treat the active pane as the Markdown editor and append our menu entries if they are not already present (guard prevents duplicates when Joplin reuses the existing array between invocations).
+3. If the probe throws, we assume Rich Text editor and return the menu unchanged (commands stay hidden, preventing user confusion and no‑op toasts).
+4. Keyboard shortcuts are still registered globally (Edit menu items act as fallback) so power users can trigger commands without the context menu when in the correct editor.
+
+Benefits:
+
+- Zero clutter in Rich Text editor.
+- No reliance on brittle editor type heuristics—capability probe is future‑proof.
+- Duplicate menu entries avoided via presence check before push.
+
+Error handling: Any exception during probing is swallowed (treated as Rich Text) to keep the UI responsive.
 
 ## Technical Implementation Details
 
@@ -232,7 +297,7 @@ Created `pluginUtils.ts` with robust detection logic that handles all known patt
 
 ### Image Handling Strategy
 
-The plugin uses a sophisticated multi-step process for image handling:
+The plugin uses a multi-step process for image handling:
 
 1. **Dimension Extraction**: Parse HTML `<img>` tags and extract width/height/style attributes
 2. **Markdown Conversion**: Convert `<img>` tags to markdown with dimension keys as alt text
@@ -259,12 +324,13 @@ This approach ensures compatibility with markdown-it while preserving user-defin
 
 ### Performance Considerations
 
-- **Simple Request Deduplication**: Prevents duplicate API calls for the same resource within a single operation
-- **Timeout Protection**: 5-second timeout prevents hanging operations
-- **Memory-Safe Processing**: Proper cleanup of timers and request map
-- **Concurrent Processing**: Uses `Promise.all()` for parallel resource fetching
-- **Plugin Loading Optimization**: Shared plugin utilities eliminate code duplication
-- **String Width Calculations**: Accurate table column alignment using unicode-aware width calculation
+- **Request Deduplication (HTML path)**: Per-conversion map inside `assetProcessor` prevents redundant resource fetches.
+- **Timeout Protection**: `withTimeout` ensures timely failure & cleanup.
+- **Memory-Safe Cleanup**: Pending promise map entries removed on settle.
+- **Concurrent Resource Fetching**: `Promise.all()` for image embedding.
+- **Plugin Loading Optimization**: Centralized logic avoids duplicated setup cost.
+- **String Width Calculations**: Unicode-aware table alignment via `string-width` (pure & test-isolated).
+- **Reduced Re-Renders**: Dimension extraction happens once pre-render then reapplied post-render.
 
 ## Configuration and Settings
 
@@ -329,15 +395,15 @@ All preservation settings default to `false` for clean plain text output:
 - **Debugging**: Console logging helps with troubleshooting
 - **Robustness**: Handles edge cases like missing resources, network timeouts, and malformed plugins
 
-## Extension Points
+### Extension Points
 
-The plugin's modular design makes it easy to extend:
+Modular structure simplifies targeted enhancements:
 
-1. **New Output Formats**: Add new renderer modules following the same pattern
-2. **Additional Settings**: Extend the settings interfaces and validation functions
-3. **Custom Processing**: Add new token processors to the plain text renderer
-4. **Resource Types**: Extend resource handling beyond images
-5. **New Plugins**: Add support for additional markdown-it plugins using the shared plugin utilities
+1. **New Output Formats**: Add a new directory (e.g., `src/rtf/`) with its own `markdownSetup` & token renderers, plus a thin orchestrator.
+2. **Additional Settings**: Extend types in `types.ts`, validate in `utils.ts`, thread through orchestrators and pure modules as needed.
+3. **Custom Plain Text Rules**: Add token handlers / helpers in `plainText/tokenRenderers.ts` (pure, unit-test-friendly).
+4. **Additional Resource Types**: Extend `assetProcessor` with MIME branching; stats map can be added without touching pure renderers.
+5. **Plugin Support**: Add config to `markdownSetup.ts` files; loader logic already handles varied export signatures.
 
 ## Dependencies
 
