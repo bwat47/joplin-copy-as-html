@@ -296,8 +296,7 @@ export async function convertResourceToBase64(id: string): Promise<string> {
             return createResourceError(id, 'metadata could not be retrieved');
         }
 
-        const resource: JoplinResource = rawResource as JoplinResource;
-        if (!resource.mime.toLowerCase().startsWith('image/')) {
+        if (!rawResource.mime.toLowerCase().startsWith('image/')) {
             return createResourceError(id, 'could not be found or is not an image.');
         }
 
@@ -327,7 +326,7 @@ export async function convertResourceToBase64(id: string): Promise<string> {
             return createResourceError(id, `could not be retrieved: ${msg}`);
         }
         const base64 = fileBuffer.toString('base64');
-        return `data:${resource.mime};base64,${base64}`;
+        return `data:${rawResource.mime};base64,${base64}`;
     } catch (err) {
         console.error(`[copy-as-html] Failed to convert resource :/${id} to base64:`, err);
         const msg = err && err.message ? err.message : err;
