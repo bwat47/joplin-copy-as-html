@@ -120,19 +120,27 @@ export async function createMarkdownItInstance(): Promise<MarkdownIt> {
         safeGetGlobalSetting(JOPLIN_SETTINGS.LINKIFY, true),
     ]);
 
+    // Render with a local markdown-it instance for full control
     const md = new MarkdownIt({
         html: true,
         linkify: !!globalLinkifyEnabled,
+        // Invert the soft breaks setting:
+        // Joplin's "Enable soft breaks" means "do NOT insert <br> for single newlines".
+        // markdown-it's `breaks: true` option DOES insert <br> tags.
+        // So, we invert the Joplin setting to get the correct markdown-it behavior.
         breaks: !globalSoftBreaksEnabled,
         typographer: !!globalTypographerEnabled,
     });
 
+    // Configure linkify to only handle HTTP/HTTPS URLs and mailto (matching Joplin's behavior)
     if (globalLinkifyEnabled) {
         md.linkify.set({
-            fuzzyLink: false,
-            fuzzyEmail: false,
-            fuzzyIP: false,
+            fuzzyLink: false, // Disable fuzzy linking (URLs without protocol)
+            fuzzyEmail: false, // Disable automatic email detection (we'll use explicit mailto:)
+            fuzzyIP: false, // Disable IP address linking
         });
+
+        // Only allow specific schemes by re-adding them explicitly
         md.linkify.add('http:', { validate: /^\/\/.*/ });
         md.linkify.add('https:', { validate: /^\/\/.*/ });
         md.linkify.add('mailto:', {
@@ -141,6 +149,7 @@ export async function createMarkdownItInstance(): Promise<MarkdownIt> {
         });
     }
 
+    // Load plugins conditionally based on Joplin's global settings
     loadPluginsConditionally(md, [
         { enabled: globalMarkEnabled, plugin: markdownItMark, name: 'markdown-it-mark' },
         { enabled: globalInsEnabled, plugin: markdownItIns, name: 'markdown-it-ins' },
@@ -169,6 +178,7 @@ export async function createMarkdownItInstance(): Promise<MarkdownIt> {
         },
     ]);
 
+    // Add task list support (checkboxes) - always enabled since it's core Joplin functionality
     if (markdownItTaskLists) {
         safePluginUse(md, markdownItTaskLists, { enabled: true, lineNumber: false }, 'markdown-it-task-lists');
     }
@@ -181,6 +191,7 @@ export async function createMarkdownItInstance(): Promise<MarkdownIt> {
         const hrefIdx = token.attrIndex('href');
         if (hrefIdx >= 0) {
             const href = token.attrs![hrefIdx][1] || '';
+            // Match :/id, :/id#..., :/id?..., and joplin://resource/id variants
             const m = LINK_RESOURCE_MATCHERS.map((rx) => href.match(rx)).find(Boolean);
             if (m) token.attrPush(['data-resource-id', m[1]]);
         }
