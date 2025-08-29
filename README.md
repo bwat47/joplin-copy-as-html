@@ -119,8 +119,8 @@ Copy as Plain Text supports the markdown-it emoji plugin, so emoji such as :whit
 
 ## Known Issues
 
-- The context menu options appear in the rich text editor's context menu (but aren't functional, the plugin is only intended for the markdown editor).
 - The plugin's keyboard shortcuts sometimes don't work on cold start of Joplin, can be fixed by toggling editors or going to Tools | Options | Keyboard Shortcuts and back.
+- When using the "Full Document" mode for custom css styling, the full HTML document will be nested under another `<html>`/`<body>` in the clipboard. I don't think there's a way to fix this without having access to electron clipboard API. Nested html/body (while not technically valid HTML) is the best solution I found (doesn't seem to cause issues pasting into other apps and is the same thing that the obsidian copy document as html plugin does).
 
 ## Misc
 
