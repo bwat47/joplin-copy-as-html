@@ -4,28 +4,52 @@
 
 ```
 copy-as-html/
-├─ manifest.json                     # Joplin plugin manifest
-├─ package.json                      # NPM metadata and build scripts
-├─ CODE_DOCUMENTATION.md             # This documentation
-├─ README.md                         # User-facing overview (if present)
+├─ package.json                          # NPM metadata and build scripts
+├─ plugin.config.json                    # Joplin plugin tooling config
+├─ CODE_DOCUMENTATION.md                 # This documentation
+├─ README.md                             # User-facing overview (if present)
+├─ LICENSE.txt                           # License
+├─ eslint.config.mjs                     # ESLint configuration
+├─ jest.config.js                        # Jest test configuration
+├─ tsconfig.json                         # TypeScript compiler configuration
+├─ webpack.config.js                     # Webpack bundler configuration
+├─ GENERATOR_DOC.md                      # Notes from plugin generator
+├─ markdown-it_plugin_loading_issues_doc.md # Historical investigation notes
+├─ api/                                  # Joplin runtime type declaration shims
+│  ├─ *.d.ts                             # (Multiple) Joplin API type definition files
+│  └─ noteListType.ts/.d.ts              # Shared enum & types
+├─ images/                               # Icons & promo assets
+│  ├─ icon.svg / *.png                   # Icons at various resolutions
+├─ prompts/                              # Prompt engineering / auxiliary content (if used)
+├─ publish/                              # Build artifacts (.jpl + manifest JSON)
+│  ├─ com.bwat47.copyashtml.jpl          # Packaged plugin (output of dist)
+│  └─ com.bwat47.copyashtml.json         # Packaged manifest metadata
 ├─ src/
-│  ├─ index.ts                       # Plugin entry: registers commands & settings
-│  ├─ constants.ts                   # Shared constants, regex patterns, grouped configs
-│  ├─ types.ts                       # TypeScript interfaces & option types
-│  ├─ utils.ts                       # Validation & small shared helpers
-│  ├─ pluginUtils.ts                 # markdown-it plugin loading utilities
-│  ├─ defaultStylesheet.ts           # Default CSS for full HTML export
-│  ├─ htmlRenderer.ts                # High-level HTML conversion orchestrator (delegates to html/ files)
-│  ├─ plainTextRenderer.ts           # High-level plain text conversion orchestrator (delegates to plainTest/ files)
+│  ├─ manifest.json                      # Joplin plugin manifest
+│  ├─ index.ts                           # Plugin entry: registers commands & settings
+│  ├─ constants.ts                       # Shared constants, regex patterns, grouped configs
+│  ├─ types.ts                           # Shared interfaces & option types
+│  ├─ utils.ts                           # Validation & small shared helpers
+│  ├─ utils.test.ts                      # Unit tests for utils helpers
+│  ├─ pluginUtils.ts                     # Robust markdown-it plugin loader utilities
+│  ├─ pluginUtils.test.ts                # Tests for plugin loading logic
+│  ├─ defaultStylesheet.ts               # Default CSS for full HTML export
+│  ├─ htmlRenderer.ts                    # High-level HTML conversion orchestrator
+│  ├─ htmlRenderer.test.ts               # Integration tests for HTML rendering
+│  ├─ plainTextRenderer.ts               # High-level plain text conversion orchestrator
+│  ├─ plainTextRenderer.test.ts          # Integration tests for plain text rendering
+│  ├─ testHelpers.ts                     # Shared test utilities / fixtures
 │  ├─ html/
-│  │  ├─ assetProcessor.ts           # Image/resource embedding, dimension extraction, stylesheet
-│  │  ├─ domPostProcess.ts           # JSDOM fragment extraction & cleanup (currently only cleans joplin resource links)
-│  │  ├─ markdownSetup.ts            # markdown-it instance + plugin loading for HTML path
+│  │  ├─ assetProcessor.ts               # Image/resource embedding & dimension extraction
+│  │  ├─ assetProcessor.test.ts          # Tests for asset processing (dimensions, embedding)
+│  │  ├─ domPostProcess.ts               # JSDOM fragment extraction & cleanup
+│  │  ├─ markdownSetup.ts                # markdown-it instance + plugin loading (HTML path)
 │  └─ plainText/
-│     ├─ tokenRenderers.ts           # Core token → text rendering logic (tables, lists, links, inline)
-│     ├─ markdownSetup.ts            # markdown-it instance + plugin loading for plain text path
-├─ dist/                             # Compiled plugin output (build artifact)
-└─ node_modules/                     # Installed dependencies
+│     ├─ tokenRenderers.ts               # Core token → text rendering logic (tables, lists, links, inline)
+│     ├─ tokenRenderers.test.ts          # Unit tests for token renderers (tables, blank lines, etc.)
+│     ├─ markdownSetup.ts                # markdown-it instance + plugin loading (plain text path)
+├─ dist/                                 # (Git-ignored) compiled plugin output when built
+└─ node_modules/                         # Installed dependencies
 ```
 
 ## Overview
