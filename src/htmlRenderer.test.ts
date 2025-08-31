@@ -128,6 +128,16 @@ describe('processHtmlConversion', () => {
         expect(result).toContain('<h1>Test Heading</h1>');
         expect(result).toContain('<p>Some content.</p>');
     });
+
+    it('should render GitHub alert blocks (note)', async () => {
+        const markdown = '> [!note]\n> Github alert note test';
+        mockHtmlSettings({ embedImages: false, exportFullHtml: false });
+        mockGlobalPlugins([]);
+        const result = await processHtmlConversion(markdown);
+        expect(result).toMatch(/markdown-alert-note/);
+        expect(result).toContain('Github alert note test');
+        expect(result).not.toContain('[!note]');
+    });
 });
 
 // Test adherance to Joplin global markdown settings

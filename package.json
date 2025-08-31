@@ -50,6 +50,7 @@
         "markdown-it-footnote": "^4.0.0",
         "markdown-it-ins": "^4.0.0",
         "markdown-it-mark": "^4.0.0",
+        "markdown-it-github-alerts": "^0.2.0",
         "markdown-it-multimd-table": "^4.2.3",
         "markdown-it-sub": "^2.0.0",
         "markdown-it-sup": "^2.0.0",

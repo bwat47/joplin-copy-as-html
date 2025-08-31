@@ -27,6 +27,7 @@ let markdownItFootnote: unknown;
 let markdownItMultimdTable: unknown;
 let markdownItTocDoneRight: unknown;
 let markdownItTaskLists: unknown;
+let markdownItGithubAlerts: unknown;
 
 try {
     markdownItMark = require('markdown-it-mark');
@@ -83,12 +84,28 @@ try {
 } catch (e) {
     console.warn('[copy-as-html] markdown-it-task-lists not available:', e);
 }
+try {
+    markdownItGithubAlerts = require('markdown-it-github-alerts');
+} catch (e) {
+    console.warn('[copy-as-html] markdown-it-github-alerts (cjs) require failed:', e);
+    // dynamic import fallback will occur later inside createMarkdownItInstance
+}
 
 /**
  * Creates and configures a markdown-it instance based on Joplin's global settings.
  * @returns A promise that resolves to a configured markdown-it instance.
  */
 export async function createMarkdownItInstance(): Promise<MarkdownIt> {
+    // If github alerts plugin not resolved via require (e.g., pure ESM resolution issues), attempt dynamic import here
+    if (!markdownItGithubAlerts) {
+        try {
+            const mod: unknown = await import('markdown-it-github-alerts');
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            markdownItGithubAlerts = (mod as any).default || mod;
+        } catch (e) {
+            console.warn('[copy-as-html] markdown-it-github-alerts dynamic import failed:', e);
+        }
+    }
     // Get Joplin global settings with safe fallbacks
     const [
         globalSubEnabled,
@@ -181,6 +198,21 @@ export async function createMarkdownItInstance(): Promise<MarkdownIt> {
     // Add task list support (checkboxes) - always enabled since it's core Joplin functionality
     if (markdownItTaskLists) {
         safePluginUse(md, markdownItTaskLists, { enabled: true, lineNumber: false }, 'markdown-it-task-lists');
+    }
+
+    // GitHub alert blocks (e.g. > [!note]) - always enable if available; harmless if syntax unused
+    if (markdownItGithubAlerts) {
+        const loaded = safePluginUse(
+            md,
+            markdownItGithubAlerts,
+            { matchCaseSensitive: false },
+            'markdown-it-github-alerts'
+        );
+        if (!loaded) {
+            console.warn('[copy-as-html] Failed to load markdown-it-github-alerts via safePluginUse');
+        } else {
+            console.log('[copy-as-html] markdown-it-github-alerts plugin registered');
+        }
     }
 
     // Replicate Joplin's non-image resource link marker so later cleanup still works
