@@ -12,7 +12,6 @@
  */
 
 import joplin from 'api';
-import { JSDOM } from 'jsdom';
 import { SETTINGS } from './constants';
 import { HtmlOptions } from './types';
 import { validateHtmlSettings } from './utils';
@@ -57,12 +56,10 @@ export async function processHtmlConversion(selection: string, options?: HtmlOpt
         html = await processEmbeddedImages(html, htmlOptions.embedImages);
     }
 
-    // 5. Use JSDOM for advanced transformations
-    const dom = new JSDOM(html);
-    const document = dom.window.document;
-    postProcessHtml(document); // handles link cleaning, etc.
+    // 5. Use DOMParser for advanced transformations
+    html = postProcessHtml(html); // handles link cleaning, etc.
 
-    let fragment = document.body.innerHTML.trim();
+    let fragment = html.trim();
 
     // 6. Optionally wrap in a full HTML document
     if (htmlOptions.exportFullHtml) {
