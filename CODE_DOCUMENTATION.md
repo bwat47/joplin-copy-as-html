@@ -42,7 +42,7 @@ copy-as-html/
 │  ├─ html/
 │  │  ├─ assetProcessor.ts               # Image/resource embedding & dimension extraction
 │  │  ├─ assetProcessor.test.ts          # Tests for asset processing (dimensions, embedding)
-│  │  ├─ domPostProcess.ts               # JSDOM fragment extraction & cleanup
+│  │  ├─ domPostProcess.ts               # Joplin internal link cleanup (and potential future post-processing), using DOMParser
 │  │  ├─ markdownSetup.ts                # markdown-it instance + plugin loading (HTML path)
 │  └─ plainText/
 │     ├─ tokenRenderers.ts               # Core token → text rendering logic (tables, lists, links, inline)
@@ -194,8 +194,8 @@ Recent enhancement: Added runtime shape guard (`isMinimalJoplinResource`) to avo
 
 Responsibilities:
 
-- JSDOM parsing of rendered document.
-- Currently only used to clean up joplin resource links, but may be used for more in the future (e.g. mermaid diagram support).
+- DOM parsing of rendered document.
+- Currently only used to clean up joplin resource links, but may be used for more in the future.
 
 #### `src/html/markdownSetup.ts`
 
@@ -389,7 +389,7 @@ All preservation settings default to `false` for clean plain text output:
 - **Extensibility**: Easy to add new markdown features as needed
 - **Consistency**: Same parsing engine for both HTML and plain text output
 
-### JSDOM for HTML Processing
+### DOM Parsing for HTML Post-Processing
 
 - **Reliability**: Regex parsing of HTML proved unreliable for nested structures
 - **Maintainability**: DOM queries are more readable and robust than complex regex
@@ -445,7 +445,6 @@ Modular structure simplifies targeted enhancements:
 - **markdown-it-multimd-table**: Plugin for advanced table features
 - **markdown-it-toc-done-right**: Plugin for table of contents
 - **markdown-it-task-lists**: Plugin for checkbox lists
-- **jsdom**: DOM manipulation for HTML fragment extraction
 - **string-width**: Accurate string width calculation for table formatting
 
 ### Development Dependencies

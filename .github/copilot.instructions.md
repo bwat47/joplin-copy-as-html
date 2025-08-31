@@ -366,6 +366,38 @@ async function withTimeout<T>(
 }
 ```
 
+### DOM Parsing with DOMParser:
+
+```ts
+export function postProcessHtml(html: string): string {
+    // Check if we have any Joplin resource links to process
+    const hasJoplinLinks = /(?:data-resource-id|href=["']?(?::|joplin:\/\/resource\/))/.test(html);
+    if (!hasJoplinLinks) {
+        return html; // Skip DOM processing if no Joplin links
+    }
+
+    const ParserCtor = (globalThis as unknown as { DOMParser?: { new (): DOMParser } }).DOMParser;
+    if (!ParserCtor) return html;
+
+    const parser = new ParserCtor();
+    const doc = parser.parseFromString(`<body>${html}</body>`, 'text/html');
+
+    // Clean up non-image Joplin resource links to be just their text content.
+    // This handles links created by Joplin's rich text editor and markdown links.
+    doc.querySelectorAll('a[data-resource-id], a[href^=":/"], a[href^="joplin://resource/"]').forEach((link) => {
+        // Don't modify links that contain images
+        if (link.querySelector('img')) {
+            return;
+        }
+        const textContent = link.textContent?.trim() || 'Resource';
+        const textNode = doc.createTextNode(textContent);
+        link.parentNode?.replaceChild(textNode, link);
+    });
+
+    return doc.body.innerHTML;
+}
+```
+
 ## Build and Development
 
 ### Standardized Scripts
