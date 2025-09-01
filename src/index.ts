@@ -311,6 +311,7 @@ joplin.plugins.register({
             }
 
             if (debug) {
+                // Debug: log what we see in the context menu
                 console.log(
                     '[copy-as-html] Context menu items:',
                     contextMenu.items.map((item) => item.commandName)
