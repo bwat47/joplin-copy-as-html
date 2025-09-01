@@ -84,12 +84,8 @@ try {
 } catch (e) {
     console.warn('[copy-as-html] markdown-it-task-lists not available:', e);
 }
-try {
-    markdownItGithubAlerts = require('markdown-it-github-alerts');
-} catch (e) {
-    console.warn('[copy-as-html] markdown-it-github-alerts (cjs) require failed:', e);
-    // dynamic import fallback will occur later inside createMarkdownItInstance
-}
+// markdown-it-github-alerts is ESM-only (see upstream repo). We'll load it via dynamic import
+// inside createMarkdownItInstance. Keeping a placeholder variable for later assignment.
 
 /**
  * Creates and configures a markdown-it instance based on Joplin's global settings.
