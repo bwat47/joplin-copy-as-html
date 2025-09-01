@@ -369,7 +369,7 @@ export function renderPlainText(
                 if (options.preserveHorizontalRule) {
                     result += `${PLAIN_TEXT_CONSTANTS.HORIZONTAL_RULE_MARKER}\n\n`;
                 } else {
-                    result += '\n\n';
+                    result += '\u00A0\n\n'; // Non-breaking space + paragraph spacing
                 }
                 break;
             case 'em_open':

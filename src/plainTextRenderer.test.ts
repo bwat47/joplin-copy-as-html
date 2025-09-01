@@ -94,7 +94,7 @@ describe('Character Preservation Options', () => {
         ['preserveBold', '**This is bold text**', '**This is bold text**', 'This is bold text'],
         ['preserveEmphasis', '*This is emphasis text*', '*This is emphasis text*', 'This is emphasis text'],
         ['preserveStrikethrough', '~~deleted text~~', '~~deleted text~~', 'deleted text'],
-        ['preserveHorizontalRule', '---', '---', ''],
+        ['preserveHorizontalRule', '---', '---', '\u00A0\n\n'],
         ['preserveMark', '==highlighted text==', '==highlighted text==', 'highlighted text'],
         ['preserveInsert', '++inserted text++', '++inserted text++', 'inserted text'],
         ['preserveSubscript', 'H~2~O', 'H~2~O', 'H2O'],
@@ -107,7 +107,13 @@ describe('Character Preservation Options', () => {
 
         // Test when option is disabled (default behavior)
         const disabledResult = convertMarkdownToPlainText(input, defaultOptions);
-        expect(disabledResult.trim()).toBe(expectedWhenDisabled);
+        
+        // Special case for horizontal rule: nbsp gets trimmed, so check raw result
+        if (optionName === 'preserveHorizontalRule') {
+            expect(disabledResult).toBe(expectedWhenDisabled);
+        } else {
+            expect(disabledResult.trim()).toBe(expectedWhenDisabled);
+        }
     });
 });
 
