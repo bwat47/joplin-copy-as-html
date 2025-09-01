@@ -31,6 +31,7 @@ export const SETTINGS = {
     DISPLAY_EMOJIS: 'displayEmojis',
     HYPERLINK_BEHAVIOR: 'hyperlinkBehavior',
     INDENT_TYPE: 'indentType',
+    DEBUG: 'debug',
 };
 
 // Regex patterns for Joplin resource and image handling

@@ -276,6 +276,16 @@ joplin.plugins.register({
                 label: 'List indentation type',
                 description: 'How nested lists should be indented in plain text output.',
             },
+            [SETTINGS.DEBUG]: {
+                value: false,
+                type: SettingItemType.Bool,
+                section: 'copyAsHtml',
+                public: true,
+                advanced: true,
+                label: 'Enable debug logging',
+                description:
+                    'If enabled, plugin will output additional diagnostic logs (markdown-it plugin loading, context menu detection, etc.).',
+            },
         });
 
         // Note: We'll register context menu items dynamically through the filter
@@ -293,11 +303,19 @@ joplin.plugins.register({
 
         // Filter context menu to dynamically add our commands only in markdown editor
         joplin.workspace.filterEditorContextMenu(async (contextMenu) => {
-            // Debug: log what we see in the context menu
-            console.log(
-                '[copy-as-html] Context menu items:',
-                contextMenu.items.map((item) => item.commandName)
-            );
+            let debug = false;
+            try {
+                debug = await joplin.settings.value(SETTINGS.DEBUG);
+            } catch {
+                // ignore
+            }
+
+            if (debug) {
+                console.log(
+                    '[copy-as-html] Context menu items:',
+                    contextMenu.items.map((item) => item.commandName)
+                );
+            }
 
             // Simple approach: try to execute a markdown-specific command
             // If it succeeds, we're in the markdown editor
@@ -308,11 +326,11 @@ joplin.plugins.register({
                     name: 'getCursor',
                 });
                 isMarkdownEditor = true;
-                console.log('[copy-as-html] Detected markdown editor - adding context menu items');
+                if (debug) console.log('[copy-as-html] Detected markdown editor - adding context menu items');
             } catch {
                 // If getCursor fails, we're likely in rich text editor
                 isMarkdownEditor = false;
-                console.log('[copy-as-html] Detected rich text editor - not adding context menu items');
+                if (debug) console.log('[copy-as-html] Detected rich text editor - not adding context menu items');
             }
 
             // Only add our commands to the context menu if we're in markdown editor
@@ -337,7 +355,7 @@ joplin.plugins.register({
                     });
                 }
 
-                console.log('[copy-as-html] Added context menu items, total:', contextMenu.items.length);
+                if (debug) console.log('[copy-as-html] Added context menu items, total:', contextMenu.items.length);
             }
 
             return contextMenu;

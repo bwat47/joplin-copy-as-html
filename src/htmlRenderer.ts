@@ -45,7 +45,13 @@ export async function processHtmlConversion(selection: string, options?: HtmlOpt
     const { processedMarkdown, dimensions } = extractImageDimensions(selection, htmlOptions.embedImages);
 
     // 3. Create and configure markdown-it instance
-    const md = await createMarkdownItInstance();
+    let debug = false;
+    try {
+        debug = await joplin.settings.value(SETTINGS.DEBUG);
+    } catch {
+        // ignore if setting unavailable (tests)
+    }
+    const md = await createMarkdownItInstance({ debug });
     let html = md.render(processedMarkdown);
 
     // 4. Post-process HTML for assets

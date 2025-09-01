@@ -91,7 +91,12 @@ try {
  * Creates and configures a markdown-it instance based on Joplin's global settings.
  * @returns A promise that resolves to a configured markdown-it instance.
  */
-export async function createMarkdownItInstance(): Promise<MarkdownIt> {
+export interface MarkdownItFactoryOptions {
+    debug?: boolean;
+}
+
+export async function createMarkdownItInstance(opts: MarkdownItFactoryOptions = {}): Promise<MarkdownIt> {
+    const { debug = false } = opts;
     // If github alerts plugin not resolved via require (e.g., pure ESM resolution issues), attempt dynamic import here
     if (!markdownItGithubAlerts) {
         try {
@@ -205,8 +210,8 @@ export async function createMarkdownItInstance(): Promise<MarkdownIt> {
             'markdown-it-github-alerts'
         );
         if (!loaded) {
-            console.warn('[copy-as-html] Failed to load markdown-it-github-alerts via safePluginUse');
-        } else {
+            if (debug) console.warn('[copy-as-html] Failed to load markdown-it-github-alerts via safePluginUse');
+        } else if (debug) {
             console.log('[copy-as-html] markdown-it-github-alerts plugin registered');
         }
     }
