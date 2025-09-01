@@ -77,9 +77,9 @@ blockquote p:last-of-type { margin-bottom: 0; }
 .markdown-alert-important { border-left-color: #8250df; }
 .markdown-alert-warning { border-left-color: #9a6700; }
 .markdown-alert-caution { border-left-color: #cf222e; }
-
-.markdown-alert p:first-of-type { margin-top: 0; }
-.markdown-alert p:last-of-type { margin-bottom: 0; }
+/* Remove extra top/bottom gap regardless of element type (p, ul, ol, etc.) */
+.markdown-alert > :first-child { margin-top: 0; }
+.markdown-alert > :last-child { margin-bottom: 0; }
 
 hr {
 	border: none;
