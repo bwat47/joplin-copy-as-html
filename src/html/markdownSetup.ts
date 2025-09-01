@@ -84,7 +84,7 @@ try {
 } catch (e) {
     console.warn('[copy-as-html] markdown-it-task-lists not available:', e);
 }
-// markdown-it-github-alerts is ESM-only (see upstream repo). We'll load it via dynamic import
+// markdown-it-github-alerts is ESM-only (see upstream repo commit: fc388da324182abd23b5acc5a8e16f93ddf771fe). We'll load it via dynamic import
 // inside createMarkdownItInstance. Keeping a placeholder variable for later assignment.
 
 /**
