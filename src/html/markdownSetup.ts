@@ -205,7 +205,7 @@ export async function createMarkdownItInstance(): Promise<MarkdownIt> {
         const loaded = safePluginUse(
             md,
             markdownItGithubAlerts,
-            { matchCaseSensitive: false },
+            { matchCaseSensitive: false, icons: {} }, // disable inline SVG icons for better email client compatibility
             'markdown-it-github-alerts'
         );
         if (!loaded) {

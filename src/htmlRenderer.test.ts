@@ -138,6 +138,17 @@ describe('processHtmlConversion', () => {
         expect(result).toContain('Github alert note test');
         expect(result).not.toContain('[!note]');
     });
+
+    it('should render GitHub alert blocks without SVG icons', async () => {
+        const markdown = '> [!warning]\n> Icon suppression test';
+        mockHtmlSettings({ embedImages: false, exportFullHtml: false });
+        mockGlobalPlugins([]);
+        const result = await processHtmlConversion(markdown);
+        expect(result).toMatch(/markdown-alert-warning/);
+        expect(result).toContain('Icon suppression test');
+        // Ensure no inline SVG was emitted
+        expect(result).not.toMatch(/<svg[\s>]/i);
+    });
 });
 
 // Test adherance to Joplin global markdown settings

@@ -66,8 +66,9 @@ blockquote p:last-of-type { margin-bottom: 0; }
 	margin: 1em 0;
 }
 .markdown-alert-title {
-	margin: 0;
+	margin: 0 0 0.25em 0;
 	font-weight: 600;
+	/* Flex retained for potential custom user icons; no gap needed without SVG */
 	display: flex;
 	align-items: center;
 }
