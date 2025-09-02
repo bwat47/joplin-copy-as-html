@@ -5,7 +5,7 @@
  * It uses several sub-modules to handle specific parts of the process:
  * - markdownSetup: Configures markdown-it with Joplin-compatible plugins.
  * - assetProcessor: Handles image embedding, dimension preservation, and stylesheets.
- * - domPostProcess: Cleans the final HTML using JSDOM.
+ * - domPostProcess: Cleans the final HTML using DOMParser.
  *
  * @author bwat47
  * @since 1.0.16
