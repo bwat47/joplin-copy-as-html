@@ -292,7 +292,41 @@ describe('Joplin Global Setting Integration', () => {
         // URLs and emails should be converted to clickable links
         expect(result).toContain('<a href=');
         expect(result).toContain('https://example.com');
+        expect(result).toContain('test@example.com'); // email text still present (not necessarily linkified)
+    });
+
+    it('should not auto-link plain emails when linkify enabled (fuzzyEmail disabled)', async () => {
+        const markdown = 'Contact: test@example.com for details';
+        mockHtmlSettings();
+        enableOnlyPlugin('markdown.plugin.linkify');
+        const result = await processHtmlConversion(markdown);
+        // Should contain the plain email text
         expect(result).toContain('test@example.com');
+        // Should NOT have a mailto link automatically generated
+        expect(result).not.toMatch(/href="mailto:test@example.com"/i);
+    });
+
+    it('should linkify explicit mailto protocol', async () => {
+        const markdown = 'Email me: mailto:test@example.com';
+        mockHtmlSettings();
+        enableOnlyPlugin('markdown.plugin.linkify');
+        const result = await processHtmlConversion(markdown);
+        expect(result).toMatch(/<a href="mailto:test@example.com"[^>]*>mailto:test@example.com<\/a>/i);
+    });
+
+    it('should create two separate links on a single line with two protocol URLs', async () => {
+        const markdown =
+            'Tool to unminify json: https://unminify.com/ and to minify json: https://jsonformatter.org/json-minify';
+        mockHtmlSettings();
+        enableOnlyPlugin('markdown.plugin.linkify');
+        const result = await processHtmlConversion(markdown);
+        // Two separate anchors
+        const anchors = result.match(/<a href="https:\/\/[^"']+"/g) || [];
+        expect(anchors.length).toBe(2);
+        expect(result).toContain('href="https://unminify.com/"');
+        expect(result).toContain('href="https://jsonformatter.org/json-minify"');
+        // Ensure no merged href containing encoded spaces or second URL inside first href
+        expect(result).not.toMatch(/href="https:\/\/unminify.com\/[^"']+jsonformatter/);
     });
 
     it('should NOT convert URLs and emails to links when linkify is disabled', async () => {
