@@ -17,7 +17,7 @@ This will populate the clipboard's text/html category with the HTML formatted te
 
 By default, the plugin will embed any images as base64 in the text/html output, allowing you paste text + images into external applications. However, this can be disabled in the plugin's settings.
 
-This should work with both markdown image embeds and the html `<img>` embeds that you get when resizing images via joplin's rich text editor.
+This will work with both markdown image embeds and the html `<img>` embeds that you get when resizing images via joplin's rich text editor.
 
 ### Export as fragment or full HTML document
 
@@ -69,6 +69,12 @@ The plugin will adhere to Joplin's settings for whether or not to render:
 
 > [!note]
 > Mermaid/Math are not supported, they will render as plain text (code).
+
+#### Github Alerts
+
+Github Alert syntax, (e.g. `>[!NOTE]`) is supported via the markdown-it-github-alerts plugin. In order for github alerts to be rendered nicely, you must be using the Full document mode with CSS styling targeting the .markdown-alert classes. The default [stylesheet](https://github.com/bwat47/joplin-copy-as-html/blob/main/src/defaultStylesheet.ts) contains styling for github alerts, example:
+
+<img width="647" height="702" alt="image" src="https://github.com/user-attachments/assets/eb00e25d-5db4-4386-8d84-ec8ffb7f2540" />
 
 ## Copy as Plain Text
 
