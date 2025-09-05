@@ -15,23 +15,123 @@
  * @param html The HTML string to process.
  * @returns The processed HTML string.
  */
+import DOMPurify from 'dompurify';
+
+// Initialize DOMPurify instance
+let purifyInstance: typeof DOMPurify;
+
+if (typeof window !== 'undefined') {
+    // Browser environment
+    purifyInstance = DOMPurify;
+} else {
+    // Node.js environment - try to load JSDOM dynamically
+    try {
+        // eslint-disable-next-line @typescript-eslint/no-require-imports
+        const { JSDOM } = require('jsdom');
+        const window = new JSDOM('').window;
+        purifyInstance = DOMPurify(window as unknown as Window & typeof globalThis);
+    } catch {
+        // JSDOM not available (e.g., in webpack bundle), use DOMPurify as-is
+        purifyInstance = DOMPurify;
+    }
+}
+
 export function postProcessHtml(html: string): string {
+    const sanitizedHtml = purifyInstance.sanitize(html, {
+        // Keep it permissive for rich content but remove dangerous elements
+        ALLOWED_TAGS: [
+            'h1',
+            'h2',
+            'h3',
+            'h4',
+            'h5',
+            'h6',
+            'p',
+            'br',
+            'hr',
+            'strong',
+            'b',
+            'em',
+            'i',
+            'u',
+            'mark',
+            'del',
+            's',
+            'ins',
+            'sub',
+            'sup',
+            'ul',
+            'ol',
+            'li',
+            'blockquote',
+            'table',
+            'thead',
+            'tbody',
+            'tr',
+            'th',
+            'td',
+            'a',
+            'img',
+            'code',
+            'pre',
+            'div',
+            'span',
+            // Definition lists
+            'dl',
+            'dt',
+            'dd',
+            // Abbreviations
+            'abbr',
+            // Semantic HTML elements
+            'section',
+            'nav',
+            'article',
+            'aside',
+            'header',
+            'footer',
+            'main',
+            // GitHub alerts
+            'div', // for .markdown-alert classes
+        ],
+        ALLOWED_ATTR: [
+            'href',
+            'src',
+            'alt',
+            'title',
+            'width',
+            'height',
+            'style',
+            'class',
+            'id',
+            'data-*', // for any legitimate data attributes
+        ],
+        FORBID_TAGS: ['script', 'iframe', 'object', 'embed', 'form', 'input'],
+        FORBID_ATTR: ['onload', 'onerror', 'onclick'], // Remove event handlers
+        ALLOW_DATA_ATTR: true,
+    });
+
     // Check if we have any Joplin resource links to process
-    const hasJoplinLinks = /(?:data-resource-id|href=["']?(?::|joplin:\/\/resource\/))/.test(html);
+    const hasJoplinLinks = /(?:data-resource-id|href=["']?(?::|joplin:\/\/resource\/))/.test(sanitizedHtml);
     if (!hasJoplinLinks) {
-        return html; // Skip DOM processing if no Joplin links
+        return sanitizedHtml;
     }
 
-    const ParserCtor = (globalThis as unknown as { DOMParser?: { new (): DOMParser } }).DOMParser;
-    if (!ParserCtor) return html;
-
-    const parser = new ParserCtor();
-    const doc = parser.parseFromString(`<body>${html}</body>`, 'text/html');
+    let doc: Document;
+    if (typeof window !== 'undefined') {
+        // Browser environment
+        const parser = new DOMParser();
+        doc = parser.parseFromString(`<body>${sanitizedHtml}</body>`, 'text/html');
+    } else {
+        // Node.js environment - use JSDOM
+        // eslint-disable-next-line @typescript-eslint/no-require-imports
+        const { JSDOM } = require('jsdom');
+        const dom = new JSDOM(`<body>${sanitizedHtml}</body>`);
+        doc = dom.window.document;
+    }
 
     // Clean up non-image Joplin resource links to be just their text content.
     // This handles links created by Joplin's rich text editor and markdown links.
     doc.querySelectorAll('a[data-resource-id], a[href^=":/"], a[href^="joplin://resource/"]').forEach((link) => {
-        // Don't modify links that contain images
         if (link.querySelector('img')) {
             return;
         }

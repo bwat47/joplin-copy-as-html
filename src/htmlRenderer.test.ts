@@ -253,7 +253,7 @@ describe('Joplin Global Setting Integration', () => {
 
         const result = await processHtmlConversion(markdown);
         // Should contain straight quotes and three dots, not smart typography
-        expect(result).toContain('&quot;Smartypants, double quotes&quot;');
+        expect(result).toContain('"Smartypants, double quotes"');
         expect(result).toContain('test...');
         expect(result).not.toContain('…'); // should not have ellipsis
     });

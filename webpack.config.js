@@ -243,6 +243,11 @@ const pluginConfig = {
         extensions: ['.js', '.tsx', '.ts', '.json'],
     },
 
+    // Exclude JSDOM from the bundle since it's only used in test environments
+    externals: {
+        'jsdom': 'commonjs jsdom'
+    },
+
     output: {
         filename: 'index.js',
         path: distDir,
