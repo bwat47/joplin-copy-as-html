@@ -175,7 +175,7 @@ Now a thin coordination layer. It:
 1. Pre-processes selection (image dimension extraction) via `html/assetProcessor.ts`.
 2. Builds a configured markdown-it instance with `html/markdownSetup.ts`.
 3. Renders markdown → HTML.
-4. Runs post-processing (`applyPreservedDimensions`, base64 embedding, DOM cleanup) using helpers in `html/assetProcessor.ts` & `html/domPostProcess.ts`.
+4. Runs post-processing (`applyPreservedDimensions`, base64 embedding, DOM cleanup, HTML sanitization) using helpers in `html/assetProcessor.ts` & `html/domPostProcess.ts`.
 
 Key benefit: HTML-specific responsibilities moved out of a monolith into focused modules, improving testability and isolating side-effects (filesystem, Joplin API calls).
 
@@ -195,7 +195,8 @@ Recent enhancement: Added runtime shape guard (`isMinimalJoplinResource`) to avo
 Responsibilities:
 
 - DOM parsing of rendered document.
-- Currently only used to clean up joplin resource links, but may be used for more in the future.
+- Find internal joplin links and render title text only.
+- HTML sanitization with DOMpurify.
 
 #### `src/html/markdownSetup.ts`
 
@@ -394,6 +395,7 @@ All preservation settings default to `false` for clean plain text output:
 - **Reliability**: Regex parsing of HTML proved unreliable for nested structures
 - **Maintainability**: DOM queries are more readable and robust than complex regex
 - **Future-Proofing**: Adapts better to changes in markdown-it's HTML structure
+- **Security**: HTML sanitization with DOMPurify.
 
 ### Base64 Image Embedding
 
