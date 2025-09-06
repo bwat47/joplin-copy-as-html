@@ -62,8 +62,8 @@ export async function processHtmlConversion(selection: string, options?: HtmlOpt
         html = await processEmbeddedImages(html, htmlOptions.embedImages);
     }
 
-    // 5. Use DOMParser for advanced transformations
-    html = postProcessHtml(html); // handles link cleaning, etc.
+    // 5. Use DOMParser for post processing and DOMPurify for HTML sanitization.
+    html = postProcessHtml(html); // handles link cleaning, sanitization etc.
 
     let fragment = html.trim();
 

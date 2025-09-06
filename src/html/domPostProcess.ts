@@ -3,6 +3,7 @@
  *
  * This module handles all post-processing of the rendered HTML using DOMParser.
  * This includes:
+ * - Sanitizing HTML
  * - Cleaning up Joplin-specific resource links
  * - Future DOM transformations
  *
