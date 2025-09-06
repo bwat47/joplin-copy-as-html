@@ -179,6 +179,7 @@ export function postProcessHtml(html: string): string {
     // Clean up non-image Joplin resource links to be just their text content.
     // This handles links created by Joplin's rich text editor and markdown links.
     doc.querySelectorAll('a[data-resource-id], a[href^=":/"], a[href^="joplin://resource/"]').forEach((link) => {
+        // Don't modify links that contain images
         if (link.querySelector('img')) {
             return;
         }
