@@ -96,6 +96,17 @@ export function postProcessHtml(html: string): string {
             'header',
             'footer',
             'main',
+            'figure',
+            'figcaption',
+            // Additional formatting
+            'small',
+            'cite',
+            'q',
+            'dfn',
+            'time',
+            'var',
+            'samp',
+            'kbd',
             // GitHub alerts
             'div', // for .markdown-alert classes
         ],
@@ -120,6 +131,13 @@ export function postProcessHtml(html: string): string {
             'type',
             'checked',
             'disabled',
+            // Additional semantic attributes
+            'datetime',
+            'cite',
+            'lang',
+            // Accessibility attributes
+            'role',
+            'aria-*',
         ],
         FORBID_TAGS: ['script', 'iframe', 'object', 'embed', 'form'],
         FORBID_ATTR: ['onload', 'onerror', 'onclick'], // Remove event handlers
