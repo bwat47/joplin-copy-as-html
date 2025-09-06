@@ -67,9 +67,13 @@ export function postProcessHtml(html: string): string {
             'table',
             'thead',
             'tbody',
+            'tfoot',
             'tr',
             'th',
             'td',
+            'colgroup',
+            'col',
+            'caption',
             'a',
             'img',
             'code',
@@ -82,6 +86,8 @@ export function postProcessHtml(html: string): string {
             'dd',
             // Abbreviations
             'abbr',
+            // Task list checkboxes
+            'input',
             // Semantic HTML elements
             'section',
             'nav',
@@ -104,10 +110,33 @@ export function postProcessHtml(html: string): string {
             'class',
             'id',
             'data-*', // for any legitimate data attributes
+            // Tables
+            'colspan',
+            'rowspan',
+            'scope',
+            'align',
+            'valign',
+            // Task list checkboxes
+            'type',
+            'checked',
+            'disabled',
         ],
-        FORBID_TAGS: ['script', 'iframe', 'object', 'embed', 'form', 'input'],
+        FORBID_TAGS: ['script', 'iframe', 'object', 'embed', 'form'],
         FORBID_ATTR: ['onload', 'onerror', 'onclick'], // Remove event handlers
         ALLOW_DATA_ATTR: true,
+    });
+
+    // Add security hook to only allow checkbox inputs
+    purifyInstance.addHook('afterSanitizeAttributes', function (node) {
+        // Check if the current node is an <input> element.
+        if (node.tagName === 'INPUT') {
+            // Check if the 'type' attribute is NOT 'checkbox'.
+            // We convert to lowercase to be safe.
+            if (node.getAttribute('type')?.toLowerCase() !== 'checkbox') {
+                // If it's an input but not a checkbox, remove it.
+                node.remove();
+            }
+        }
     });
 
     // Check if we have any Joplin resource links to process

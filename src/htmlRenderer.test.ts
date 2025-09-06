@@ -587,4 +587,23 @@ Final content.`;
         expect(result).toContain('Cell with');
         expect(result).toContain('Normal cell');
     });
+
+    it('should render task lists with checkboxes', async () => {
+        const markdown = `- [x] Completed task
+- [ ] Incomplete task
+- [x] Another completed task`;
+
+        mockHtmlSettings();
+        mockGlobalPlugins();
+
+        const result = await processHtmlConversion(markdown);
+        
+        // Should contain task list elements
+        expect(result).toContain('type="checkbox"');
+        expect(result).toContain('checked=""');
+        expect(result).toContain('class="task-list-item');
+        expect(result).toContain('class="contains-task-list"');
+        expect(result).toContain('Completed task');
+        expect(result).toContain('Incomplete task');
+    });
 });
