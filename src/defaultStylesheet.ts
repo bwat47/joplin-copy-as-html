@@ -118,7 +118,7 @@ ol li>ol {
 	margin-bottom: 0.5em;
 }
 
-/* prevent extra padding at bottom of lists inside block quotes */
+/* prevent extra margin at bottom of lists inside block quotes */
 ul > li:last-child, ol > li:last-child { margin-bottom: 0; }
 ul li > ul:last-child, ol li > ol:last-child { margin-bottom: 0; }
 
