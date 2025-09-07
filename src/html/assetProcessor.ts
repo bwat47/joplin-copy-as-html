@@ -139,12 +139,10 @@ export function extractImageDimensions(
 
             // Process remote images if enabled
             if (downloadRemoteImages && embedImages) {
-                console.log('[copy-as-html] DEBUG: Remote image processing enabled, scanning content:', processedContent.substring(0, 200));
                 
                 // First process Markdown image syntax with remote URLs (avoid double-processing)
                 const markdownRemoteImgRegex = /!\[([^\]]*)\]\((https?:\/\/[^)]+)\)/gi;
                 processedContent = processedContent.replace(markdownRemoteImgRegex, (match, alt, url) => {
-                    console.log('[copy-as-html] DEBUG: Found remote Markdown image - URL:', url, 'Alt:', alt);
                     const placeholder = `REMOTE_${counter}`;
                     
                     remoteImages.set(placeholder, {
@@ -160,14 +158,12 @@ export function extractImageDimensions(
                     
                     counter++;
                     const result = `![${placeholder}](${url})`;
-                    console.log('[copy-as-html] DEBUG: Replacing Markdown with placeholder:', result);
                     return result;
                 });
                 
                 // Then process HTML <img> tags with remote URLs
                 const remoteImgRegex = /<img([^>]*src=["'](https?:\/\/[^"']+)["'][^>]*)>/gi;
                 processedContent = processedContent.replace(remoteImgRegex, (match, attrs, url) => {
-                    console.log('[copy-as-html] DEBUG: Found remote HTML image - URL:', url);
                     const placeholder = `REMOTE_${counter}`;
                     
                     // Extract dimensions and alt text
@@ -188,11 +184,9 @@ export function extractImageDimensions(
                     
                     counter++;
                     const result = `![${placeholder}](${url})`;
-                    console.log('[copy-as-html] DEBUG: Replacing HTML with markdown:', result);
                     return result;
                 });
                 
-                console.log('[copy-as-html] DEBUG: After remote image processing, content:', processedContent.substring(0, 200));
             }
         }
 
@@ -202,11 +196,6 @@ export function extractImageDimensions(
     // Recombine segments
     const processedMarkdown = processedSegments.map((seg) => seg.content).join('');
 
-    console.log('[copy-as-html] DEBUG: extractImageDimensions returning:', {
-        remoteImagesCount: remoteImages.size,
-        remoteImagesData: Array.from(remoteImages.entries()),
-        processedMarkdown: processedMarkdown.substring(0, 200)
-    });
     return { processedMarkdown, dimensions, remoteImages };
 }
 
@@ -553,8 +542,6 @@ async function downloadRemoteImageAsBase64(url: string): Promise<string> {
  * @returns HTML with remote images embedded or replaced with error messages.
  */
 export async function processRemoteImages(html: string, remoteImages: Map<string, RemoteImageData>): Promise<string> {
-    console.log('[copy-as-html] DEBUG: processRemoteImages called with', remoteImages.size, 'images');
-    console.log('[copy-as-html] DEBUG: Input HTML:', html.substring(0, 300));
     if (remoteImages.size === 0) return html;
 
     // Process all remote images concurrently

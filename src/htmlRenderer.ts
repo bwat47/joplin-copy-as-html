@@ -40,31 +40,6 @@ export async function processHtmlConversion(selection: string, options?: HtmlOpt
         const exportFullHtml = await joplin.settings.value(SETTINGS.EXPORT_FULL_HTML);
         const downloadRemoteImages = await joplin.settings.value(SETTINGS.DOWNLOAD_REMOTE_IMAGES);
         
-        console.log('[copy-as-html] DEBUG: Raw setting values:', {
-            embedImages,
-            exportFullHtml, 
-            downloadRemoteImages,
-            settingKeys: {
-                embedImages: SETTINGS.EMBED_IMAGES,
-                exportFullHtml: SETTINGS.EXPORT_FULL_HTML,
-                downloadRemoteImages: SETTINGS.DOWNLOAD_REMOTE_IMAGES
-            }
-        });
-        
-        // Try to get all settings to debug
-        try {
-            const allSettings = {};
-            for (const [key, value] of Object.entries(SETTINGS)) {
-                try {
-                    allSettings[key] = await joplin.settings.value(value);
-                } catch (e) {
-                    allSettings[key] = `ERROR: ${e.message}`;
-                }
-            }
-            console.log('[copy-as-html] DEBUG: All plugin settings:', allSettings);
-        } catch (e) {
-            console.log('[copy-as-html] DEBUG: Error getting all settings:', e);
-        }
         
         options = validateHtmlSettings({
             embedImages,
@@ -75,12 +50,6 @@ export async function processHtmlConversion(selection: string, options?: HtmlOpt
     const htmlOptions = options;
 
     // 2. Pre-process markdown for assets (e.g., image dimensions, remote images)
-    console.log('[copy-as-html] DEBUG: htmlRenderer - settings:', {
-        embedImages: htmlOptions.embedImages,
-        downloadRemoteImages: htmlOptions.downloadRemoteImages,
-        exportFullHtml: htmlOptions.exportFullHtml
-    });
-    console.log('[copy-as-html] DEBUG: htmlRenderer - input selection:', selection.substring(0, 200));
     const { processedMarkdown, dimensions, remoteImages } = extractImageDimensions(
         selection, 
         htmlOptions.embedImages,
