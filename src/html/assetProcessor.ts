@@ -231,7 +231,7 @@ export function applyPreservedDimensions(
             const escapedPrefix = CONSTANTS.DIMENSION_KEY_PREFIX.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
             const originalAlt = attrs.originalAlt || '';
             newAttrs = newAttrs.replace(
-                new RegExp(`alt\\s*=\\s*["']${escapedPrefix}\\d+["']`),
+                new RegExp(`alt\\s*=\\s*["']${escapedPrefix}\\d+["']`, 'i'),
                 `alt="${escapeHtmlAttr(originalAlt)}"`
             );
 
@@ -261,7 +261,7 @@ export function applyPreservedDimensions(
                     // Replace the placeholder with the original alt text
                     const originalAlt = remoteImageData.dimensions!.originalAlt || '';
                     newAttrs = newAttrs.replace(
-                        new RegExp(`alt\\s*=\\s*["']${placeholder}["']`),
+                        new RegExp(`alt\\s*=\\s*["']${placeholder}["']`, 'i'),
                         `alt="${escapeHtmlAttr(originalAlt)}"`
                     );
 
@@ -286,13 +286,17 @@ export async function replaceAsync(
     regex: RegExp,
     asyncFn: (match: string, ...args: unknown[]) => Promise<string>
 ): Promise<string> {
+    // Ensure we operate with a global regex to collect and replace all matches consistently
+    const globalRegex = regex.global ? regex : new RegExp(regex.source, regex.flags + 'g');
+
     const promises: Promise<string>[] = [];
-    str.replace(regex, (match, ...args) => {
+    str.replace(globalRegex, (match, ...args) => {
         promises.push(asyncFn(match, ...args));
         return match;
     });
     const data = await Promise.all(promises);
-    return str.replace(regex, () => data.shift());
+    let i = 0;
+    return str.replace(globalRegex, () => data[i++]);
 }
 
 /**
