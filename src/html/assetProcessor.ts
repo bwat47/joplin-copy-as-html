@@ -64,10 +64,10 @@ export function extractImageDimensions(
     markdown: string,
     embedImages: boolean,
     downloadRemoteImages: boolean = false
-): { 
-    processedMarkdown: string; 
-    dimensions: Map<string, ImageDimensions>; 
-    remoteImages: Map<string, RemoteImageData> 
+): {
+    processedMarkdown: string;
+    dimensions: Map<string, ImageDimensions>;
+    remoteImages: Map<string, RemoteImageData>;
 } {
     const dimensions = new Map<string, ImageDimensions>();
     const remoteImages = new Map<string, RemoteImageData>();
@@ -139,12 +139,11 @@ export function extractImageDimensions(
 
             // Process remote images if enabled
             if (downloadRemoteImages && embedImages) {
-                
                 // First process Markdown image syntax with remote URLs (avoid double-processing)
                 const markdownRemoteImgRegex = /!\[([^\]]*)\]\((https?:\/\/[^)]+)\)/gi;
                 processedContent = processedContent.replace(markdownRemoteImgRegex, (match, alt, url) => {
                     const placeholder = `REMOTE_${counter}`;
-                    
+
                     remoteImages.set(placeholder, {
                         originalUrl: url,
                         placeholder,
@@ -153,40 +152,39 @@ export function extractImageDimensions(
                             height: undefined,
                             resourceId: url, // Use URL as identifier
                             originalAlt: alt || '',
-                        }
+                        },
                     });
-                    
+
                     counter++;
                     const result = `![${placeholder}](${url})`;
                     return result;
                 });
-                
+
                 // Then process HTML <img> tags with remote URLs
                 const remoteImgRegex = /<img([^>]*src=["'](https?:\/\/[^"']+)["'][^>]*)>/gi;
                 processedContent = processedContent.replace(remoteImgRegex, (match, attrs, url) => {
                     const placeholder = `REMOTE_${counter}`;
-                    
+
                     // Extract dimensions and alt text
                     const widthMatch = attrs.match(/\bwidth\s*=\s*["']?([^"'\s>]+)["']?/i);
                     const heightMatch = attrs.match(/\bheight\s*=\s*["']?([^"'\s>]+)["']?/i);
                     const altMatch = attrs.match(/\balt\s*=\s*["']([^"']*)["']/i);
-                    
+
                     remoteImages.set(placeholder, {
                         originalUrl: url,
                         placeholder,
                         dimensions: {
                             width: widthMatch?.[1],
-                            height: heightMatch?.[1], 
+                            height: heightMatch?.[1],
                             resourceId: url, // Use URL as identifier
                             originalAlt: altMatch?.[1] || '',
-                        }
+                        },
                     });
-                    
+
                     counter++;
                     const result = `![${placeholder}](${url})`;
                     return result;
                 });
-                
             }
         }
 
@@ -207,7 +205,7 @@ export function extractImageDimensions(
  * @returns The HTML string with dimensions applied.
  */
 export function applyPreservedDimensions(
-    html: string, 
+    html: string,
     dimensions: Map<string, ImageDimensions>,
     remoteImages?: Map<string, RemoteImageData>
 ): string {
@@ -246,7 +244,7 @@ export function applyPreservedDimensions(
         for (const [placeholder, remoteImageData] of remoteImages) {
             if (remoteImageData.dimensions) {
                 const imgRegex = new RegExp(`<img([^>]*alt=["']${placeholder}["'][^>]*)>`, 'gi');
-                
+
                 html = html.replace(imgRegex, (match, existingAttrs) => {
                     let newAttrs = existingAttrs;
 
@@ -493,10 +491,13 @@ async function downloadRemoteImageAsBase64(url: string): Promise<string> {
     try {
         const response = await withTimeout(
             fetch(url, {
+                // Avoid leaking cookies/referrer in Electron/Hybrid environments
+                credentials: 'omit',
+                referrerPolicy: 'no-referrer',
                 headers: {
                     'User-Agent': 'Mozilla/5.0 (compatible; Joplin Plugin)',
-                    'Accept': 'image/*',
-                }
+                    Accept: 'image/*',
+                },
             }),
             CONSTANTS.BASE64_TIMEOUT_MS,
             'Remote image download timeout'
@@ -527,7 +528,6 @@ async function downloadRemoteImageAsBase64(url: string): Promise<string> {
 
         const base64 = buffer.toString('base64');
         return `data:${contentType};base64,${base64}`;
-        
     } catch (err) {
         console.error('[copy-as-html] Failed to download remote image:', url, err);
         const msg = err?.message || String(err);
