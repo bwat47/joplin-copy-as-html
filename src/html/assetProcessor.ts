@@ -101,11 +101,11 @@ export function extractImageDimensions(
 
         let processedContent = segment.content;
 
-        // If not embedding images, remove all image references
+        // If not embedding images, remove only Joplin resource images (remote images can remain)
         if (!embedImages) {
-            // Remove HTML img tags
-            processedContent = processedContent.replace(REGEX_PATTERNS.HTML_IMG, '');
-            // Remove markdown image syntax for Joplin resources (more precise)
+            // Remove HTML img tags with Joplin resource IDs (keep remote images)
+            processedContent = processedContent.replace(REGEX_PATTERNS.HTML_IMG_WITH_RESOURCE, '');
+            // Remove markdown image syntax for Joplin resources (remote markdown images will be unaffected)
             processedContent = processedContent.replace(REGEX_PATTERNS.MARKDOWN_IMG, '');
         } else {
             // Only process HTML img tags that contain Joplin resource IDs in non-code segments

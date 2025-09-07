@@ -67,12 +67,48 @@ describe('extractImageDimensions', () => {
         expect(processedMarkdown).toContain(`![DIMENSION_0](:/${resourceId})`);
     });
 
-    it('should strip all image tags when embedImages is false', () => {
-        const markdown = 'Here is an image: <img src=":/xyz..." width="100">';
+    it('should strip only Joplin resource images when embedImages is false', () => {
+        const resourceId = 'a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4';
+        const markdown = `Here is a Joplin image: <img src=":/${resourceId}" width="100">`;
         const { processedMarkdown, dimensions } = extractImageDimensions(markdown, false);
 
-        expect(processedMarkdown).toBe('Here is an image: ');
+        expect(processedMarkdown).toBe('Here is a Joplin image: ');
         expect(dimensions.size).toBe(0);
+    });
+
+    it('should preserve remote HTML images when embedImages is false', () => {
+        const markdown = 'Here is a remote image: <img src="https://example.com/image.jpg" width="100" alt="test"/>';
+        const { processedMarkdown, dimensions, remoteImages } = extractImageDimensions(markdown, false, false);
+        
+        expect(processedMarkdown).toBe('Here is a remote image: <img src="https://example.com/image.jpg" width="100" alt="test"/>');
+        expect(dimensions.size).toBe(0);
+        expect(remoteImages.size).toBe(0); // No remote processing when embedImages is false
+    });
+
+    it('should preserve remote Markdown images when embedImages is false', () => {
+        const markdown = 'Here is a remote image: ![test image](https://example.com/image.jpg)';
+        const { processedMarkdown, dimensions, remoteImages } = extractImageDimensions(markdown, false, false);
+        
+        expect(processedMarkdown).toBe('Here is a remote image: ![test image](https://example.com/image.jpg)');
+        expect(dimensions.size).toBe(0);
+        expect(remoteImages.size).toBe(0); // No remote processing when embedImages is false
+    });
+
+    it('should remove mixed Joplin and remote images selectively when embedImages is false', () => {
+        const resourceId = 'a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4';
+        const markdown = `<img src=":/${resourceId}" width="100"/>
+![joplin resource](:/${resourceId})
+<img src="https://example.com/remote.jpg" alt="remote"/>
+![remote image](https://example.com/remote2.jpg)`;
+        const { processedMarkdown } = extractImageDimensions(markdown, false, false);
+        
+        // Joplin resources should be removed
+        expect(processedMarkdown).not.toContain(`src=":/${resourceId}"`);
+        expect(processedMarkdown).not.toContain(`](:/${resourceId})`);
+        
+        // Remote images should be preserved
+        expect(processedMarkdown).toContain('src="https://example.com/remote.jpg"');
+        expect(processedMarkdown).toContain('](https://example.com/remote2.jpg)');
     });
 
     it('should not process images in code blocks', () => {
@@ -395,8 +431,8 @@ describe('Remote Image Processing', () => {
             
             const { processedMarkdown, remoteImages } = extractImageDimensions(markdown, false, true);
             
-            expect(processedMarkdown).toBe(''); // Images removed
-            expect(remoteImages.size).toBe(0);
+            expect(processedMarkdown).toBe('<img src="https://example.com/image.jpg" width="100" height="200">'); // Images preserved
+            expect(remoteImages.size).toBe(0); // No remote processing when embedImages is false
         });
 
         it('should handle multiple remote images', () => {
