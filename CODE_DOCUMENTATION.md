@@ -446,6 +446,7 @@ Modular structure simplifies targeted enhancements:
 - **markdown-it-footnote**: Plugin for footnote syntax
 - **markdown-it-multimd-table**: Plugin for advanced table features
 - **markdown-it-toc-done-right**: Plugin for table of contents
+- **markdown-it-anchor**: Plugin for heading anchors (used with TOC)
 - **markdown-it-task-lists**: Plugin for checkbox lists
 - **string-width**: Accurate string width calculation for table formatting
 

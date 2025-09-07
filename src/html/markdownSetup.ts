@@ -26,6 +26,7 @@ let markdownItEmoji: unknown;
 let markdownItFootnote: unknown;
 let markdownItMultimdTable: unknown;
 let markdownItTocDoneRight: unknown;
+let markdownItAnchor: unknown;
 let markdownItTaskLists: unknown;
 let markdownItGithubAlerts: unknown;
 
@@ -78,6 +79,11 @@ try {
     markdownItTocDoneRight = require('markdown-it-toc-done-right');
 } catch (e) {
     console.warn('[copy-as-html] markdown-it-toc-done-right not available:', e);
+}
+try {
+    markdownItAnchor = require('markdown-it-anchor');
+} catch (e) {
+    console.warn('[copy-as-html] markdown-it-anchor not available:', e);
 }
 try {
     markdownItTaskLists = require('markdown-it-task-lists');
@@ -175,6 +181,16 @@ export async function createMarkdownItInstance(opts: MarkdownItFactoryOptions = 
             plugin: markdownItMultimdTable,
             name: 'markdown-it-multimd-table',
             options: PLUGIN_DEFAULTS.MULTIMD_TABLE,
+        },
+        {
+            enabled: globalTocEnabled,
+            plugin: markdownItAnchor,
+            name: 'markdown-it-anchor',
+            options: {
+                permalink: false, // Don't add permalink symbols for clean HTML output
+                permalinkSymbol: '',
+                permalinkBefore: false,
+            },
         },
         {
             enabled: globalTocEnabled,
