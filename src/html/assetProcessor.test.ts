@@ -361,3 +361,147 @@ describe('convertResourceToBase64', () => {
         expect(joplin.data.get).not.toHaveBeenCalled();
     });
 });
+
+// Remote Image Processing Tests
+describe('Remote Image Processing', () => {
+    describe('extractImageDimensions with remote images', () => {
+        it('should process remote images when downloadRemoteImages is enabled', () => {
+            const markdown = '<img src="https://example.com/image.jpg" width="100" height="200" alt="Test Image">';
+            
+            const { processedMarkdown, remoteImages } = extractImageDimensions(markdown, true, true);
+            
+            expect(processedMarkdown).toContain('![REMOTE_0](https://example.com/image.jpg)');
+            expect(remoteImages.size).toBe(1);
+            
+            const remoteImageData = remoteImages.get('REMOTE_0');
+            expect(remoteImageData).toBeDefined();
+            expect(remoteImageData?.originalUrl).toBe('https://example.com/image.jpg');
+            expect(remoteImageData?.dimensions?.width).toBe('100');
+            expect(remoteImageData?.dimensions?.height).toBe('200');
+            expect(remoteImageData?.dimensions?.originalAlt).toBe('Test Image');
+        });
+
+        it('should not process remote images when downloadRemoteImages is disabled', () => {
+            const markdown = '<img src="https://example.com/image.jpg" width="100" height="200">';
+            
+            const { processedMarkdown, remoteImages } = extractImageDimensions(markdown, true, false);
+            
+            expect(processedMarkdown).toBe(markdown); // Unchanged
+            expect(remoteImages.size).toBe(0);
+        });
+
+        it('should not process remote images when embedImages is disabled', () => {
+            const markdown = '<img src="https://example.com/image.jpg" width="100" height="200">';
+            
+            const { processedMarkdown, remoteImages } = extractImageDimensions(markdown, false, true);
+            
+            expect(processedMarkdown).toBe(''); // Images removed
+            expect(remoteImages.size).toBe(0);
+        });
+
+        it('should handle multiple remote images', () => {
+            const markdown = '<img src="https://example.com/image1.jpg" width="100">\n<img src="https://example.com/image2.png" height="200">';
+            
+            const { processedMarkdown, remoteImages } = extractImageDimensions(markdown, true, true);
+            
+            expect(remoteImages.size).toBe(2);
+            expect(processedMarkdown).toContain('![REMOTE_0](https://example.com/image1.jpg)');
+            expect(processedMarkdown).toContain('![REMOTE_1](https://example.com/image2.png)');
+        });
+
+        it('should handle remote images mixed with Joplin resources', () => {
+            const resourceId = 'a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4';
+            const markdown = `<img src=":/${resourceId}" width="100">\n<img src="https://example.com/image.jpg" height="200">`;
+            
+            const { processedMarkdown, dimensions, remoteImages } = extractImageDimensions(markdown, true, true);
+            
+            expect(dimensions.size).toBe(1); // Joplin resource
+            expect(remoteImages.size).toBe(1); // Remote image
+            expect(processedMarkdown).toContain(`![DIMENSION_0](:/${resourceId})`);
+            expect(processedMarkdown).toContain('![REMOTE_1](https://example.com/image.jpg)');
+        });
+
+        it('should skip remote images in code blocks', () => {
+            const markdown = `Regular text
+\`\`\`html
+<img src="https://example.com/code-block-image.jpg">
+\`\`\`
+<img src="https://example.com/regular-image.jpg">`;
+            
+            const { processedMarkdown, remoteImages } = extractImageDimensions(markdown, true, true);
+            
+            expect(remoteImages.size).toBe(1); // Only the regular image, not the code block one
+            expect(processedMarkdown).toContain('![REMOTE_0](https://example.com/regular-image.jpg)');
+            expect(processedMarkdown).toContain('<img src="https://example.com/code-block-image.jpg">'); // Code block unchanged
+        });
+
+        it('should handle Markdown syntax remote images', () => {
+            const markdown = '![home-top-img](https://raw.githubusercontent.com/laurent22/joplin/dev/Assets/WebsiteAssets/images/home-top-img.png)';
+            
+            const { processedMarkdown, remoteImages } = extractImageDimensions(markdown, true, true);
+            
+            expect(remoteImages.size).toBe(1);
+            const [placeholder, remoteImageData] = Array.from(remoteImages.entries())[0];
+            expect(placeholder).toBe('REMOTE_0');
+            expect(remoteImageData.originalUrl).toBe('https://raw.githubusercontent.com/laurent22/joplin/dev/Assets/WebsiteAssets/images/home-top-img.png');
+            expect(remoteImageData.dimensions?.originalAlt).toBe('home-top-img');
+            expect(processedMarkdown).toBe('![REMOTE_0](https://raw.githubusercontent.com/laurent22/joplin/dev/Assets/WebsiteAssets/images/home-top-img.png)');
+        });
+
+        it('should handle mixed HTML and Markdown remote images', () => {
+            const markdown = `<img src="https://example.com/html.jpg" width="100">
+![markdown-image](https://example.com/markdown.jpg)`;
+            
+            const { processedMarkdown, remoteImages } = extractImageDimensions(markdown, true, true);
+            
+            expect(remoteImages.size).toBe(2);
+            // Markdown is processed first, so it gets REMOTE_0, HTML gets REMOTE_1
+            expect(processedMarkdown).toContain('![REMOTE_1](https://example.com/html.jpg)');
+            expect(processedMarkdown).toContain('![REMOTE_0](https://example.com/markdown.jpg)');
+        });
+
+        it('should preserve alt text from Markdown remote images', () => {
+            const markdown = '![My Cool Image](https://example.com/image.png)';
+            
+            const { remoteImages } = extractImageDimensions(markdown, true, true);
+            
+            const remoteImageData = Array.from(remoteImages.values())[0];
+            expect(remoteImageData.dimensions?.originalAlt).toBe('My Cool Image');
+        });
+
+        it('should skip Markdown remote images in code blocks', () => {
+            const markdown = `Regular text
+\`\`\`markdown
+![code-image](https://example.com/code.jpg)
+\`\`\`
+![regular-image](https://example.com/regular.jpg)`;
+            
+            const { processedMarkdown, remoteImages } = extractImageDimensions(markdown, true, true);
+            
+            expect(remoteImages.size).toBe(1); // Only the regular image
+            expect(processedMarkdown).toContain('![REMOTE_0](https://example.com/regular.jpg)');
+            expect(processedMarkdown).toContain('![code-image](https://example.com/code.jpg)'); // Code block unchanged
+        });
+    });
+
+    describe('remote image dimension preservation', () => {
+        it('should preserve dimensions for remote images', () => {
+            // Simulate the full flow: extract -> render -> apply dimensions
+            const markdown = '<img src="https://example.com/image.jpg" width="64" height="32" alt="test">';
+            
+            // Extract remote images and dimensions
+            const { remoteImages } = extractImageDimensions(markdown, true, true);
+            
+            // Simulate what markdown-it would produce
+            const renderedHtml = '<p><img src="https://example.com/image.jpg" alt="REMOTE_0"></p>';
+            
+            // Apply dimensions for remote images
+            const finalHtml = applyPreservedDimensions(renderedHtml, new Map(), remoteImages);
+            
+            expect(finalHtml).toContain('width="64"');
+            expect(finalHtml).toContain('height="32"');
+            expect(finalHtml).toContain('alt="test"');
+            expect(finalHtml).not.toContain('REMOTE_0');
+        });
+    });
+});

@@ -56,6 +56,7 @@ joplin.plugins.register({
                     const htmlSettings = {
                         embedImages: await joplin.settings.value(SETTINGS.EMBED_IMAGES),
                         exportFullHtml: await joplin.settings.value(SETTINGS.EXPORT_FULL_HTML),
+                        downloadRemoteImages: await joplin.settings.value(SETTINGS.DOWNLOAD_REMOTE_IMAGES),
                     };
                     const htmlOptions = validateHtmlSettings(htmlSettings);
 
@@ -167,6 +168,15 @@ joplin.plugins.register({
                 label: 'Export as full HTML document',
                 description:
                     'If enabled, exported HTML will be a full document with your custom stylesheet (copy-as-html-user.css in your profile folder).',
+            },
+            [SETTINGS.DOWNLOAD_REMOTE_IMAGES]: {
+                value: false,
+                type: SettingItemType.Bool,
+                section: 'copyAsHtml',
+                public: true,
+                label: 'Download and embed remote images',
+                description:
+                    'If enabled (along with "Embed images as base64"), remote HTTP/HTTPS images will be downloaded and embedded as base64. If un-checked, the resulting document may contain links to external resources.',
             },
             [SETTINGS.PRESERVE_SUPERSCRIPT]: {
                 value: false,

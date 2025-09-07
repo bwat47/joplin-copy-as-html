@@ -69,10 +69,12 @@ describe('validateHtmlSettings', () => {
         expect(validateHtmlSettings(undefined)).toEqual({
             embedImages: true,
             exportFullHtml: false,
+            downloadRemoteImages: false,
         });
         expect(validateHtmlSettings(null)).toEqual({
             embedImages: true,
             exportFullHtml: false,
+            downloadRemoteImages: false,
         });
     });
 
@@ -80,10 +82,12 @@ describe('validateHtmlSettings', () => {
         const settings = {
             embedImages: false,
             exportFullHtml: true,
+            downloadRemoteImages: true,
         };
         expect(validateHtmlSettings(settings)).toEqual({
             embedImages: false,
             exportFullHtml: true,
+            downloadRemoteImages: true,
         });
     });
 
@@ -91,10 +95,12 @@ describe('validateHtmlSettings', () => {
         const settings = {
             embedImages: 'true',
             exportFullHtml: 1,
+            downloadRemoteImages: 'yes',
         };
         expect(validateHtmlSettings(settings)).toEqual({
             embedImages: true,
             exportFullHtml: false,
+            downloadRemoteImages: false,
         });
     });
 
@@ -105,6 +111,7 @@ describe('validateHtmlSettings', () => {
         expect(validateHtmlSettings(settings1)).toEqual({
             embedImages: false,
             exportFullHtml: false,
+            downloadRemoteImages: false,
         });
 
         const settings2 = {
@@ -113,6 +120,7 @@ describe('validateHtmlSettings', () => {
         expect(validateHtmlSettings(settings2)).toEqual({
             embedImages: true,
             exportFullHtml: true,
+            downloadRemoteImages: false,
         });
     });
 });

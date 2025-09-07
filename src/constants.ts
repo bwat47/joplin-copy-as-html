@@ -19,6 +19,7 @@
 export const SETTINGS = {
     EMBED_IMAGES: 'embedImages',
     EXPORT_FULL_HTML: 'exportFullHtml',
+    DOWNLOAD_REMOTE_IMAGES: 'downloadRemoteImages',
     PRESERVE_SUPERSCRIPT: 'preserveSuperscript',
     PRESERVE_SUBSCRIPT: 'preserveSubscript',
     PRESERVE_EMPHASIS: 'preserveEmphasis',

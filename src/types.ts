@@ -30,6 +30,7 @@ export interface MarkdownSegment {
 export interface HtmlOptions {
     embedImages: boolean;
     exportFullHtml: boolean;
+    downloadRemoteImages: boolean;
 }
 
 export interface PlainTextOptions {
@@ -72,4 +73,10 @@ export interface JoplinFileData {
     body?: Buffer | Uint8Array;
     data?: Buffer | Uint8Array;
     content?: Buffer | Uint8Array;
+}
+
+export interface RemoteImageData {
+    originalUrl: string;
+    placeholder: string;
+    dimensions?: ImageDimensions;
 }

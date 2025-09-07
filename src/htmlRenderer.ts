@@ -20,6 +20,7 @@ import {
     extractImageDimensions,
     applyPreservedDimensions,
     processEmbeddedImages,
+    processRemoteImages,
     getUserStylesheet,
 } from './html/assetProcessor';
 import { postProcessHtml } from './html/domPostProcess';
@@ -34,15 +35,57 @@ import { postProcessHtml } from './html/domPostProcess';
  */
 export async function processHtmlConversion(selection: string, options?: HtmlOptions): Promise<string> {
     // 1. Get settings if not provided
-    const htmlOptions =
-        options ||
-        validateHtmlSettings({
-            embedImages: await joplin.settings.value(SETTINGS.EMBED_IMAGES),
-            exportFullHtml: await joplin.settings.value(SETTINGS.EXPORT_FULL_HTML),
+    if (!options) {
+        const embedImages = await joplin.settings.value(SETTINGS.EMBED_IMAGES);
+        const exportFullHtml = await joplin.settings.value(SETTINGS.EXPORT_FULL_HTML);
+        const downloadRemoteImages = await joplin.settings.value(SETTINGS.DOWNLOAD_REMOTE_IMAGES);
+        
+        console.log('[copy-as-html] DEBUG: Raw setting values:', {
+            embedImages,
+            exportFullHtml, 
+            downloadRemoteImages,
+            settingKeys: {
+                embedImages: SETTINGS.EMBED_IMAGES,
+                exportFullHtml: SETTINGS.EXPORT_FULL_HTML,
+                downloadRemoteImages: SETTINGS.DOWNLOAD_REMOTE_IMAGES
+            }
         });
+        
+        // Try to get all settings to debug
+        try {
+            const allSettings = {};
+            for (const [key, value] of Object.entries(SETTINGS)) {
+                try {
+                    allSettings[key] = await joplin.settings.value(value);
+                } catch (e) {
+                    allSettings[key] = `ERROR: ${e.message}`;
+                }
+            }
+            console.log('[copy-as-html] DEBUG: All plugin settings:', allSettings);
+        } catch (e) {
+            console.log('[copy-as-html] DEBUG: Error getting all settings:', e);
+        }
+        
+        options = validateHtmlSettings({
+            embedImages,
+            exportFullHtml,
+            downloadRemoteImages,
+        });
+    }
+    const htmlOptions = options;
 
-    // 2. Pre-process markdown for assets (e.g., image dimensions)
-    const { processedMarkdown, dimensions } = extractImageDimensions(selection, htmlOptions.embedImages);
+    // 2. Pre-process markdown for assets (e.g., image dimensions, remote images)
+    console.log('[copy-as-html] DEBUG: htmlRenderer - settings:', {
+        embedImages: htmlOptions.embedImages,
+        downloadRemoteImages: htmlOptions.downloadRemoteImages,
+        exportFullHtml: htmlOptions.exportFullHtml
+    });
+    console.log('[copy-as-html] DEBUG: htmlRenderer - input selection:', selection.substring(0, 200));
+    const { processedMarkdown, dimensions, remoteImages } = extractImageDimensions(
+        selection, 
+        htmlOptions.embedImages,
+        htmlOptions.downloadRemoteImages
+    );
 
     // 3. Create and configure markdown-it instance
     let debug = false;
@@ -56,10 +99,15 @@ export async function processHtmlConversion(selection: string, options?: HtmlOpt
 
     // 4. Post-process HTML for assets
     if (htmlOptions.embedImages) {
-        // Re-apply preserved dimensions from HTML <img> tags
-        html = applyPreservedDimensions(html, dimensions);
+        // Re-apply preserved dimensions from HTML <img> tags (both Joplin resources and remote images)
+        html = applyPreservedDimensions(html, dimensions, remoteImages);
         // Embed Joplin resource images as base64
         html = await processEmbeddedImages(html, htmlOptions.embedImages);
+        
+        // Process remote images if enabled
+        if (htmlOptions.downloadRemoteImages) {
+            html = await processRemoteImages(html, remoteImages);
+        }
     }
 
     // 5. Use DOMParser for post processing and DOMPurify for HTML sanitization.

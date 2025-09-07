@@ -14,7 +14,7 @@
 
 import joplin from 'api';
 import { CONSTANTS, REGEX_PATTERNS, HTML_CONSTANTS } from '../constants';
-import { ImageDimensions, MarkdownSegment, JoplinFileData, JoplinResource } from '../types';
+import { ImageDimensions, MarkdownSegment, JoplinFileData, JoplinResource, RemoteImageData } from '../types';
 import * as fs from 'fs/promises';
 import * as path from 'path';
 import { defaultStylesheet } from '../defaultStylesheet';
@@ -62,9 +62,15 @@ function createResourceError(id: string, reason: string): string {
  */
 export function extractImageDimensions(
     markdown: string,
-    embedImages: boolean
-): { processedMarkdown: string; dimensions: Map<string, ImageDimensions> } {
+    embedImages: boolean,
+    downloadRemoteImages: boolean = false
+): { 
+    processedMarkdown: string; 
+    dimensions: Map<string, ImageDimensions>; 
+    remoteImages: Map<string, RemoteImageData> 
+} {
     const dimensions = new Map<string, ImageDimensions>();
+    const remoteImages = new Map<string, RemoteImageData>();
     let counter = 0;
 
     // Split markdown into code/non-code segments
@@ -130,6 +136,64 @@ export function extractImageDimensions(
                 }
                 return `![](:/${resourceId})`;
             });
+
+            // Process remote images if enabled
+            if (downloadRemoteImages && embedImages) {
+                console.log('[copy-as-html] DEBUG: Remote image processing enabled, scanning content:', processedContent.substring(0, 200));
+                
+                // First process Markdown image syntax with remote URLs (avoid double-processing)
+                const markdownRemoteImgRegex = /!\[([^\]]*)\]\((https?:\/\/[^)]+)\)/gi;
+                processedContent = processedContent.replace(markdownRemoteImgRegex, (match, alt, url) => {
+                    console.log('[copy-as-html] DEBUG: Found remote Markdown image - URL:', url, 'Alt:', alt);
+                    const placeholder = `REMOTE_${counter}`;
+                    
+                    remoteImages.set(placeholder, {
+                        originalUrl: url,
+                        placeholder,
+                        dimensions: {
+                            width: undefined, // Markdown images don't have inline dimensions
+                            height: undefined,
+                            resourceId: url, // Use URL as identifier
+                            originalAlt: alt || '',
+                        }
+                    });
+                    
+                    counter++;
+                    const result = `![${placeholder}](${url})`;
+                    console.log('[copy-as-html] DEBUG: Replacing Markdown with placeholder:', result);
+                    return result;
+                });
+                
+                // Then process HTML <img> tags with remote URLs
+                const remoteImgRegex = /<img([^>]*src=["'](https?:\/\/[^"']+)["'][^>]*)>/gi;
+                processedContent = processedContent.replace(remoteImgRegex, (match, attrs, url) => {
+                    console.log('[copy-as-html] DEBUG: Found remote HTML image - URL:', url);
+                    const placeholder = `REMOTE_${counter}`;
+                    
+                    // Extract dimensions and alt text
+                    const widthMatch = attrs.match(/\bwidth\s*=\s*["']?([^"'\s>]+)["']?/i);
+                    const heightMatch = attrs.match(/\bheight\s*=\s*["']?([^"'\s>]+)["']?/i);
+                    const altMatch = attrs.match(/\balt\s*=\s*["']([^"']*)["']/i);
+                    
+                    remoteImages.set(placeholder, {
+                        originalUrl: url,
+                        placeholder,
+                        dimensions: {
+                            width: widthMatch?.[1],
+                            height: heightMatch?.[1], 
+                            resourceId: url, // Use URL as identifier
+                            originalAlt: altMatch?.[1] || '',
+                        }
+                    });
+                    
+                    counter++;
+                    const result = `![${placeholder}](${url})`;
+                    console.log('[copy-as-html] DEBUG: Replacing HTML with markdown:', result);
+                    return result;
+                });
+                
+                console.log('[copy-as-html] DEBUG: After remote image processing, content:', processedContent.substring(0, 200));
+            }
         }
 
         return { ...segment, content: processedContent };
@@ -138,16 +202,27 @@ export function extractImageDimensions(
     // Recombine segments
     const processedMarkdown = processedSegments.map((seg) => seg.content).join('');
 
-    return { processedMarkdown, dimensions };
+    console.log('[copy-as-html] DEBUG: extractImageDimensions returning:', {
+        remoteImagesCount: remoteImages.size,
+        remoteImagesData: Array.from(remoteImages.entries()),
+        processedMarkdown: processedMarkdown.substring(0, 200)
+    });
+    return { processedMarkdown, dimensions, remoteImages };
 }
 
 /**
  * Applies preserved width and height attributes to <img> tags in HTML.
  * @param html The HTML string to process.
  * @param dimensions Map of dimension keys to attribute objects.
+ * @param remoteImages Map of remote image data for dimension restoration.
  * @returns The HTML string with dimensions applied.
  */
-export function applyPreservedDimensions(html: string, dimensions: Map<string, ImageDimensions>): string {
+export function applyPreservedDimensions(
+    html: string, 
+    dimensions: Map<string, ImageDimensions>,
+    remoteImages?: Map<string, RemoteImageData>
+): string {
+    // Handle Joplin resource dimensions
     for (const [dimensionKey, attrs] of dimensions) {
         // Find img tags that were created from our dimension markers
         const imgRegex = new RegExp(`<img([^>]*alt=["']${dimensionKey}["'][^>]*)>`, 'gi');
@@ -175,6 +250,38 @@ export function applyPreservedDimensions(html: string, dimensions: Map<string, I
 
             return `<img${newAttrs}>`;
         });
+    }
+
+    // Handle remote image dimensions
+    if (remoteImages) {
+        for (const [placeholder, remoteImageData] of remoteImages) {
+            if (remoteImageData.dimensions) {
+                const imgRegex = new RegExp(`<img([^>]*alt=["']${placeholder}["'][^>]*)>`, 'gi');
+                
+                html = html.replace(imgRegex, (match, existingAttrs) => {
+                    let newAttrs = existingAttrs;
+
+                    // Add width if preserved
+                    if (remoteImageData.dimensions!.width && !newAttrs.includes('width=')) {
+                        newAttrs += ` width="${remoteImageData.dimensions!.width}"`;
+                    }
+
+                    // Add height if preserved
+                    if (remoteImageData.dimensions!.height && !newAttrs.includes('height=')) {
+                        newAttrs += ` height="${remoteImageData.dimensions!.height}"`;
+                    }
+
+                    // Replace the placeholder with the original alt text
+                    const originalAlt = remoteImageData.dimensions!.originalAlt || '';
+                    newAttrs = newAttrs.replace(
+                        new RegExp(`alt\\s*=\\s*["']${placeholder}["']`),
+                        `alt="${escapeHtmlAttr(originalAlt)}"`
+                    );
+
+                    return `<img${newAttrs}>`;
+                });
+            }
+        }
     }
 
     return html;
@@ -372,4 +479,104 @@ export async function processEmbeddedImages(html: string, embedImages: boolean):
             return base64Result;
         }
     });
+}
+
+/**
+ * Helper function to escape regex special characters
+ */
+function escapeRegex(string: string): string {
+    return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+/**
+ * Creates a standardized error span for remote image errors.
+ */
+function createRemoteImageError(url: string, reason: string): string {
+    return createErrorSpan(`Remote image ${url} ${reason}`);
+}
+
+/**
+ * Downloads a remote image and converts it to base64.
+ * @param url The remote image URL to download.
+ * @returns A base64 data URL string or an error HTML span.
+ */
+async function downloadRemoteImageAsBase64(url: string): Promise<string> {
+    try {
+        const response = await withTimeout(
+            fetch(url, {
+                headers: {
+                    'User-Agent': 'Mozilla/5.0 (compatible; Joplin Plugin)',
+                    'Accept': 'image/*',
+                }
+            }),
+            CONSTANTS.BASE64_TIMEOUT_MS,
+            'Remote image download timeout'
+        );
+
+        if (!response.ok) {
+            return createRemoteImageError(url, `download failed: ${response.status} ${response.statusText}`);
+        }
+
+        const contentType = response.headers.get('content-type');
+        if (!contentType?.startsWith('image/')) {
+            return createRemoteImageError(url, `is not an image (Content-Type: ${contentType})`);
+        }
+
+        const arrayBuffer = await response.arrayBuffer();
+        const buffer = Buffer.from(arrayBuffer);
+
+        if (buffer.length > CONSTANTS.MAX_IMAGE_SIZE_BYTES) {
+            return createRemoteImageError(
+                url,
+                `is too large (${Math.round(buffer.length / 1024 / 1024)}MB). Maximum size: ${Math.round(CONSTANTS.MAX_IMAGE_SIZE_BYTES / 1024 / 1024)}MB`
+            );
+        }
+
+        if (buffer.length > CONSTANTS.MAX_IMAGE_SIZE_WARNING) {
+            console.warn(`[copy-as-html] Large remote image: ${url} is ${Math.round(buffer.length / 1024 / 1024)}MB`);
+        }
+
+        const base64 = buffer.toString('base64');
+        return `data:${contentType};base64,${base64}`;
+        
+    } catch (err) {
+        console.error('[copy-as-html] Failed to download remote image:', url, err);
+        const msg = err?.message || String(err);
+        return createRemoteImageError(url, `download failed: ${msg}`);
+    }
+}
+
+/**
+ * Processes remote images in HTML by downloading and embedding them as base64.
+ * @param html The HTML string to process.
+ * @param remoteImages Map of placeholder keys to remote image data.
+ * @returns HTML with remote images embedded or replaced with error messages.
+ */
+export async function processRemoteImages(html: string, remoteImages: Map<string, RemoteImageData>): Promise<string> {
+    console.log('[copy-as-html] DEBUG: processRemoteImages called with', remoteImages.size, 'images');
+    console.log('[copy-as-html] DEBUG: Input HTML:', html.substring(0, 300));
+    if (remoteImages.size === 0) return html;
+
+    // Process all remote images concurrently
+    const downloadPromises = Array.from(remoteImages.entries()).map(async ([, imageData]) => {
+        const base64Result = await downloadRemoteImageAsBase64(imageData.originalUrl);
+        return { imageData, base64Result };
+    });
+
+    const results = await Promise.all(downloadPromises);
+
+    // Apply results to HTML
+    for (const { imageData, base64Result } of results) {
+        if (base64Result.startsWith('data:image')) {
+            // Successful download - replace src with base64
+            const srcRegex = new RegExp(`src=["']${escapeRegex(imageData.originalUrl)}["']`, 'gi');
+            html = html.replace(srcRegex, `src="${base64Result}"`);
+        } else {
+            // Failed download - replace entire img tag with error span
+            const imgRegex = new RegExp(`<img[^>]*src=["']${escapeRegex(imageData.originalUrl)}["'][^>]*>`, 'gi');
+            html = html.replace(imgRegex, base64Result);
+        }
+    }
+
+    return html;
 }

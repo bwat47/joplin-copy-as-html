@@ -49,6 +49,7 @@ export function validateHtmlSettings(settings: unknown): HtmlOptions {
     return {
         embedImages: validateBooleanSetting(s.embedImages, true),
         exportFullHtml: validateBooleanSetting(s.exportFullHtml, false),
+        downloadRemoteImages: validateBooleanSetting(s.downloadRemoteImages, false),
     };
 }
 

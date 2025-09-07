@@ -97,7 +97,7 @@ This will generate a `.jpl` file in the `publish/` directory, which can be insta
 
 - **Clean HTML Generation**: Uses markdown-it with Joplin-compatible plugin configuration to produce semantic HTML
 - **Plugin Compatibility**: Respects all Joplin global markdown plugin settings through sophisticated plugin loading
-- **Image Embedding**: Optionally converts Joplin resource images to base64 data URLs for portability
+- **Image Embedding**: Optionally converts Joplin resource images and remote HTTP/HTTPS images to base64 data URLs for portability
 - **Dimension Preservation**: Maintains original image dimensions (width, height, style) from HTML `<img>` tags through markdown-it pipeline
 - **Resource Loading Optimization**: Timeout protection and request deduplication prevent API overwhelm
 - **Link Cleaning**: Converts Joplin resource links to plain text for external compatibility
@@ -185,6 +185,8 @@ Responsibilities:
 
 - Extract & preserve `<img>` dimensions (`extractImageDimensions`, `applyPreservedDimensions`).
 - Resource validation, deduped base64 embedding (`convertResourceToBase64` + in-module dedupe map).
+- Remote image processing: detect, download, and embed remote HTTP/HTTPS images (`processRemoteImages`, `downloadRemoteImageAsBase64`).
+- Support for both HTML `<img>` tags and Markdown image syntax for remote images.
 - Timeout-safe resource fetch (`withTimeout`).
 - User stylesheet resolution with fallback to bundled default (`getUserStylesheet`).
 
@@ -322,15 +324,23 @@ Created `pluginUtils.ts` with robust detection logic that handles all known patt
 
 ### Image Handling Strategy
 
-The plugin uses a multi-step process for image handling:
+The plugin uses a multi-step process for comprehensive image handling:
 
+#### Joplin Resource Images:
 1. **Dimension Extraction**: Parse HTML `<img>` tags and extract width/height/style attributes
 2. **Markdown Conversion**: Convert `<img>` tags to markdown with dimension keys as alt text
 3. **markdown-it Rendering**: Process through markdown-it with Joplin-compatible plugins
 4. **Dimension Restoration**: Use the dimension keys to restore original attributes
 5. **Base64 Conversion**: Replace Joplin resource URLs with base64 data (with simple deduplication)
 
-This approach ensures compatibility with markdown-it while preserving user-defined image dimensions from Joplin's rich text editor.
+#### Remote Image Processing:
+1. **Remote Image Detection**: Identify remote HTTP/HTTPS images in both HTML `<img>` tags and Markdown syntax `![alt](https://example.com/image.png)`
+2. **Placeholder Replacement**: Convert remote images to placeholder markdown with unique identifiers
+3. **Concurrent Download**: Download remote images with timeout protection and size limits
+4. **Base64 Embedding**: Replace placeholders with base64 data URLs in final HTML output
+5. **Dimension Preservation**: Maintain width/height attributes from HTML images; Markdown images use intrinsic dimensions
+
+This dual approach ensures compatibility with markdown-it while preserving user-defined image dimensions and supporting both Joplin resources and external images.
 
 ### Resource Loading Enhancements
 
@@ -352,7 +362,7 @@ This approach ensures compatibility with markdown-it while preserving user-defin
 - **Request Deduplication (HTML path)**: Per-conversion map inside `assetProcessor` prevents redundant resource fetches.
 - **Timeout Protection**: `withTimeout` ensures timely failure & cleanup.
 - **Memory-Safe Cleanup**: Pending promise map entries removed on settle.
-- **Concurrent Resource Fetching**: `Promise.all()` for image embedding.
+- **Concurrent Resource Fetching**: `Promise.all()` for both Joplin resource and remote image embedding.
 - **Plugin Loading Optimization**: Centralized logic avoids duplicated setup cost.
 - **String Width Calculations**: Unicode-aware table alignment via `string-width` (pure & test-isolated).
 - **Reduced Re-Renders**: Dimension extraction happens once pre-render then reapplied post-render.
@@ -361,7 +371,8 @@ This approach ensures compatibility with markdown-it while preserving user-defin
 
 ### HTML-Specific Settings
 
-- **embedImages** (default: true): Controls base64 image embedding in HTML output
+- **embedImages** (default: true): Controls base64 image embedding for Joplin resource images in HTML output
+- **downloadRemoteImages** (default: false): When enabled (along with embedImages), downloads and embeds remote HTTP/HTTPS images as base64
 - **exportFullHtml** (default: false): Wraps output as complete HTML document with custom CSS
 
 ### Plain Text Settings
