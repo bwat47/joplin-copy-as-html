@@ -55,6 +55,7 @@ blockquote {
 	padding: 0.1em 1em;
 	margin: 1em 0;
 }
+
 /* Remove extra top/bottom gap regardless of element type (p, ul, ol, etc.) */
 blockquote > :first-child { margin-top: 0; }
 blockquote > :last-child { margin-bottom: 0; }
@@ -77,6 +78,7 @@ blockquote > :last-child { margin-bottom: 0; }
 .markdown-alert-important { border-left-color: #8250df; }
 .markdown-alert-warning { border-left-color: #9a6700; }
 .markdown-alert-caution { border-left-color: #cf222e; }
+
 /* Remove extra top/bottom gap regardless of element type (p, ul, ol, etc.) */
 .markdown-alert > :first-child { margin-top: 0; }
 .markdown-alert > :last-child { margin-bottom: 0; }
@@ -115,6 +117,10 @@ ol li>ol {
 	margin-top: 0.5em;
 	margin-bottom: 0.5em;
 }
+
+/* prevent extra margin at bottom of lists inside block quotes */
+ul > li:last-child, ol > li:last-child { margin-bottom: 0; }
+ul li > ul:last-child, ol li > ol:last-child { margin-bottom: 0; }
 
 /* Joplin checkboxes */
 li.md-checkbox,
