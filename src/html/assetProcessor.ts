@@ -56,7 +56,7 @@ function createResourceError(id: string, reason: string): string {
  * It extracts dimensions (width, height) and replaces the <img> tag
  * with a markdown equivalent containing a unique key. This key is used later
  * by applyPreservedDimensions to restore the attributes.
- * Also removes all image tags if embedImages is false.
+ * Also removes all image tags (referencing joplin resources) if embedImages is false.
  * @param markdown The raw markdown string from the user selection.
  * @param embedImages A boolean to determine if images should be processed or stripped.
  * @returns An object containing the processed markdown and a map of dimension data.
