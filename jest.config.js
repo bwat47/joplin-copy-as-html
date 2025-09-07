@@ -5,14 +5,15 @@ module.exports = {
     clearMocks: true,
     coverageDirectory: 'coverage',
 
-    // This is the key change. We tell ts-jest to transform both .ts and .js files.
+    // Use ts-jest for TS, and babel-jest for JS (including ESM from node_modules)
     transform: {
-        '^.+\\.(ts|js)$': 'ts-jest',
+        '^.+\\.ts$': 'ts-jest',
+        '^.+\\.(mjs|cjs|js)$': 'babel-jest',
     },
 
     // This tells Jest to NOT ignore transformation for the problematic packages.
     transformIgnorePatterns: [
-        'node_modules/(?!(string-width|strip-ansi|ansi-regex|emoji-regex|get-east-asian-width)/)',
+        'node_modules/(?!(string-width|strip-ansi|ansi-regex|emoji-regex|get-east-asian-width|markdown-it-github-alerts)/)',
     ],
 
     moduleFileExtensions: ['ts', 'js', 'json', 'node'],
