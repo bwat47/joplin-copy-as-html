@@ -5,7 +5,7 @@
  * It uses several sub-modules to handle specific parts of the process:
  * - markdownSetup: Configures markdown-it with Joplin-compatible plugins.
  * - assetProcessor: Handles image embedding, dimension preservation, and stylesheets.
- * - domPostProcess: Cleans the final HTML using DOMParser.
+ * - domPostProcess: Cleans the final HTML using DOMParser and DOMPurify.
  *
  * @author bwat47
  * @since 1.0.16
@@ -39,8 +39,7 @@ export async function processHtmlConversion(selection: string, options?: HtmlOpt
         const embedImages = await joplin.settings.value(SETTINGS.EMBED_IMAGES);
         const exportFullHtml = await joplin.settings.value(SETTINGS.EXPORT_FULL_HTML);
         const downloadRemoteImages = await joplin.settings.value(SETTINGS.DOWNLOAD_REMOTE_IMAGES);
-        
-        
+
         options = validateHtmlSettings({
             embedImages,
             exportFullHtml,
@@ -51,7 +50,7 @@ export async function processHtmlConversion(selection: string, options?: HtmlOpt
 
     // 2. Pre-process markdown for assets (e.g., image dimensions, remote images)
     const { processedMarkdown, dimensions, remoteImages } = extractImageDimensions(
-        selection, 
+        selection,
         htmlOptions.embedImages,
         htmlOptions.downloadRemoteImages
     );
@@ -72,7 +71,7 @@ export async function processHtmlConversion(selection: string, options?: HtmlOpt
         html = applyPreservedDimensions(html, dimensions, remoteImages);
         // Embed Joplin resource images as base64
         html = await processEmbeddedImages(html, htmlOptions.embedImages);
-        
+
         // Process remote images if enabled
         if (htmlOptions.downloadRemoteImages) {
             html = await processRemoteImages(html, remoteImages);
