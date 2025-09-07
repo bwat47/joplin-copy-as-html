@@ -19,6 +19,10 @@ By default, the plugin will embed any images as base64 in the text/html output, 
 
 This will work with both markdown image embeds and the html `<img>` embeds that you get when resizing images via joplin's rich text editor.
 
+### Download and embed remote images as base64
+
+If you enable this option (along with "Embed images as base64"), remote image embeds will be downloaded and embedded as base64 (making the images viewable without internet access).
+
 ### Export as fragment or full HTML document
 
 When you copy text from Joplin's markdown viewer (or export the note to HTML), there is a lot of styling applied which can sometimes cause issues pasting text into other editors (e.g. if you copy from the markdown viewer, your joplin theme's background color may be pasted).
