@@ -51,17 +51,18 @@ try {
 
 /**
  * Creates and configures a markdown-it instance for plain text rendering.
+ * @param debug - Enable debug logging for plugin loading
  * @returns A configured markdown-it instance.
  */
-export function createMarkdownItInstance(): MarkdownIt {
+export function createMarkdownItInstance(debug: boolean = false): MarkdownIt {
     const md = new MarkdownIt();
 
     // Use safe plugin loading to prevent conflicts
-    if (markdownItMark) safePluginUse(md, markdownItMark, undefined, 'markdown-it-mark');
-    if (markdownItIns) safePluginUse(md, markdownItIns, undefined, 'markdown-it-ins');
-    if (markdownItEmoji) safePluginUse(md, markdownItEmoji, undefined, 'markdown-it-emoji');
-    if (markdownItSub) safePluginUse(md, markdownItSub, undefined, 'markdown-it-sub');
-    if (markdownItSup) safePluginUse(md, markdownItSup, undefined, 'markdown-it-sup');
+    if (markdownItMark) safePluginUse(md, markdownItMark, undefined, 'markdown-it-mark', debug);
+    if (markdownItIns) safePluginUse(md, markdownItIns, undefined, 'markdown-it-ins', debug);
+    if (markdownItEmoji) safePluginUse(md, markdownItEmoji, undefined, 'markdown-it-emoji', debug);
+    if (markdownItSub) safePluginUse(md, markdownItSub, undefined, 'markdown-it-sub', debug);
+    if (markdownItSup) safePluginUse(md, markdownItSup, undefined, 'markdown-it-sup', debug);
 
     return md;
 }

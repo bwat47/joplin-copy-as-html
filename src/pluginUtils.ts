@@ -32,7 +32,8 @@ export function safePluginUse(
     md: MarkdownIt,
     plugin: unknown,
     options?: unknown,
-    pluginName: string = 'unknown'
+    pluginName: string = 'unknown',
+    debug: boolean = false
 ): boolean {
     if (!plugin) {
         console.warn(`[copy-as-html] Plugin ${pluginName} is null or undefined`);
@@ -82,7 +83,9 @@ export function safePluginUse(
                     pluginFunc = (plugin as Record<string, unknown>)[funcKeys[0]];
                 } else if (funcKeys.length > 1) {
                     // If multiple functions, log them for debugging
-                    console.warn(`[copy-as-html] Plugin ${pluginName} has multiple functions:`, funcKeys);
+                    if (debug) {
+                        console.log(`[copy-as-html] Plugin ${pluginName} has multiple functions:`, funcKeys);
+                    }
                     // For multi-function plugins, try common patterns first
                     if (funcKeys.includes('full')) {
                         pluginFunc = (plugin as Record<string, unknown>).full;
@@ -113,6 +116,9 @@ export function safePluginUse(
 
         // Try to use the plugin
         md.use(pluginFunc, options);
+        if (debug) {
+            console.log(`[copy-as-html] Successfully loaded plugin: ${pluginName}`);
+        }
         return true;
     } catch (err) {
         console.error(`[copy-as-html] Error loading markdown-it plugin ${pluginName}:`, err);
@@ -134,10 +140,16 @@ export interface PluginConfig {
 /**
  * Loads plugins conditionally based on configuration
  */
-export function loadPluginsConditionally(md: MarkdownIt, plugins: PluginConfig[]) {
+export function loadPluginsConditionally(md: MarkdownIt, plugins: PluginConfig[], debug: boolean = false) {
     plugins.forEach(({ enabled, plugin, name, options }) => {
         if (enabled && plugin) {
-            safePluginUse(md, plugin, options, name);
+            safePluginUse(md, plugin, options, name, debug);
+        } else if (enabled && !plugin) {
+            if (debug) {
+                console.log(`[copy-as-html] Plugin ${name} is enabled but not available (skipped)`);
+            }
+        } else if (debug) {
+            console.log(`[copy-as-html] Plugin ${name} is disabled (skipped)`);
         }
     });
 }

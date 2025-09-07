@@ -18,10 +18,11 @@ import { renderPlainText } from './plainText/tokenRenderers';
  * Converts markdown to plain text using the provided options.
  * @param markdown The markdown string to convert.
  * @param options The plain text rendering options.
+ * @param debug Enable debug logging for plugin loading.
  * @returns The resulting plain text string.
  */
-export function convertMarkdownToPlainText(markdown: string, options: PlainTextOptions): string {
-    const md = createMarkdownItInstance();
+export function convertMarkdownToPlainText(markdown: string, options: PlainTextOptions, debug: boolean = false): string {
+    const md = createMarkdownItInstance(debug);
     const tokens = md.parse(markdown, {});
     return renderPlainText(tokens, null, 0, options);
 }

@@ -203,11 +203,11 @@ export async function createMarkdownItInstance(opts: MarkdownItFactoryOptions = 
                 listType: 'ul',
             },
         },
-    ]);
+    ], debug);
 
     // Add task list support (checkboxes) - always enabled since it's core Joplin functionality
     if (markdownItTaskLists) {
-        safePluginUse(md, markdownItTaskLists, { enabled: true, lineNumber: false }, 'markdown-it-task-lists');
+        safePluginUse(md, markdownItTaskLists, { enabled: true, lineNumber: false }, 'markdown-it-task-lists', debug);
     }
 
     // GitHub alert blocks (e.g. > [!note]) - always enable if available; harmless if syntax unused
@@ -216,7 +216,8 @@ export async function createMarkdownItInstance(opts: MarkdownItFactoryOptions = 
             md,
             markdownItGithubAlerts,
             { matchCaseSensitive: false, icons: {} }, // disable inline SVG icons for better email client compatibility
-            'markdown-it-github-alerts'
+            'markdown-it-github-alerts',
+            debug
         );
         if (!loaded) {
             if (debug) console.warn('[copy-as-html] Failed to load markdown-it-github-alerts via safePluginUse');

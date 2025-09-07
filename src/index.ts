@@ -120,7 +120,15 @@ joplin.plugins.register({
                     };
                     const plainTextOptions = validatePlainTextSettings(plainTextSettings);
 
-                    const plainText = convertMarkdownToPlainText(selection, plainTextOptions);
+                    // Get debug setting for plugin loading logs
+                    let debug = false;
+                    try {
+                        debug = await joplin.settings.value(SETTINGS.DEBUG);
+                    } catch {
+                        // ignore - use default false
+                    }
+
+                    const plainText = convertMarkdownToPlainText(selection, plainTextOptions, debug);
                     await joplin.clipboard.writeText(plainText);
                     await joplin.views.dialogs.showToast({
                         message: 'Copied selection as Plain Text!',
