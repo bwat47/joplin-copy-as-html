@@ -5,6 +5,7 @@
  * This includes:
  * - Image dimension extraction and preservation
  * - Joplin resource to base64 conversion
+ * - Remote resource to base64 conversion
  * - Filesystem access for user stylesheets
  * - Error handling and utility functions for assets
  *
