@@ -16,13 +16,8 @@ import { SETTINGS } from './constants';
 import { HtmlOptions } from './types';
 import { validateHtmlSettings } from './utils';
 import { createMarkdownItInstance } from './html/markdownSetup';
-import {
-    extractImageDimensions,
-    applyPreservedDimensions,
-    processEmbeddedImages,
-    processRemoteImages,
-    getUserStylesheet,
-} from './html/assetProcessor';
+import { getUserStylesheet } from './html/assetProcessor';
+import { preprocessImageResources } from './html/imagePreProcessor';
 import { postProcessHtml } from './html/domPostProcess';
 
 /**
@@ -48,12 +43,8 @@ export async function processHtmlConversion(selection: string, options?: HtmlOpt
     }
     const htmlOptions = options;
 
-    // 2. Pre-process markdown for assets (e.g., image dimensions, remote images)
-    const { processedMarkdown, dimensions, remoteImages } = extractImageDimensions(
-        selection,
-        htmlOptions.embedImages,
-        htmlOptions.downloadRemoteImages
-    );
+    // 2. Pre-process markdown for assets (images only; async handled upfront)
+    const processedMarkdown = await preprocessImageResources(selection, htmlOptions);
 
     // 3. Create and configure markdown-it instance
     let debug = false;
@@ -65,18 +56,7 @@ export async function processHtmlConversion(selection: string, options?: HtmlOpt
     const md = await createMarkdownItInstance({ debug });
     let html = md.render(processedMarkdown);
 
-    // 4. Post-process HTML for assets
-    if (htmlOptions.embedImages) {
-        // Re-apply preserved dimensions from HTML <img> tags (both Joplin resources and remote images)
-        html = applyPreservedDimensions(html, dimensions, remoteImages);
-        // Embed Joplin resource images as base64
-        html = await processEmbeddedImages(html, htmlOptions.embedImages);
-
-        // Process remote images if enabled
-        if (htmlOptions.downloadRemoteImages) {
-            html = await processRemoteImages(html, remoteImages);
-        }
-    }
+    // 4. No image post-processing needed; handled in pre-processing
 
     // 5. Use DOMParser for post processing and DOMPurify for HTML sanitization.
     html = postProcessHtml(html); // handles link cleaning, sanitization etc.
