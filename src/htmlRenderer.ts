@@ -4,7 +4,9 @@
  * This module orchestrates the conversion of Joplin markdown to portable HTML.
  * It uses several sub-modules to handle specific parts of the process:
  * - markdownSetup: Configures markdown-it with Joplin-compatible plugins.
- * - assetProcessor: Handles image embedding, dimension preservation, and stylesheets.
+ * - imagePreProcessor: Performs all async image work up front (Joplin resources and remote),
+ *   skipping code segments and operating only on image contexts; preserves titles/attrs.
+ * - assetProcessor: Converts Joplin resources to base64 (with validation) and loads stylesheet.
  * - domPostProcess: Cleans the final HTML using DOMParser and DOMPurify.
  *
  * @author bwat47
