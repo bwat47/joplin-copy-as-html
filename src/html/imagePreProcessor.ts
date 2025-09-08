@@ -48,7 +48,8 @@ export async function preprocessImageResources(markdown: string, options: HtmlOp
         for (const m of s.content.matchAll(/<img[^>]*src=["']:\/{1,2}([a-f0-9]{32})["'][^>]*>/gi)) {
             resourceIds.add(m[1]);
         }
-        for (const m of s.content.matchAll(/!\[[^\]]*\]\(:\/{1}([a-f0-9]{32})\)/gi)) {
+        // Markdown image with optional title: ![alt](:/id "title")
+        for (const m of s.content.matchAll(/!\[[^\]]*\]\(\s*(?:<)?:\/{1}([a-f0-9]{32})(?:>)?(?:\s+(".*?"|'.*?'|\(.*?\)))?\s*\)/gi)) {
             resourceIds.add(m[1]);
         }
     }
@@ -68,7 +69,8 @@ export async function preprocessImageResources(markdown: string, options: HtmlOp
             for (const m of s.content.matchAll(/<img[^>]*src=["'](https?:[^"']+)["'][^>]*>/gi)) {
                 remoteUrls.add(m[1]);
             }
-            for (const m of s.content.matchAll(/!\[[^\]]*\]\((https?:[^)]+)\)/gi)) {
+            // Markdown image with optional title: ![alt](url "title")
+            for (const m of s.content.matchAll(/!\[[^\]]*\]\(\s*(?:<)?(https?:[^\s)]+)(?:>)?(?:\s+(".*?"|'.*?'|\(.*?\)))?\s*\)/gi)) {
                 remoteUrls.add(m[1]);
             }
         }
@@ -96,13 +98,16 @@ export async function preprocessImageResources(markdown: string, options: HtmlOp
             return imgTag;
         });
 
-        // Markdown Joplin resource images
-        t = t.replace(/!\[([^\]]*)\]\(:\/{1}([a-f0-9]{32})\)/gi, (m0, alt: string, id: string) => {
-            const v = resourceMap.get(id) || '';
-            if (v.startsWith('data:image/')) return `![${alt}](${v})`;
-            if (v) return v; // error span
-            return m0;
-        });
+        // Markdown Joplin resource images, with optional title
+        t = t.replace(
+            /!\[([^\]]*)\]\(\s*(?:<)?:\/{1}([a-f0-9]{32})(?:>)?(?:\s+(".*?"|'.*?'|\(.*?\)))?\s*\)/gi,
+            (m0, alt: string, id: string, titlePart?: string) => {
+                const v = resourceMap.get(id) || '';
+                if (v.startsWith('data:image/')) return `![${alt}](${v}${titlePart ? ` ${titlePart}` : ''})`;
+                if (v) return v; // error span
+                return m0;
+            }
+        );
 
         if (downloadRemoteImages && remoteMap.size) {
             // HTML remote images
@@ -113,13 +118,16 @@ export async function preprocessImageResources(markdown: string, options: HtmlOp
                 return imgTag;
             });
 
-            // Markdown remote images
-            t = t.replace(/!\[([^\]]*)\]\((https?:[^)]+)\)/gi, (m0, alt: string, url: string) => {
-                const v = remoteMap.get(url) || '';
-                if (v.startsWith('data:image/')) return `![${alt}](${v})`;
-                if (v) return v; // error span
-                return m0;
-            });
+            // Markdown remote images, with optional title
+            t = t.replace(
+                /!\[([^\]]*)\]\(\s*(?:<)?(https?:[^\s)]+)(?:>)?(?:\s+(".*?"|'.*?'|\(.*?\)))?\s*\)/gi,
+                (m0, alt: string, url: string, titlePart?: string) => {
+                    const v = remoteMap.get(url) || '';
+                    if (v.startsWith('data:image/')) return `![${alt}](${v}${titlePart ? ` ${titlePart}` : ''})`;
+                    if (v) return v; // error span
+                    return m0;
+                }
+            );
         }
 
         return t;
@@ -127,4 +135,3 @@ export async function preprocessImageResources(markdown: string, options: HtmlOp
 
     return out.join('');
 }
-

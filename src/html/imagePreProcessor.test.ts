@@ -39,6 +39,18 @@ describe('preprocessImageResources', () => {
         expect(out).toContain('![my alt](data:image/png;base64,');
     });
 
+    it('preserves markdown title when embedding Joplin resource image', async () => {
+        const id = genResourceId();
+        mockImageResource(id, 'image/png', 'fake-data');
+        const input = `![my alt](:/${id} "gold")`;
+        const out = await preprocessImageResources(input, {
+            embedImages: true,
+            exportFullHtml: false,
+            downloadRemoteImages: false,
+        });
+        expect(out).toMatch(/!\[my alt\]\(data:image\/png;base64,[^)]+ "gold"\)/);
+    });
+
     it('embeds Joplin resource images in HTML <img> tags', async () => {
         const id = genResourceId();
         mockImageResource(id, 'image/jpeg', 'jpeg-bits');
@@ -65,4 +77,3 @@ describe('preprocessImageResources', () => {
         expect(out).toContain(input);
     });
 });
-
