@@ -40,8 +40,9 @@ copy-as-html/
 │  ├─ plainTextRenderer.test.ts          # Integration tests for plain text rendering
 │  ├─ testHelpers.ts                     # Shared test utilities / fixtures
 │  ├─ html/
-│  │  ├─ assetProcessor.ts               # Image/resource embedding & dimension extraction
-│  │  ├─ assetProcessor.test.ts          # Tests for asset processing (dimensions, embedding)
+│  │  ├─ imagePreProcessor.ts            # Image-context parsing + async embedding (resources/remote)
+│  │  ├─ imagePreProcessor.test.ts       # Tests for pre-processing (titles, code blocks, stripping)
+│  │  ├─ assetProcessor.ts               # Resource conversion (to base64) + stylesheet loader
 │  │  ├─ domPostProcess.ts               # Joplin internal link cleanup (and potential future post-processing), using DOMParser
 │  │  ├─ markdownSetup.ts                # markdown-it instance + plugin loading (HTML path)
 │  └─ plainText/
@@ -98,8 +99,8 @@ This will generate a `.jpl` file in the `publish/` directory, which can be insta
 - **Clean HTML Generation**: Uses markdown-it with Joplin-compatible plugin configuration to produce semantic HTML
 - **Plugin Compatibility**: Respects all Joplin global markdown plugin settings through sophisticated plugin loading
 - **Image Embedding**: Optionally converts Joplin resource images and remote HTTP/HTTPS images to base64 data URLs for portability
-- **Dimension Preservation**: Maintains original image dimensions (width, height, style) from HTML `<img>` tags through markdown-it pipeline
-- **Resource Loading Optimization**: Timeout protection and request deduplication prevent API overwhelm
+- **Image Attributes**: HTML `<img>` attributes are preserved naturally; markdown images do not include width/height
+- **Resource Loading Optimization**: Timeout protection for resource/network operations
 - **Link Cleaning**: Converts Joplin resource links to plain text for external compatibility
 
 ### Plain Text Output Features
@@ -136,7 +137,7 @@ Centralized configuration and regex patterns:
 TypeScript interfaces for type safety:
 
 - **PlainTextOptions**: Configuration for plain text formatting preservation
-- **ImageDimensions**: Structure for preserving HTML image attributes
+- **MarkdownSegment**: Non-code vs. code segment structure used in pre-processing
 - **JoplinResource/JoplinFileData**: Interfaces for Joplin API data structures
 - **TableData/ListItem**: Structures for plain text table and list formatting
 
@@ -172,10 +173,10 @@ Originally developed to solve plugin loading conflicts between HTML and plain te
 
 Now a thin coordination layer. It:
 
-1. Pre-processes selection (image dimension extraction) via `html/assetProcessor.ts`.
+1. Pre-processes selection (image-only, async upfront) via `html/imagePreProcessor.ts`.
 2. Builds a configured markdown-it instance with `html/markdownSetup.ts`.
 3. Renders markdown → HTML.
-4. Runs post-processing (`applyPreservedDimensions`, base64 embedding, DOM cleanup, HTML sanitization) using helpers in `html/assetProcessor.ts` & `html/domPostProcess.ts`.
+4. Runs DOM cleanup and sanitization via `html/domPostProcess.ts` (no image post-processing needed).
 
 Key benefit: HTML-specific responsibilities moved out of a monolith into focused modules, improving testability and isolating side-effects (filesystem, Joplin API calls).
 
@@ -183,14 +184,15 @@ Key benefit: HTML-specific responsibilities moved out of a monolith into focused
 
 Responsibilities:
 
-- Extract & preserve `<img>` dimensions (`extractImageDimensions`, `applyPreservedDimensions`).
-- Resource validation, deduped base64 embedding (`convertResourceToBase64` + in-module dedupe map).
-- Remote image processing: detect, download, and embed remote HTTP/HTTPS images (`processRemoteImages`, `downloadRemoteImageAsBase64`).
-- Support for both HTML `<img>` tags and Markdown image syntax for remote images.
-- Timeout-safe resource fetch (`withTimeout`).
-- User stylesheet resolution with fallback to bundled default (`getUserStylesheet`).
+- Joplin resource conversion to base64 (`convertResourceToBase64`) with MIME/type/size validation
+- Remote image download to base64 (`downloadRemoteImageAsBase64`) with Content-Type validation
+- Timeout-safe resource fetch (`withTimeout`)
+- User stylesheet resolution with fallback to bundled default (`getUserStylesheet`)
 
-Recent enhancement: Added runtime shape guard (`isMinimalJoplinResource`) to avoid crashes when `mime` metadata is missing, returning a targeted error span instead.
+Notes:
+
+- Image context parsing and embedding decisions happen in `imagePreProcessor.ts`
+- Runtime shape guard (`isMinimalJoplinResource`) avoids crashes on malformed metadata
 
 #### `src/html/domPostProcess.ts`
 
@@ -242,7 +244,7 @@ Responsibilities:
 - `plainTextRenderer.test.ts`: High-level integration behavior (lists, links, code blocks, footnotes, emoji, plugin availability, formatting preservation).
 - `plainText/tokenRenderers.test.ts`: Unit tests for pure helper/token rendering functions (tables, unescape, blank line collapsing).
 - `htmlRenderer.test.ts`: High-level integration behavior (HTML conversion, image embedding, adherence to Joplin markdown settings).
-- `html/assetProcessor.test.ts`: Asset-related behaviors (dimensions, resource embedding, error handling).
+- `html/imagePreProcessor.test.ts`: Pre-processing behaviors (context scoping, titles, stripping, code blocks).
 
 #### Legacy Monolith Decomposition Rationale
 
@@ -324,23 +326,24 @@ Created `pluginUtils.ts` with robust detection logic that handles all known patt
 
 ### Image Handling Strategy
 
-The plugin uses a multi-step process for comprehensive image handling:
+All image-related async work is performed up front in a pre-processing pass, followed by synchronous markdown-it rendering.
 
-#### Joplin Resource Images:
-1. **Dimension Extraction**: Parse HTML `<img>` tags and extract width/height/style attributes
-2. **Markdown Conversion**: Convert `<img>` tags to markdown with dimension keys as alt text
-3. **markdown-it Rendering**: Process through markdown-it with Joplin-compatible plugins
-4. **Dimension Restoration**: Use the dimension keys to restore original attributes
-5. **Base64 Conversion**: Replace Joplin resource URLs with base64 data (with simple deduplication)
+#### Joplin Resource Images
+1. Pre-processing (async)
+   - Segment by code blocks and skip code segments (fenced, inline, indented)
+   - Match only image contexts using documented regex in `constants.ts`:
+     - HTML: `<img src=":/id" ...>` (32-hex id)
+     - Markdown: `![alt](:/id)` with optional title ("…" | '…' | (…))
+   - If `embedImages=false`: strip only Joplin resource images; remote images remain
+   - If `embedImages=true`: convert `:/id` to base64 via `convertResourceToBase64`
+2. Rendering: markdown-it preserves HTML `<img>` attributes naturally; markdown images do not carry width/height
+3. Post-processing: DOM cleanup and sanitization only (no image work)
 
-#### Remote Image Processing:
-1. **Remote Image Detection**: Identify remote HTTP/HTTPS images in both HTML `<img>` tags and Markdown syntax `![alt](https://example.com/image.png)`
-2. **Placeholder Replacement**: Convert remote images to placeholder markdown with unique identifiers
-3. **Concurrent Download**: Download remote images with timeout protection and size limits
-4. **Base64 Embedding**: Replace placeholders with base64 data URLs in final HTML output
-5. **Dimension Preservation**: Maintain width/height attributes from HTML images; Markdown images use intrinsic dimensions
-
-This dual approach ensures compatibility with markdown-it while preserving user-defined image dimensions and supporting both Joplin resources and external images.
+#### Remote Images
+1. Pre-processing (optional)
+   - If `downloadRemoteImages=true`, match HTML/markdown image contexts; support `<…>` wrapped URLs and optional titles
+2. Download with timeout; validate `Content-Type` starts with `image/`
+3. Success: replace `src`/URL with data URI; failure: replace entire image with an error `<span>`
 
 ### Resource Loading Enhancements
 
@@ -359,20 +362,17 @@ This dual approach ensures compatibility with markdown-it while preserving user-
 
 ### Performance Considerations
 
-- **Request Deduplication (HTML path)**: Per-conversion map inside `assetProcessor` prevents redundant resource fetches.
-- **Timeout Protection**: `withTimeout` ensures timely failure & cleanup.
-- **Memory-Safe Cleanup**: Pending promise map entries removed on settle.
-- **Concurrent Resource Fetching**: `Promise.all()` for both Joplin resource and remote image embedding.
-- **Plugin Loading Optimization**: Centralized logic avoids duplicated setup cost.
-- **String Width Calculations**: Unicode-aware table alignment via `string-width` (pure & test-isolated).
-- **Reduced Re-Renders**: Dimension extraction happens once pre-render then reapplied post-render.
+- **Concurrent Fetching**: Pre-processor embeds Joplin resources and remote images concurrently with `Promise.all()`
+- **Timeout Protection**: `withTimeout` ensures timely failure & cleanup for network/IO
+- **Plugin Loading Optimization**: Centralized logic avoids duplicated setup cost
+- **String Width Calculations**: Unicode-aware table alignment via `string-width` (pure & test-isolated)
 
 ## Configuration and Settings
 
 ### HTML-Specific Settings
 
-- **embedImages** (default: true): Controls base64 image embedding for Joplin resource images in HTML output
-- **downloadRemoteImages** (default: false): When enabled (along with embedImages), downloads and embeds remote HTTP/HTTPS images as base64
+- **embedImages** (default: true): When true, pre-processor embeds Joplin resource images; when false, it strips only Joplin resource images
+- **downloadRemoteImages** (default: false): When enabled (with embedImages), downloads and embeds remote HTTP/HTTPS images as base64
 - **exportFullHtml** (default: false): Wraps output as complete HTML document with custom CSS
 
 ### Plain Text Settings
