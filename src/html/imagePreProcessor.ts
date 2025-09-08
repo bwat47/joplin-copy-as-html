@@ -36,7 +36,8 @@ export async function preprocessImageResources(markdown: string, options: HtmlOp
                     ? s.content
                     : s.content
                           .replace(/<img[^>]*src=["']:\/{1,2}[a-f0-9]{32}["'][^>]*>/gi, '')
-                          .replace(/!\[[^\]]*\]\(:\/[a-f0-9]{32}\)/gi, '')
+                          // Remove markdown images to Joplin resources, with or without title
+                          .replace(REGEX_PATTERNS.MD_IMG_JOPLIN_WITH_TITLE, '')
             )
             .join('');
     }

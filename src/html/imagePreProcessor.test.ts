@@ -27,6 +27,17 @@ describe('preprocessImageResources', () => {
         expect(out).toContain('<img src="https://e/x.jpg">');
     });
 
+    it('strips markdown Joplin image with title when embedImages=false', async () => {
+        const id = genResourceId();
+        const input = `Before ![alt](:/${id} "title here") After`;
+        const out = await preprocessImageResources(input, {
+            embedImages: false,
+            exportFullHtml: false,
+            downloadRemoteImages: false,
+        });
+        expect(out).toBe('Before  After');
+    });
+
     it('embeds Joplin resource images and preserves alt (markdown)', async () => {
         const id = genResourceId();
         mockImageResource(id, 'image/png', 'fake-data');
