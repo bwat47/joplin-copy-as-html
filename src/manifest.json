@@ -40,6 +40,12 @@
             "description": "If enabled, exported HTML will be a full document with your custom stylesheet (copy-as-html-user.css in your profile folder).",
             "value": false
         },
+        "downloadRemoteImages": {
+            "type": "bool",
+            "label": "Download and embed remote images",
+            "description": "If enabled (along with Embed images as base64), remote HTTP/HTTPS images will be downloaded and embedded as base64. If un-checked, the resulting document may contain links to external resources.",
+            "value": false
+        },
         "preserveSuperscript": {
             "type": "bool",
             "label": "Preserve superscript characters (^TEST^)",
