@@ -12,7 +12,9 @@
  */
 
 /**
- * Post-processes the HTML using DOMParser to perform clean-up operations.
+ * Clean-up operations:
+ * Sanitize HTML with DOMPurifier
+ * Post-process the HTML using DOMParser (currently only removes joplin resource links)
  * @param html The HTML string to process.
  * @returns The processed HTML string.
  */
