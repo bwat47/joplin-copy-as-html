@@ -38,11 +38,16 @@ export const SETTINGS = {
 // Regex patterns for Joplin resource and image handling
 export const REGEX_PATTERNS = {
     // Matches fenced code blocks, inline code, and indented code blocks.
-    // - Example (fenced): ```js\ncode\n```
+    // Fenced blocks support 3+ backticks or tildes and require the same fence length to close.
+    // - Example (fenced): ```js\ncode\n``` or ~~~txt\ncode\n~~~
+    //   Also supports longer fences to allow literal shorter fences inside.
     // - Example (inline): `code`
     // - Example (indented): 4-space or tab-indented lines
     // The 'm' flag is crucial for `^` to match the start of each line for indented blocks.
-    CODE_BLOCKS: /(```[\s\S]*?```|`[^`\n]*`|^(?: {4}|\t).+)/gm,
+    // Implementation detail: uses a numbered backreference (\\3) for broad compatibility
+    // with older JS targets. Group 3 captures the opening fence and is reused to match the
+    // closing fence of equal length and type.
+    CODE_BLOCKS: /((^|[\r\n])((?:```+|~~~+))[^\r\n]*[\r\n][\s\S]*?[\r\n]\3(?=\s|$)|`[^`\n]*`|^(?: {4}|\t).+)/gm,
     // HTML <img> with Joplin resource src
     // - Captures: (1) 32-char hex resource id
     // - Example: <img src=":/0123abcd...ef" alt="x">

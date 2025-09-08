@@ -87,4 +87,32 @@ describe('preprocessImageResources', () => {
         });
         expect(out).toContain(input);
     });
+
+    it('skips image-like text inside longer backtick fences (nested backticks)', async () => {
+        const id = 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa';
+        const input = '````\nInside code ![x](:/' + id + ') and <img src=":/' + id + '">\n```\nliteral triple fence\n```\n````';
+        const out = await preprocessImageResources(input, {
+            embedImages: true,
+            exportFullHtml: false,
+            downloadRemoteImages: true,
+        });
+        // Entire block should be preserved verbatim
+        expect(out).toContain(input);
+        // Ensure the inner image-like text was not transformed
+        expect(out).toContain('![');
+        expect(out).toContain('<img src=":/' + id + '">');
+    });
+
+    it('skips image-like text inside tilde fences', async () => {
+        const id = 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb';
+        const input = '~~~\nInside tilde ![x](:/' + id + ') and <img src=":/' + id + '">\n~~~';
+        const out = await preprocessImageResources(input, {
+            embedImages: true,
+            exportFullHtml: false,
+            downloadRemoteImages: true,
+        });
+        expect(out).toContain(input);
+        expect(out).toContain('![');
+        expect(out).toContain('<img src=":/' + id + '">');
+    });
 });
