@@ -45,12 +45,12 @@ export async function preprocessImageResources(markdown: string, options: HtmlOp
     const resourceIds = new Set<string>();
     for (const s of segments) {
         if (s.type === 'code') continue;
-        for (const m of s.content.matchAll(/<img[^>]*src=["']:\/{1,2}([a-f0-9]{32})["'][^>]*>/gi)) {
+        for (const m of s.content.matchAll(REGEX_PATTERNS.HTML_IMG_JOPLIN_SRC)) {
             resourceIds.add(m[1]);
         }
         // Markdown image with optional title: ![alt](:/id "title")
-        for (const m of s.content.matchAll(/!\[[^\]]*\]\(\s*(?:<)?:\/{1}([a-f0-9]{32})(?:>)?(?:\s+(".*?"|'.*?'|\(.*?\)))?\s*\)/gi)) {
-            resourceIds.add(m[1]);
+        for (const m of s.content.matchAll(REGEX_PATTERNS.MD_IMG_JOPLIN_WITH_TITLE)) {
+            resourceIds.add(m[2]);
         }
     }
 
@@ -66,12 +66,12 @@ export async function preprocessImageResources(markdown: string, options: HtmlOp
     if (downloadRemoteImages) {
         for (const s of segments) {
             if (s.type === 'code') continue;
-            for (const m of s.content.matchAll(/<img[^>]*src=["'](https?:[^"']+)["'][^>]*>/gi)) {
+            for (const m of s.content.matchAll(REGEX_PATTERNS.HTML_IMG_REMOTE_SRC)) {
                 remoteUrls.add(m[1]);
             }
             // Markdown image with optional title: ![alt](url "title")
-            for (const m of s.content.matchAll(/!\[[^\]]*\]\(\s*(?:<)?(https?:[^\s)]+)(?:>)?(?:\s+(".*?"|'.*?'|\(.*?\)))?\s*\)/gi)) {
-                remoteUrls.add(m[1]);
+            for (const m of s.content.matchAll(REGEX_PATTERNS.MD_IMG_REMOTE_WITH_TITLE)) {
+                remoteUrls.add(m[2]);
             }
         }
     }
@@ -91,7 +91,7 @@ export async function preprocessImageResources(markdown: string, options: HtmlOp
         let t = s.content;
 
         // HTML Joplin resource images
-        t = t.replace(/<img[^>]*src=["']:\/{1,2}([a-f0-9]{32})["'][^>]*>/gi, (imgTag, id: string) => {
+        t = t.replace(REGEX_PATTERNS.HTML_IMG_JOPLIN_SRC, (imgTag: string, id: string) => {
             const v = resourceMap.get(id) || '';
             if (v.startsWith('data:image/')) return imgTag.replace(/src=["'][^"']+["']/, `src="${v}"`);
             if (v) return v; // error span
@@ -100,8 +100,8 @@ export async function preprocessImageResources(markdown: string, options: HtmlOp
 
         // Markdown Joplin resource images, with optional title
         t = t.replace(
-            /!\[([^\]]*)\]\(\s*(?:<)?:\/{1}([a-f0-9]{32})(?:>)?(?:\s+(".*?"|'.*?'|\(.*?\)))?\s*\)/gi,
-            (m0, alt: string, id: string, titlePart?: string) => {
+            REGEX_PATTERNS.MD_IMG_JOPLIN_WITH_TITLE,
+            (m0: string, alt: string, id: string, titlePart?: string) => {
                 const v = resourceMap.get(id) || '';
                 if (v.startsWith('data:image/')) return `![${alt}](${v}${titlePart ? ` ${titlePart}` : ''})`;
                 if (v) return v; // error span
@@ -111,7 +111,7 @@ export async function preprocessImageResources(markdown: string, options: HtmlOp
 
         if (downloadRemoteImages && remoteMap.size) {
             // HTML remote images
-            t = t.replace(/<img[^>]*src=["'](https?:[^"']+)["'][^>]*>/gi, (imgTag, url: string) => {
+            t = t.replace(REGEX_PATTERNS.HTML_IMG_REMOTE_SRC, (imgTag: string, url: string) => {
                 const v = remoteMap.get(url) || '';
                 if (v.startsWith('data:image/')) return imgTag.replace(/src=["'][^"']+["']/, `src="${v}"`);
                 if (v) return v; // error span
@@ -120,8 +120,8 @@ export async function preprocessImageResources(markdown: string, options: HtmlOp
 
             // Markdown remote images, with optional title
             t = t.replace(
-                /!\[([^\]]*)\]\(\s*(?:<)?(https?:[^\s)]+)(?:>)?(?:\s+(".*?"|'.*?'|\(.*?\)))?\s*\)/gi,
-                (m0, alt: string, url: string, titlePart?: string) => {
+                REGEX_PATTERNS.MD_IMG_REMOTE_WITH_TITLE,
+                (m0: string, alt: string, url: string, titlePart?: string) => {
                     const v = remoteMap.get(url) || '';
                     if (v.startsWith('data:image/')) return `![${alt}](${v}${titlePart ? ` ${titlePart}` : ''})`;
                     if (v) return v; // error span

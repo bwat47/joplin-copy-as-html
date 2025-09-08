@@ -38,17 +38,33 @@ export const SETTINGS = {
 // Regex patterns for Joplin resource and image handling
 export const REGEX_PATTERNS = {
     // Matches fenced code blocks, inline code, and indented code blocks.
+    // - Example (fenced): ```js\ncode\n```
+    // - Example (inline): `code`
+    // - Example (indented): 4-space or tab-indented lines
     // The 'm' flag is crucial for `^` to match the start of each line for indented blocks.
     CODE_BLOCKS: /(```[\s\S]*?```|`[^`\n]*`|^(?: {4}|\t).+)/gm,
-    HTML_IMG: /<img[^>]*>/gi,
-    MARKDOWN_IMG: /!\[[^\]]*\]\(:\/[^)]+\)/gi,
-    // Matches HTML <img> tags with a Joplin resource ID in the src attribute.
-    // Group 1: All attributes up to the resource ID
-    // Group 2: The 32-character Joplin resource ID
-    HTML_IMG_WITH_RESOURCE: /<img([^>]*src=["']:\/{1,2}([a-f0-9]{32})["'][^>]*)>/gi,
-    // Matches HTML <img> tags with any resource ID (not just 32 chars).
-    // Group 1: The resource ID (any non-quote, non-angle-bracket sequence)
-    IMG_TAG_WITH_RESOURCE: /<img[^>]*src=["']:?\/{1,2}([^"'>]+)["'][^>]*>/gi,
+    // HTML <img> with Joplin resource src
+    // - Captures: (1) 32-char hex resource id
+    // - Example: <img src=":/0123abcd...ef" alt="x">
+    HTML_IMG_JOPLIN_SRC: /<img[^>]*src=["']:\/{1,2}([a-f0-9]{32})["'][^>]*>/gi,
+    // Markdown image with Joplin resource target and optional title
+    // - Captures: (1) alt, (2) 32-char hex resource id, (3) optional title ("title" | 'title' | (title))
+    // - Examples:
+    //   ![alt](:/0123abcd...ef)
+    //   ![alt](:/0123abcd...ef "title")
+    //   ![alt](:/0123abcd...ef 'title')
+    //   ![alt](:/0123abcd...ef (title))
+    MD_IMG_JOPLIN_WITH_TITLE: /!\[([^\]]*)\]\(\s*(?:<)?:\/{1}([a-f0-9]{32})(?:>)?(?:\s+(".*?"|'.*?'|\(.*?\)))?\s*\)/gi,
+    // HTML <img> with remote http(s) src
+    // - Captures: (1) URL
+    // - Example: <img src="https://host/path.png" alt="x">
+    HTML_IMG_REMOTE_SRC: /<img[^>]*src=["'](https?:[^"']+)["'][^>]*>/gi,
+    // Markdown image with remote http(s) target and optional title
+    // - Captures: (1) alt, (2) URL, (3) optional title ("title" | 'title' | (title))
+    // - Examples:
+    //   ![alt](https://host/p.png)
+    //   ![alt](<https://host/p.png> "title")
+    MD_IMG_REMOTE_WITH_TITLE: /!\[([^\]]*)\]\(\s*(?:<)?(https?:[^\s)]+)(?:>)?(?:\s+(".*?"|'.*?'|\(.*?\)))?\s*\)/gi,
 };
 
 // Constants for timeouts, formatting, and dimension keys
