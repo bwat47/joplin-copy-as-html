@@ -46,10 +46,6 @@ function createRemoteImageError(url: string, reason: string): string {
 
 // Image pre-processing for embedding is handled in src/html/imagePreProcessor.ts
 
-// Dimension re-application is no longer needed; HTML attributes are preserved naturally.
-
-// Legacy async replace helper removed; not required in current flow.
-
 /**
  * Safely extracts a Buffer from a Joplin file object returned by the API.
  * Accepts Buffer, Uint8Array, or compatible shapes on the file object.
@@ -170,10 +166,6 @@ export async function convertResourceToBase64(id: string): Promise<string> {
     }
 }
 
-// Legacy HTML post-embedding removed; handled by pre-processing.
-
-// Legacy regex escape removed; no longer needed.
-
 /**
  * Downloads a remote image and converts it to a base64 data URI.
  * Validates Content-Type and size; on failure returns a user-visible error span.
@@ -244,5 +236,3 @@ export async function getUserStylesheet(): Promise<string> {
         return defaultStylesheet;
     }
 }
-
-// Legacy remote HTML post-processing removed; handled by pre-processing.
