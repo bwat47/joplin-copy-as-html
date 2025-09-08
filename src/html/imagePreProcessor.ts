@@ -1,3 +1,17 @@
+/**
+ * @fileoverview Image Pre-Processor (HTML path)
+ *
+ * Performs all image-related async work up front, before markdown-it renders:
+ * - Skips fenced/inline/indented code segments entirely
+ * - Processes only image contexts (markdown images and HTML <img>)
+ * - Joplin resources: convert :/id to base64 (or strip when embedding disabled)
+ * - Remote images: optionally download and embed as base64 (with Content-Type validation)
+ * - Preserves markdown image titles and HTML <img> attributes
+ *
+ * @author bwat47
+ * @since 1.2.0
+ */
+
 import { REGEX_PATTERNS } from '../constants';
 import { HtmlOptions } from '../types';
 import { convertResourceToBase64, downloadRemoteImageAsBase64 } from './assetProcessor';
