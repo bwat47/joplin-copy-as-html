@@ -78,7 +78,6 @@ export const CONSTANTS = {
     MAX_IMAGE_SIZE_BYTES: 10 * 1024 * 1024, // 10MB limit
     MAX_IMAGE_SIZE_WARNING: 5 * 1024 * 1024, // 5MB warning threshold
     JOPLIN_RESOURCE_ID_LENGTH: 32,
-    DIMENSION_KEY_PREFIX: 'DIMENSION_',
 };
 
 // Joplin global markdown plugin setting keys

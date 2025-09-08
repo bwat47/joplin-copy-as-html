@@ -129,7 +129,7 @@ Centralized configuration and regex patterns:
 
 - **SETTINGS**: String constants for all plugin settings to prevent typos
 - **REGEX_PATTERNS**: Documented regex patterns for Joplin resource handling and image processing
-- **CONSTANTS**: Timeout values, formatting constants, and dimension key prefixes
+- **CONSTANTS**: Timeout values and formatting constants
 - **JOPLIN_SETTINGS**: Global Joplin markdown plugin setting keys for compatibility
 
 #### `src/types.ts`
