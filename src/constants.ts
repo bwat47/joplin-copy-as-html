@@ -74,9 +74,10 @@ export const REGEX_PATTERNS = {
 
 // Constants for timeouts, formatting, and dimension keys
 export const CONSTANTS = {
-    BASE64_TIMEOUT_MS: 5000,
-    MAX_IMAGE_SIZE_BYTES: 10 * 1024 * 1024, // 10MB limit
-    MAX_IMAGE_SIZE_WARNING: 5 * 1024 * 1024, // 5MB warning threshold
+    BASE64_TIMEOUT_MS: 5000, //5s
+    REMOTE_TIMEOUT_MS: 10000, //10s
+    MAX_IMAGE_SIZE_BYTES: 15 * 1024 * 1024, // 15MB limit
+    MAX_IMAGE_SIZE_WARNING: 10 * 1024 * 1024, // 10MB warning threshold
     JOPLIN_RESOURCE_ID_LENGTH: 32,
 };
 

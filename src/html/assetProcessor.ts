@@ -184,7 +184,7 @@ export async function downloadRemoteImageAsBase64(url: string): Promise<string> 
                     Accept: 'image/*',
                 },
             }),
-            CONSTANTS.BASE64_TIMEOUT_MS,
+            CONSTANTS.REMOTE_TIMEOUT_MS,
             'Remote image download timeout'
         );
 

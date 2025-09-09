@@ -347,7 +347,7 @@ All image-related async work is performed up front in a pre-processing pass, fol
 
 ### Resource Loading Enhancements
 
-- **Timeout Protection**: 5-second timeout with proper cleanup prevents memory leaks from hanging timers
+- **Timeout Protection**: Timeouts with proper cleanup prevent memory leaks from hanging timers (Joplin resource fetch: 5s; remote downloads: 10s)
 - **Simple Request Deduplication**: Prevents multiple simultaneous requests for the same resource within a single operation
 - **Graceful Error Recovery**: Individual resource failures don't break entire operations
 - **Memory Management**: Automatic cleanup of timeout handles and request map
