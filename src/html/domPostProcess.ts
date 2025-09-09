@@ -5,16 +5,15 @@
  * This includes:
  * - Sanitizing HTML
  * - Cleaning up Joplin-specific resource links
- * - Future DOM transformations
+ * - Image embedding (for raw html img, markdown images handled by imageRendererRule.ts)
  *
  * @author bwat47
  * @since 1.1.8
  */
 
 /**
- * Clean-up operations:
- * Sanitize HTML with DOMPurifier
- * Post-process the HTML using DOMParser (currently only removes joplin resource links)
+ * Sanitizes HTML with DOMPurifier
+ * Cleans non-image joplin resource links and Embeds images
  * @param html The HTML string to process.
  * @returns The processed HTML string.
  */
