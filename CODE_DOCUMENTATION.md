@@ -40,8 +40,8 @@ copy-as-html/
 │  ├─ plainTextRenderer.test.ts          # Integration tests for plain text rendering
 │  ├─ testHelpers.ts                     # Shared test utilities / fixtures
 │  ├─ html/
-│  │  ├─ imagePreProcessor.ts            # Image-context parsing + async embedding (resources/remote)
-│  │  ├─ imagePreProcessor.test.ts       # Tests for pre-processing (titles, code blocks, stripping)
+│  │  ├─ tokenImageCollector.ts          # Collect image URLs from tokens and raw HTML fragments
+│  │  ├─ imageRendererRule.ts            # Renderer rule to swap image src using prebuilt map
 │  │  ├─ assetProcessor.ts               # Resource conversion (to base64) + stylesheet loader
 │  │  ├─ domPostProcess.ts               # Joplin internal link cleanup (and potential future post-processing), using DOMParser
 │  │  ├─ markdownSetup.ts                # markdown-it instance + plugin loading (HTML path)
@@ -173,10 +173,10 @@ Originally developed to solve plugin loading conflicts between HTML and plain te
 
 Now a thin coordination layer. It:
 
-1. Pre-processes selection (image-only, async upfront) via `html/imagePreProcessor.ts`.
-2. Builds a configured markdown-it instance with `html/markdownSetup.ts`.
-3. Renders markdown → HTML.
-4. Runs DOM cleanup and sanitization via `html/domPostProcess.ts` (no image post-processing needed).
+1. Builds a configured markdown-it instance with `html/markdownSetup.ts`.
+2. Pre-scans tokens to collect image URLs via `html/tokenImageCollector.ts`, then builds a URL→dataURI map in `html/assetProcessor.ts`.
+3. Installs the image renderer rule (`html/imageRendererRule.ts`) and renders markdown → HTML.
+4. Runs DOM cleanup and sanitization via `html/domPostProcess.ts`, which also rewrites raw HTML <img> using the same map.
 
 Key benefit: HTML-specific responsibilities moved out of a monolith into focused modules, improving testability and isolating side-effects (filesystem, Joplin API calls).
 
@@ -191,7 +191,7 @@ Responsibilities:
 
 Notes:
 
-- Image context parsing and embedding decisions happen in `imagePreProcessor.ts`
+- Image embedding decisions are driven by a token pre-scan and a prebuilt URL→dataURI map
 - Runtime shape guard (`isMinimalJoplinResource`) avoids crashes on malformed metadata
 
 #### `src/html/domPostProcess.ts`
@@ -244,7 +244,7 @@ Responsibilities:
 - `plainTextRenderer.test.ts`: High-level integration behavior (lists, links, code blocks, footnotes, emoji, plugin availability, formatting preservation).
 - `plainText/tokenRenderers.test.ts`: Unit tests for pure helper/token rendering functions (tables, unescape, blank line collapsing).
 - `htmlRenderer.test.ts`: High-level integration behavior (HTML conversion, image embedding, adherence to Joplin markdown settings).
-- `html/imagePreProcessor.test.ts`: Pre-processing behaviors (context scoping, titles, stripping, code blocks).
+- HTML renderer integration tests live in `htmlRenderer.test.ts`. Optional unit tests can cover the token collector and image rule if needed.
 
 #### Legacy Monolith Decomposition Rationale
 

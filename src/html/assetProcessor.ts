@@ -44,7 +44,7 @@ function createRemoteImageError(url: string, reason: string): string {
     return createErrorSpan(`Remote image ${url} ${reason}`);
 }
 
-// Image pre-processing for embedding is handled in src/html/imagePreProcessor.ts
+// Image embedding is driven by token pre-scan + renderer rule in the HTML path
 
 /**
  * Safely extracts a Buffer from a Joplin file object returned by the API.

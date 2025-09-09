@@ -4,10 +4,10 @@
  * This module orchestrates the conversion of Joplin markdown to portable HTML.
  * It uses several sub-modules to handle specific parts of the process:
  * - markdownSetup: Configures markdown-it with Joplin-compatible plugins.
- * - imagePreProcessor: Performs all async image work up front (Joplin resources and remote),
- *   skipping code segments and operating only on image contexts; preserves titles/attrs.
- * - assetProcessor: Converts Joplin resources to base64 (with validation) and loads stylesheet.
- * - domPostProcess: Cleans the final HTML using DOMParser and DOMPurify.
+ * - tokenImageCollector: Pre-scans tokens to collect image URLs outside code.
+ * - assetProcessor: Builds a URL→dataURI map (with validation) and loads stylesheet.
+ * - imageRendererRule: Swaps markdown image src using the prebuilt map.
+ * - domPostProcess: Cleans the final HTML using DOMParser and DOMPurify, and rewrites raw HTML <img>.
  *
  * @author bwat47
  * @since 1.0.16
