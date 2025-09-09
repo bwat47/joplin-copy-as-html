@@ -215,9 +215,10 @@ export function postProcessHtml(
                 if (mapped.startsWith('data:image/')) {
                     img.setAttribute('src', mapped);
                 } else {
-                    // Replace the <img> with a mapped error span/message
-                    // Using outerHTML keeps it simple across DOM/JSDOM
-                    (img as unknown as { outerHTML: string }).outerHTML = mapped;
+                    // Replace the <img> with the mapped error HTML in a type-safe way
+                    const wrapper = doc.createElement('span');
+                    wrapper.innerHTML = mapped;
+                    img.parentNode?.replaceChild(wrapper, img);
                 }
             }
         });
