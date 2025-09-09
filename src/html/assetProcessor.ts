@@ -180,7 +180,7 @@ export async function downloadRemoteImageAsBase64(url: string): Promise<string> 
                 credentials: 'omit',
                 referrerPolicy: 'no-referrer',
                 headers: {
-                    'User-Agent': 'Mozilla/5.0 (compatible; Joplin Plugin)',
+                    'User-Agent': CONSTANTS.REMOTE_IMAGE_USER_AGENT,
                     Accept: 'image/*',
                 },
             }),

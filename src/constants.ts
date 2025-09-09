@@ -79,6 +79,9 @@ export const CONSTANTS = {
     MAX_IMAGE_SIZE_BYTES: 15 * 1024 * 1024, // 15MB limit
     MAX_IMAGE_SIZE_WARNING: 10 * 1024 * 1024, // 10MB warning threshold
     JOPLIN_RESOURCE_ID_LENGTH: 32,
+    // Generic User-Agent for remote image fetches to improve compatibility
+    // while avoiding detailed browser impersonation.
+    REMOTE_IMAGE_USER_AGENT: 'Mozilla/5.0',
 };
 
 // Joplin global markdown plugin setting keys
