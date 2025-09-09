@@ -125,19 +125,18 @@ This will generate a `.jpl` file in the `publish/` directory, which can be insta
 
 #### `src/constants.ts`
 
-Centralized configuration and regex patterns:
+Centralized configuration and parsing helpers:
 
 - **SETTINGS**: String constants for all plugin settings to prevent typos
-- **REGEX_PATTERNS**: Documented regex patterns for Joplin resource handling and image processing
 - **CONSTANTS**: Timeout values and formatting constants
 - **JOPLIN_SETTINGS**: Global Joplin markdown plugin setting keys for compatibility
+- **LINK_RESOURCE_MATCHERS**: Regex matchers to detect Joplin resource URLs
 
 #### `src/types.ts`
 
 TypeScript interfaces for type safety:
 
 - **PlainTextOptions**: Configuration for plain text formatting preservation
-- **MarkdownSegment**: Non-code vs. code segment structure used in pre-processing
 - **JoplinResource/JoplinFileData**: Interfaces for Joplin API data structures
 - **TableData/ListItem**: Structures for plain text table and list formatting
 

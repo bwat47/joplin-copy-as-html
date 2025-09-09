@@ -6,7 +6,7 @@
  * - Configuration interfaces (HtmlOptions, PlainTextOptions)
  * - Processing data structures (ImageDimensions, TableData, ListItem)
  * - Joplin API types (JoplinResource, JoplinFileData)
- * - Internal processing types (MarkdownSegment, PluginConfig)
+ * - Internal processing types (PluginConfig)
  *
  * These types provide compile-time safety and serve as documentation for the
  * expected structure of data flowing through the plugin's processing pipeline.
@@ -20,11 +20,6 @@ export interface ImageDimensions {
     height?: string;
     resourceId?: string;
     originalAlt?: string;
-}
-
-export interface MarkdownSegment {
-    type: 'text' | 'code';
-    content: string;
 }
 
 export interface HtmlOptions {

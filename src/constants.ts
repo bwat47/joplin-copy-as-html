@@ -5,7 +5,6 @@
  * throughout the plugin. Organized into logical groups:
  *
  * - SETTINGS: Plugin-specific setting keys for user preferences
- * - REGEX_PATTERNS: Compiled patterns for markdown and HTML parsing
  * - CONSTANTS: Processing limits, timeouts, and formatting values
  * - JOPLIN_SETTINGS: Global Joplin markdown plugin setting keys
  *
@@ -33,43 +32,6 @@ export const SETTINGS = {
     HYPERLINK_BEHAVIOR: 'hyperlinkBehavior',
     INDENT_TYPE: 'indentType',
     DEBUG: 'debug',
-};
-
-// Regex patterns for Joplin resource and image handling
-export const REGEX_PATTERNS = {
-    // Matches fenced code blocks, inline code, and indented code blocks.
-    // Fenced blocks support 3+ backticks or tildes and require the same fence length to close.
-    // - Example (fenced): ```js\ncode\n``` or ~~~txt\ncode\n~~~
-    //   Also supports longer fences to allow literal shorter fences inside.
-    // - Example (inline): `code`
-    // - Example (indented): 4-space or tab-indented lines
-    // The 'm' flag is crucial for `^` to match the start of each line for indented blocks.
-    // Implementation detail: uses a numbered backreference (\\3) for broad compatibility
-    // with older JS targets. Group 3 captures the opening fence and is reused to match the
-    // closing fence of equal length and type.
-    CODE_BLOCKS: /((^|[\r\n])((?:```+|~~~+))[^\r\n]*[\r\n][\s\S]*?[\r\n]\3(?=\s|$)|`[^`\n]*`|^(?: {4}|\t).+)/gm,
-    // HTML <img> with Joplin resource src
-    // - Captures: (1) 32-char hex resource id
-    // - Example: <img src=":/0123abcd...ef" alt="x">
-    HTML_IMG_JOPLIN_SRC: /<img[^>]*src=["']:\/{1,2}([a-f0-9]{32})["'][^>]*>/gi,
-    // Markdown image with Joplin resource target and optional title
-    // - Captures: (1) alt, (2) 32-char hex resource id, (3) optional title ("title" | 'title' | (title))
-    // - Examples:
-    //   ![alt](:/0123abcd...ef)
-    //   ![alt](:/0123abcd...ef "title")
-    //   ![alt](:/0123abcd...ef 'title')
-    //   ![alt](:/0123abcd...ef (title))
-    MD_IMG_JOPLIN_WITH_TITLE: /!\[([^\]]*)\]\(\s*(?:<)?:\/{1}([a-f0-9]{32})(?:>)?(?:\s+(".*?"|'.*?'|\(.*?\)))?\s*\)/gi,
-    // HTML <img> with remote http(s) src
-    // - Captures: (1) URL
-    // - Example: <img src="https://host/path.png" alt="x">
-    HTML_IMG_REMOTE_SRC: /<img[^>]*src=["'](https?:[^"']+)["'][^>]*>/gi,
-    // Markdown image with remote http(s) target and optional title
-    // - Captures: (1) alt, (2) URL, (3) optional title ("title" | 'title' | (title))
-    // - Examples:
-    //   ![alt](https://host/p.png)
-    //   ![alt](<https://host/p.png> "title")
-    MD_IMG_REMOTE_WITH_TITLE: /!\[([^\]]*)\]\(\s*(?:<)?(https?:[^\s)]+)(?:>)?(?:\s+(".*?"|'.*?'|\(.*?\)))?\s*\)/gi,
 };
 
 // Constants for timeouts, formatting, and dimension keys
