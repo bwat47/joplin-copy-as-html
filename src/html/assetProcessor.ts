@@ -248,36 +248,51 @@ export async function buildImageEmbedMap(
     opts: { embedImages: boolean; downloadRemoteImages: boolean }
 ): Promise<Map<string, string>> {
     const out = new Map<string, string>();
-    if (!urls.size) return out;
+    if (!urls.size || !opts.embedImages) return out;
 
-    const jobs: Array<Promise<void>> = [];
+    // Classify and dedupe
+    const urlToId = new Map<string, string>();
+    const joplinIds = new Set<string>();
+    const remoteUrls = new Set<string>();
 
     for (const url of urls) {
-        // Skip if we're not embedding anything
-        if (!opts.embedImages) continue;
-
-        // Joplin resource detection
-        const matcher = LINK_RESOURCE_MATCHERS.map((rx) => url.match(rx)).find(Boolean);
-        if (matcher && matcher[1]) {
-            const id = matcher[1];
-            jobs.push(
-                convertResourceToBase64(id).then((val) => {
-                    out.set(url, val);
-                })
-            );
+        const m = LINK_RESOURCE_MATCHERS.map((rx) => url.match(rx)).find(Boolean) as RegExpMatchArray | undefined;
+        if (m && m[1]) {
+            urlToId.set(url, m[1]);
+            joplinIds.add(m[1]);
             continue;
         }
-
-        // Remote http(s) images
         if (opts.downloadRemoteImages && /^https?:\/\//i.test(url)) {
-            jobs.push(
-                downloadRemoteImageAsBase64(url).then((val) => {
-                    out.set(url, val);
-                })
-            );
+            remoteUrls.add(url);
         }
     }
 
+    // Fetch once per unique id/url
+    const idResults = new Map<string, string>();
+    const jobs: Array<Promise<void>> = [];
+
+    for (const id of joplinIds) {
+        jobs.push(
+            convertResourceToBase64(id).then((val) => {
+                idResults.set(id, val);
+            })
+        );
+    }
+    for (const url of remoteUrls) {
+        jobs.push(
+            downloadRemoteImageAsBase64(url).then((val) => {
+                out.set(url, val);
+            })
+        );
+    }
+
     await Promise.all(jobs);
+
+    // Fan out ID results to all URL variants that referenced the same resource
+    for (const [url, id] of urlToId) {
+        const val = idResults.get(id);
+        if (val !== undefined) out.set(url, val);
+    }
+
     return out;
 }
