@@ -18,8 +18,9 @@ import { SETTINGS } from './constants';
 import { HtmlOptions } from './types';
 import { validateHtmlSettings } from './utils';
 import { createMarkdownItInstance } from './html/markdownSetup';
-import { getUserStylesheet } from './html/assetProcessor';
-import { preprocessImageResources } from './html/imagePreProcessor';
+import { getUserStylesheet, buildImageEmbedMap } from './html/assetProcessor';
+import { collectImageUrls } from './html/tokenImageCollector';
+import { installImageSwapRule } from './html/imageRendererRule';
 import { postProcessHtml } from './html/domPostProcess';
 
 /**
@@ -45,10 +46,7 @@ export async function processHtmlConversion(selection: string, options?: HtmlOpt
     }
     const htmlOptions = options;
 
-    // 2. Pre-process markdown for assets (images only; async handled upfront)
-    const processedMarkdown = await preprocessImageResources(selection, htmlOptions);
-
-    // 3. Create and configure markdown-it instance
+    // 2. Create and configure markdown-it instance
     let debug = false;
     try {
         debug = await joplin.settings.value(SETTINGS.DEBUG);
@@ -56,16 +54,28 @@ export async function processHtmlConversion(selection: string, options?: HtmlOpt
         // ignore if setting unavailable (tests)
     }
     const md = await createMarkdownItInstance({ debug });
-    let html = md.render(processedMarkdown);
 
-    // 4. No image post-processing needed; handled in pre-processing
+    // 3. Token pre-scan to collect image URLs (markdown images + raw HTML <img>)
+    const urls = collectImageUrls(md, selection);
 
-    // 5. Use DOMParser for post processing and DOMPurify for HTML sanitization.
-    html = postProcessHtml(html); // handles link cleaning, sanitization etc.
+    // 4. Async fetch/convert up front to build the embed map
+    const imageSrcMap = await buildImageEmbedMap(urls, {
+        embedImages: htmlOptions.embedImages,
+        downloadRemoteImages: htmlOptions.downloadRemoteImages,
+    });
+
+    // 5. Install renderer rule for markdown image tokens
+    installImageSwapRule(md, imageSrcMap, htmlOptions);
+
+    // 6. Render synchronously
+    let html = md.render(selection);
+
+    // 7. DOM pass for raw HTML <img> (and anchor cleanup, sanitization)
+    html = postProcessHtml(html, { imageSrcMap, stripJoplinImages: !htmlOptions.embedImages });
 
     let fragment = html.trim();
 
-    // 6. Optionally wrap in a full HTML document
+    // 8. Optionally wrap in a full HTML document
     if (htmlOptions.exportFullHtml) {
         const stylesheet = await getUserStylesheet();
         fragment = `<!DOCTYPE html>

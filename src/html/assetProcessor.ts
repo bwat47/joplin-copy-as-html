@@ -13,7 +13,7 @@
  */
 
 import joplin from 'api';
-import { CONSTANTS, HTML_CONSTANTS } from '../constants';
+import { CONSTANTS, HTML_CONSTANTS, LINK_RESOURCE_MATCHERS } from '../constants';
 import { JoplinFileData, JoplinResource } from '../types';
 import * as fs from 'fs/promises';
 import * as path from 'path';
@@ -235,4 +235,49 @@ export async function getUserStylesheet(): Promise<string> {
     } catch {
         return defaultStylesheet;
     }
+}
+
+/**
+ * Build a map of original image URL -> embedded value (data URI or error span),
+ * based on plugin options. Only returns mappings for URLs we intend to embed.
+ * - Joplin resources (:/id, joplin://resource/id) are embedded when `embedImages` is true.
+ * - Remote http(s) images are embedded when both `embedImages` and `downloadRemoteImages` are true.
+ */
+export async function buildImageEmbedMap(
+    urls: Set<string>,
+    opts: { embedImages: boolean; downloadRemoteImages: boolean }
+): Promise<Map<string, string>> {
+    const out = new Map<string, string>();
+    if (!urls.size) return out;
+
+    const jobs: Array<Promise<void>> = [];
+
+    for (const url of urls) {
+        // Skip if we're not embedding anything
+        if (!opts.embedImages) continue;
+
+        // Joplin resource detection
+        const matcher = LINK_RESOURCE_MATCHERS.map((rx) => url.match(rx)).find(Boolean);
+        if (matcher && matcher[1]) {
+            const id = matcher[1];
+            jobs.push(
+                convertResourceToBase64(id).then((val) => {
+                    out.set(url, val);
+                })
+            );
+            continue;
+        }
+
+        // Remote http(s) images
+        if (opts.downloadRemoteImages && /^https?:\/\//i.test(url)) {
+            jobs.push(
+                downloadRemoteImageAsBase64(url).then((val) => {
+                    out.set(url, val);
+                })
+            );
+        }
+    }
+
+    await Promise.all(jobs);
+    return out;
 }

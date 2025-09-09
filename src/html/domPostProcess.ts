@@ -39,7 +39,10 @@ if (typeof window !== 'undefined') {
     }
 }
 
-export function postProcessHtml(html: string): string {
+export function postProcessHtml(
+    html: string,
+    opts?: { imageSrcMap?: Map<string, string>; stripJoplinImages?: boolean }
+): string {
     const sanitizedHtml = purifyInstance.sanitize(html, {
         // Keep it permissive for rich content but remove dangerous elements
         ALLOWED_TAGS: [
@@ -160,9 +163,11 @@ export function postProcessHtml(html: string): string {
         }
     });
 
-    // Check if we have any Joplin resource links to process
+    // Check if we have any Joplin resource links or images to process
     const hasJoplinLinks = /(?:data-resource-id|href=["']?(?::|joplin:\/\/resource\/))/.test(sanitizedHtml);
-    if (!hasJoplinLinks) {
+    const needImageRewrite = !!opts?.imageSrcMap && /<img\b/i.test(sanitizedHtml);
+    const needStripJoplinImages = !!opts?.stripJoplinImages && /<img\b/i.test(sanitizedHtml);
+    if (!hasJoplinLinks && !needImageRewrite && !needStripJoplinImages) {
         return sanitizedHtml;
     }
 
@@ -190,6 +195,27 @@ export function postProcessHtml(html: string): string {
         const textNode = doc.createTextNode(textContent);
         link.parentNode?.replaceChild(textNode, link);
     });
+
+    // Rewrite <img> src using the provided map, and optionally strip Joplin resource images
+    if (needImageRewrite || needStripJoplinImages) {
+        const imgs = doc.querySelectorAll('img');
+        imgs.forEach((img) => {
+            // Skip images inside code/pre blocks
+            if (img.closest('pre, code')) return;
+
+            const src = img.getAttribute('src') || '';
+
+            if (opts?.stripJoplinImages && (/^:\//.test(src) || /^joplin:\/\/resource\//i.test(src))) {
+                img.remove();
+                return;
+            }
+
+            const mapped = opts?.imageSrcMap?.get(src);
+            if (mapped && mapped.startsWith('data:image/')) {
+                img.setAttribute('src', mapped);
+            }
+        });
+    }
 
     return doc.body.innerHTML;
 }
