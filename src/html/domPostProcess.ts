@@ -211,8 +211,14 @@ export function postProcessHtml(
             }
 
             const mapped = opts?.imageSrcMap?.get(src);
-            if (mapped && mapped.startsWith('data:image/')) {
-                img.setAttribute('src', mapped);
+            if (mapped) {
+                if (mapped.startsWith('data:image/')) {
+                    img.setAttribute('src', mapped);
+                } else {
+                    // Replace the <img> with a mapped error span/message
+                    // Using outerHTML keeps it simple across DOM/JSDOM
+                    (img as unknown as { outerHTML: string }).outerHTML = mapped;
+                }
             }
         });
     }

@@ -34,12 +34,16 @@ export function installImageSwapRule(
 
         // Swap to embedded data URI when available in the map
         const mapped = src ? imageSrcMap.get(src) : undefined;
-        if (mapped && mapped.startsWith('data:image/')) {
-            if (srcIdx >= 0) token.attrs![srcIdx][1] = mapped;
-            else token.attrPush(['src', mapped]);
+        if (mapped) {
+            if (mapped.startsWith('data:image/')) {
+                if (srcIdx >= 0) token.attrs![srcIdx][1] = mapped;
+                else token.attrPush(['src', mapped]);
+            } else {
+                // Mapped to an error span or message; output it directly instead of a broken image
+                return mapped;
+            }
         }
 
         return defaultImage(tokens, idx, opts, env, self);
     };
 }
-
