@@ -21,6 +21,7 @@ import DOMPurify from 'dompurify';
 
 // Initialize DOMPurify instance
 let purifyInstance: typeof DOMPurify;
+let purifyHooksInstalled = false;
 
 if (typeof window !== 'undefined') {
     // Browser environment
@@ -38,10 +39,24 @@ if (typeof window !== 'undefined') {
     }
 }
 
+function ensurePurifyHooks(): void {
+    if (purifyHooksInstalled) return;
+    // Add security hook to only allow checkbox inputs
+    purifyInstance.addHook('afterSanitizeAttributes', function (node) {
+        if (node.tagName === 'INPUT') {
+            if (node.getAttribute('type')?.toLowerCase() !== 'checkbox') {
+                node.remove();
+            }
+        }
+    });
+    purifyHooksInstalled = true;
+}
+
 export function postProcessHtml(
     html: string,
     opts?: { imageSrcMap?: Map<string, string>; stripJoplinImages?: boolean }
 ): string {
+    ensurePurifyHooks();
     const sanitizedHtml = purifyInstance.sanitize(html, {
         // Keep it permissive for rich content but remove dangerous elements
         ALLOWED_TAGS: [
@@ -147,19 +162,6 @@ export function postProcessHtml(
         FORBID_TAGS: ['script', 'iframe', 'object', 'embed', 'form'],
         FORBID_ATTR: ['onload', 'onerror', 'onclick'], // Remove event handlers
         ALLOW_DATA_ATTR: true,
-    });
-
-    // Add security hook to only allow checkbox inputs
-    purifyInstance.addHook('afterSanitizeAttributes', function (node) {
-        // Check if the current node is an <input> element.
-        if (node.tagName === 'INPUT') {
-            // Check if the 'type' attribute is NOT 'checkbox'.
-            // We convert to lowercase to be safe.
-            if (node.getAttribute('type')?.toLowerCase() !== 'checkbox') {
-                // If it's an input but not a checkbox, remove it.
-                node.remove();
-            }
-        }
     });
 
     // Check if we have any Joplin resource links or images to process
