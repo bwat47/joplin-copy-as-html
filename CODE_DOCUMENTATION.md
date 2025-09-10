@@ -41,9 +41,9 @@ copy-as-html/
 │  ├─ testHelpers.ts                     # Shared test utilities / fixtures
 │  ├─ html/
 │  │  ├─ tokenImageCollector.ts          # Collect image URLs from tokens and raw HTML fragments
-│  │  ├─ imageRendererRule.ts            # Renderer rule to swap image src using prebuilt map
+│  │  ├─ imageRendererRule.ts            # Renderer rule to swap image src (markdown images) using prebuilt map
 │  │  ├─ assetProcessor.ts               # Resource conversion (to base64) + stylesheet loader
-│  │  ├─ domPostProcess.ts               # Joplin internal link cleanup (and potential future post-processing), using DOMParser
+│  │  ├─ domPostProcess.ts               # Sanitize HTML, Joplin internal link cleanup, swap image src (html images)
 │  │  ├─ markdownSetup.ts                # markdown-it instance + plugin loading (HTML path)
 │  └─ plainText/
 │     ├─ tokenRenderers.ts               # Core token → text rendering logic (tables, lists, links, inline)
@@ -197,9 +197,11 @@ Notes:
 
 Responsibilities:
 
+- HTML sanitization with DOMpurify.
 - DOM parsing of rendered document.
 - Find internal joplin links and render title text only.
-- HTML sanitization with DOMpurify.
+- Image embedding (swap src with base64 image) for html images (markdown images handled in `html/imageRendererRule.ts`).
+- Wrap top level HTML images in paragraphs (display one image per line consistent with markdown images).
 
 #### `src/html/markdownSetup.ts`
 
@@ -325,24 +327,45 @@ Created `pluginUtils.ts` with robust detection logic that handles all known patt
 
 ### Image Handling Strategy
 
-All image-related async work is performed up front in a pre-processing pass, followed by synchronous markdown-it rendering.
+All async image work happens before rendering, driven by a token pre-scan. Rendering then stays synchronous. Raw HTML images are normalized in a DOM pass.
 
-#### Joplin Resource Images
-1. Pre-processing (async)
-   - Segment by code blocks and skip code segments (fenced, inline, indented)
-   - Match only image contexts using documented regex in `constants.ts`:
-     - HTML: `<img src=":/id" ...>` (32-hex id)
-     - Markdown: `![alt](:/id)` with optional title ("…" | '…' | (…))
-   - If `embedImages=false`: strip only Joplin resource images; remote images remain
-   - If `embedImages=true`: convert `:/id` to base64 via `convertResourceToBase64`
-2. Rendering: markdown-it preserves HTML `<img>` attributes naturally; markdown images do not carry width/height
-3. Post-processing: DOM cleanup and sanitization only (no image work)
+#### Pipeline Overview
 
-#### Remote Images
-1. Pre-processing (optional)
-   - If `downloadRemoteImages=true`, match HTML/markdown image contexts; support `<…>` wrapped URLs and optional titles
-2. Download with timeout; validate `Content-Type` starts with `image/`
-3. Success: replace `src`/URL with data URI; failure: replace entire image with an error `<span>`
+1. Token pre-scan (pure)
+
+- Parse markdown with markdown-it and collect image URLs from:
+    - `image` tokens (markdown images; parser excludes code by design)
+    - `html_inline` / `html_block` fragments (raw HTML `<img>`)
+
+2. Build embed map (async)
+
+- `buildImageEmbedMap(urls, { embedImages, downloadRemoteImages })`:
+    - Dedup Joplin resources by ID (covers `:/id`, `:/id#…`, `:/id?…`, `joplin://resource/id`).
+    - Convert each unique resource ID once via `convertResourceToBase64`.
+    - Optionally fetch unique remote HTTP(S) images via `downloadRemoteImageAsBase64`.
+    - Map each original URL to either a `data:image/*;base64,…` or a small error `<span>`.
+
+3. Renderer rule (markdown images)
+
+- Install a custom `image` render rule that:
+    - If `embedImages=false` and the `src` is a Joplin resource → strip the image.
+    - If a map entry exists and is a data URI → replace `src` and delegate to default renderer.
+    - If a map entry exists and is an error span → output the error HTML instead of an `<img>`.
+
+4. DOM pass (raw HTML `<img>` + cleanup)
+
+- Sanitize once with DOMPurify (hook installed once per module load).
+- Clean non-image Joplin resource anchors to plain text.
+- For raw HTML `<img>`:
+    - If `embedImages=false` and `src` is a Joplin resource → remove the image.
+    - If a map entry is a data URI → replace `src`.
+    - If a map entry is an error span → replace the `<img>` with the error HTML (type-safe replace).
+- Normalize top-level `<img>` by wrapping each direct `<body>` child `<img>` in its own `<p>` block for consistent line behavior with markdown images.
+
+Notes
+
+- No re-sanitization occurs after DOM rewriting; only plugin-generated HTML is injected post-sanitize.
+- Width/height attributes on raw HTML images are preserved; markdown images reflect markdown-it defaults.
 
 ### Resource Loading Enhancements
 
@@ -357,7 +380,6 @@ All image-related async work is performed up front in a pre-processing pass, fol
 - **User Visibility**: Errors are displayed as red text in output rather than hidden
 - **Logging**: Console logging for debugging while maintaining user experience
 - **Timeout Protection**: Resource fetching has timeout limits with proper cleanup to prevent memory leaks
-- **Simple Deduplication**: Prevents duplicate requests for the same resource within a single operation
 
 ### Performance Considerations
 
@@ -463,7 +485,3 @@ Modular structure simplifies targeted enhancements:
 ### Development Dependencies
 
 - Standard Joplin plugin build tools and TypeScript compiler
-
----
-
-This documentation reflects the current implementation and architectural decisions. The modular architecture, sophisticated plugin loading system, and comprehensive error handling make the plugin robust and maintainable for future development. The plugin loading utilities and resource management improvements represent significant technical contributions that could benefit the broader Joplin plugin ecosystem.
