@@ -166,9 +166,11 @@ export function postProcessHtml(
 
     // Check if we have any Joplin resource links or images to process
     const hasJoplinLinks = /(?:data-resource-id|href=["']?(?::|joplin:\/\/resource\/))/.test(sanitizedHtml);
-    const needImageRewrite = !!opts?.imageSrcMap && /<img\b/i.test(sanitizedHtml);
-    const needStripJoplinImages = !!opts?.stripJoplinImages && /<img\b/i.test(sanitizedHtml);
-    if (!hasJoplinLinks && !needImageRewrite && !needStripJoplinImages) {
+    const hasAnyImg = /<img\b/i.test(sanitizedHtml);
+    const needImageRewrite = !!opts?.imageSrcMap && hasAnyImg;
+    const needStripJoplinImages = !!opts?.stripJoplinImages && hasAnyImg;
+    const needTopLevelWrap = hasAnyImg; // safe to parse DOM and only wrap direct children
+    if (!hasJoplinLinks && !needImageRewrite && !needStripJoplinImages && !needTopLevelWrap) {
         return sanitizedHtml;
     }
 
@@ -223,6 +225,16 @@ export function postProcessHtml(
                 }
             }
         });
+    }
+
+    // Normalize top-level raw HTML images to behave like markdown images visually:
+    // wrap each direct child <img> of <body> in its own <p> block.
+    // This keeps each image on its own line consistently.
+    const topLevelImgs: Element[] = Array.from(doc.body.children).filter((el) => el.tagName === 'IMG');
+    for (const img of topLevelImgs) {
+        const p = doc.createElement('p');
+        img.parentNode?.replaceChild(p, img);
+        p.appendChild(img);
     }
 
     return doc.body.innerHTML;

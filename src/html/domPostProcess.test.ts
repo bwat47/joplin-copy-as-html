@@ -57,5 +57,14 @@ describe('domPostProcess', () => {
         expect(out).not.toContain('<a ');
         expect(out).toContain('Resource');
     });
-});
 
+    it('wraps top-level raw HTML images in separate paragraph blocks', () => {
+        const html = '<img src="https://x/a.png" alt="a">\n\n<img src="https://x/b.png" alt="b">';
+        const out = postProcessHtml(html);
+        // Should wrap each top-level <img> in its own <p>
+        expect(out).toMatch(/<p>\s*<img[^>]*src="https:\/\/x\/a\.png"[^>]*>\s*<\/p>/);
+        expect(out).toMatch(/<p>\s*<img[^>]*src="https:\/\/x\/b\.png"[^>]*>\s*<\/p>/);
+        // Should not insert <br> between them since each is in its own paragraph
+        expect(out).not.toMatch(/<br\s*\/>|<br>/i);
+    });
+});
