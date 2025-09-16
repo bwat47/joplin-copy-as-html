@@ -44,8 +44,6 @@ function createRemoteImageError(url: string, reason: string): string {
     return createErrorSpan(`Remote image ${url} ${reason}`);
 }
 
-// Image embedding is driven by token pre-scan + renderer rule in the HTML path
-
 /**
  * Safely extracts a Buffer from a Joplin file object returned by the API.
  * Accepts Buffer, Uint8Array, or compatible shapes on the file object.
