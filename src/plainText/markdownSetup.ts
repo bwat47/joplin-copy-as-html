@@ -10,44 +10,14 @@
  */
 
 import MarkdownIt from 'markdown-it';
-import { safePluginUse } from '../pluginUtils';
+import { safePluginUse, safeRequire } from '../pluginUtils';
 
 // Use safe imports to prevent conflicts
-let markdownItMark: unknown;
-let markdownItIns: unknown;
-let markdownItEmoji: unknown;
-let markdownItSub: unknown;
-let markdownItSup: unknown;
-
-try {
-    markdownItMark = require('markdown-it-mark');
-} catch (e) {
-    console.warn('[copy-as-plain-text] markdown-it-mark not available:', e);
-}
-
-try {
-    markdownItIns = require('markdown-it-ins');
-} catch (e) {
-    console.warn('[copy-as-plain-text] markdown-it-ins not available:', e);
-}
-
-try {
-    markdownItEmoji = require('markdown-it-emoji');
-} catch (e) {
-    console.warn('[copy-as-plain-text] markdown-it-emoji not available:', e);
-}
-
-try {
-    markdownItSub = require('markdown-it-sub');
-} catch (e) {
-    console.warn('[copy-as-plain-text] markdown-it-sub not available:', e);
-}
-
-try {
-    markdownItSup = require('markdown-it-sup');
-} catch (e) {
-    console.warn('[copy-as-plain-text] markdown-it-sup not available:', e);
-}
+const markdownItMark = safeRequire(() => require('markdown-it-mark'), 'markdown-it-mark', '[copy-as-plain-text]');
+const markdownItIns = safeRequire(() => require('markdown-it-ins'), 'markdown-it-ins', '[copy-as-plain-text]');
+const markdownItEmoji = safeRequire(() => require('markdown-it-emoji'), 'markdown-it-emoji', '[copy-as-plain-text]');
+const markdownItSub = safeRequire(() => require('markdown-it-sub'), 'markdown-it-sub', '[copy-as-plain-text]');
+const markdownItSup = safeRequire(() => require('markdown-it-sup'), 'markdown-it-sup', '[copy-as-plain-text]');
 
 /**
  * Creates and configures a markdown-it instance for plain text rendering.

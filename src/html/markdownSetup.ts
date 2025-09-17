@@ -13,83 +13,34 @@
 import MarkdownIt from 'markdown-it';
 import { JOPLIN_SETTINGS, PLUGIN_DEFAULTS, HTML_CONSTANTS, LINK_RESOURCE_MATCHERS } from '../constants';
 import { safeGetGlobalSetting } from '../utils';
-import { safePluginUse, loadPluginsConditionally } from '../pluginUtils';
+import { safePluginUse, loadPluginsConditionally, safeRequire } from '../pluginUtils';
 
-// Import plugins with try-catch for robustness
-let markdownItMark: unknown;
-let markdownItIns: unknown;
-let markdownItSub: unknown;
-let markdownItSup: unknown;
-let markdownItAbbr: unknown;
-let markdownItDeflist: unknown;
-let markdownItEmoji: unknown;
-let markdownItFootnote: unknown;
-let markdownItMultimdTable: unknown;
-let markdownItTocDoneRight: unknown;
-let markdownItAnchor: unknown;
-let markdownItTaskLists: unknown;
+// Import plugins with shared helper for robustness
+const markdownItMark = safeRequire(() => require('markdown-it-mark'), 'markdown-it-mark', '[copy-as-html]');
+const markdownItIns = safeRequire(() => require('markdown-it-ins'), 'markdown-it-ins', '[copy-as-html]');
+const markdownItSub = safeRequire(() => require('markdown-it-sub'), 'markdown-it-sub', '[copy-as-html]');
+const markdownItSup = safeRequire(() => require('markdown-it-sup'), 'markdown-it-sup', '[copy-as-html]');
+const markdownItAbbr = safeRequire(() => require('markdown-it-abbr'), 'markdown-it-abbr', '[copy-as-html]');
+const markdownItDeflist = safeRequire(() => require('markdown-it-deflist'), 'markdown-it-deflist', '[copy-as-html]');
+const markdownItEmoji = safeRequire(() => require('markdown-it-emoji'), 'markdown-it-emoji', '[copy-as-html]');
+const markdownItFootnote = safeRequire(() => require('markdown-it-footnote'), 'markdown-it-footnote', '[copy-as-html]');
+const markdownItMultimdTable = safeRequire(
+    () => require('markdown-it-multimd-table'),
+    'markdown-it-multimd-table',
+    '[copy-as-html]'
+);
+const markdownItTocDoneRight = safeRequire(
+    () => require('markdown-it-toc-done-right'),
+    'markdown-it-toc-done-right',
+    '[copy-as-html]'
+);
+const markdownItAnchor = safeRequire(() => require('markdown-it-anchor'), 'markdown-it-anchor', '[copy-as-html]');
+const markdownItTaskLists = safeRequire(
+    () => require('markdown-it-task-lists'),
+    'markdown-it-task-lists',
+    '[copy-as-html]'
+);
 let markdownItGithubAlerts: unknown;
-
-try {
-    markdownItMark = require('markdown-it-mark');
-} catch (e) {
-    console.warn('[copy-as-html] markdown-it-mark not available:', e);
-}
-try {
-    markdownItIns = require('markdown-it-ins');
-} catch (e) {
-    console.warn('[copy-as-html] markdown-it-ins not available:', e);
-}
-try {
-    markdownItSub = require('markdown-it-sub');
-} catch (e) {
-    console.warn('[copy-as-html] markdown-it-sub not available:', e);
-}
-try {
-    markdownItSup = require('markdown-it-sup');
-} catch (e) {
-    console.warn('[copy-as-html] markdown-it-sup not available:', e);
-}
-try {
-    markdownItAbbr = require('markdown-it-abbr');
-} catch (e) {
-    console.warn('[copy-as-html] markdown-it-abbr not available:', e);
-}
-try {
-    markdownItDeflist = require('markdown-it-deflist');
-} catch (e) {
-    console.warn('[copy-as-html] markdown-it-deflist not available:', e);
-}
-try {
-    markdownItEmoji = require('markdown-it-emoji');
-} catch (e) {
-    console.warn('[copy-as-html] markdown-it-emoji not available:', e);
-}
-try {
-    markdownItFootnote = require('markdown-it-footnote');
-} catch (e) {
-    console.warn('[copy-as-html] markdown-it-footnote not available:', e);
-}
-try {
-    markdownItMultimdTable = require('markdown-it-multimd-table');
-} catch (e) {
-    console.warn('[copy-as-html] markdown-it-multimd-table not available:', e);
-}
-try {
-    markdownItTocDoneRight = require('markdown-it-toc-done-right');
-} catch (e) {
-    console.warn('[copy-as-html] markdown-it-toc-done-right not available:', e);
-}
-try {
-    markdownItAnchor = require('markdown-it-anchor');
-} catch (e) {
-    console.warn('[copy-as-html] markdown-it-anchor not available:', e);
-}
-try {
-    markdownItTaskLists = require('markdown-it-task-lists');
-} catch (e) {
-    console.warn('[copy-as-html] markdown-it-task-lists not available:', e);
-}
 // markdown-it-github-alerts is ESM-only (see upstream repo commit: fc388da324182abd23b5acc5a8e16f93ddf771fe). We'll load it via dynamic import
 // inside createMarkdownItInstance. Keeping a placeholder variable for later assignment.
 
@@ -167,43 +118,47 @@ export async function createMarkdownItInstance(opts: MarkdownItFactoryOptions = 
     }
 
     // Load plugins conditionally based on Joplin's global settings
-    loadPluginsConditionally(md, [
-        { enabled: globalMarkEnabled, plugin: markdownItMark, name: 'markdown-it-mark' },
-        { enabled: globalInsEnabled, plugin: markdownItIns, name: 'markdown-it-ins' },
-        { enabled: globalSubEnabled, plugin: markdownItSub, name: 'markdown-it-sub' },
-        { enabled: globalSupEnabled, plugin: markdownItSup, name: 'markdown-it-sup' },
-        { enabled: globalAbbrEnabled, plugin: markdownItAbbr, name: 'markdown-it-abbr' },
-        { enabled: globalDeflistEnabled, plugin: markdownItDeflist, name: 'markdown-it-deflist' },
-        { enabled: globalFootnoteEnabled, plugin: markdownItFootnote, name: 'markdown-it-footnote' },
-        { enabled: globalEmojiEnabled, plugin: markdownItEmoji, name: 'markdown-it-emoji' },
-        {
-            enabled: globalMultimdTableEnabled,
-            plugin: markdownItMultimdTable,
-            name: 'markdown-it-multimd-table',
-            options: PLUGIN_DEFAULTS.MULTIMD_TABLE,
-        },
-        {
-            enabled: globalTocEnabled,
-            plugin: markdownItAnchor,
-            name: 'markdown-it-anchor',
-            options: {
-                permalink: false, // Don't add permalink symbols for clean HTML output
-                permalinkSymbol: '',
-                permalinkBefore: false,
+    loadPluginsConditionally(
+        md,
+        [
+            { enabled: globalMarkEnabled, plugin: markdownItMark, name: 'markdown-it-mark' },
+            { enabled: globalInsEnabled, plugin: markdownItIns, name: 'markdown-it-ins' },
+            { enabled: globalSubEnabled, plugin: markdownItSub, name: 'markdown-it-sub' },
+            { enabled: globalSupEnabled, plugin: markdownItSup, name: 'markdown-it-sup' },
+            { enabled: globalAbbrEnabled, plugin: markdownItAbbr, name: 'markdown-it-abbr' },
+            { enabled: globalDeflistEnabled, plugin: markdownItDeflist, name: 'markdown-it-deflist' },
+            { enabled: globalFootnoteEnabled, plugin: markdownItFootnote, name: 'markdown-it-footnote' },
+            { enabled: globalEmojiEnabled, plugin: markdownItEmoji, name: 'markdown-it-emoji' },
+            {
+                enabled: globalMultimdTableEnabled,
+                plugin: markdownItMultimdTable,
+                name: 'markdown-it-multimd-table',
+                options: PLUGIN_DEFAULTS.MULTIMD_TABLE,
             },
-        },
-        {
-            enabled: globalTocEnabled,
-            plugin: markdownItTocDoneRight,
-            name: 'markdown-it-toc-done-right',
-            options: {
-                placeholder: HTML_CONSTANTS.TOC_PLACEHOLDER_PATTERN,
-                slugify: (s: string) => s.trim().toLowerCase().replace(/\s+/g, '-'),
-                containerId: HTML_CONSTANTS.TOC_CONTAINER_ID,
-                listType: 'ul',
+            {
+                enabled: globalTocEnabled,
+                plugin: markdownItAnchor,
+                name: 'markdown-it-anchor',
+                options: {
+                    permalink: false, // Don't add permalink symbols for clean HTML output
+                    permalinkSymbol: '',
+                    permalinkBefore: false,
+                },
             },
-        },
-    ], debug);
+            {
+                enabled: globalTocEnabled,
+                plugin: markdownItTocDoneRight,
+                name: 'markdown-it-toc-done-right',
+                options: {
+                    placeholder: HTML_CONSTANTS.TOC_PLACEHOLDER_PATTERN,
+                    slugify: (s: string) => s.trim().toLowerCase().replace(/\s+/g, '-'),
+                    containerId: HTML_CONSTANTS.TOC_CONTAINER_ID,
+                    listType: 'ul',
+                },
+            },
+        ],
+        debug
+    );
 
     // Add task list support (checkboxes) - always enabled since it's core Joplin functionality
     if (markdownItTaskLists) {

@@ -24,6 +24,18 @@
 import MarkdownIt = require('markdown-it');
 
 /**
+ * Safely require a module and emit a consistent warning when it cannot be loaded.
+ */
+export function safeRequire<T>(factory: () => T, moduleId: string, logPrefix: string): T | undefined {
+    try {
+        return factory();
+    } catch (error) {
+        console.warn(`${logPrefix} ${moduleId} not available:`, error);
+        return undefined;
+    }
+}
+
+/**
  * Safe plugin loader that handles potential import issues.
  * This is the complex function that was hard to get right,
  * so we share it to avoid duplicating the logic.
