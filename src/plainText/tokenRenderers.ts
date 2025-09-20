@@ -1,11 +1,8 @@
 /**
- * @fileoverview Token Renderers for Plain Text
+ * @fileoverview Plain text parsing helpers
  *
- * This module contains the core logic for rendering markdown-it tokens into
- * a formatted plain text string. It preserves structure like lists and tables.
- *
- * @author bwat47
- * @since 1.1.8
+ * Provides shared utilities for the block-based plain text renderer: table/list
+ * parsing, link handling, unescape helpers, and spacing utilities.
  */
 
 import type { Token } from 'markdown-it';
@@ -180,10 +177,6 @@ export function formatList(listItems: ListItem[], options: PlainTextOptions): st
     }
     return lines.join('\n');
 }
-
-/**
- * Parses and formats a list from markdown-it tokens.
- */
 /**
  * Handles opening of a markdown link token.
  */

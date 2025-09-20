@@ -1,9 +1,9 @@
 /**
- * @fileoverview Plain text block definitions and formatter skeleton.
+ * @fileoverview Plain text block definitions and formatter implementation.
  *
- * Phase 1 introduces a block-based formatter that will become the second pass
- * for plain text rendering. It focuses on paragraph and heading support along
- * with explicit inter-block spacing rules.
+ * Turns semantic blocks collected by the renderer into final plain text output,
+ * handling spacing rules between block types and delegating to helpers for
+ * lists/tables.
  */
 
 import { PLAIN_TEXT_CONSTANTS } from '../constants';
