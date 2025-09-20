@@ -1,9 +1,9 @@
 /* eslint-disable @typescript-eslint/no-require-imports */
 
+import * as fs from 'fs';
+import * as path from 'path';
 import { convertMarkdownToPlainText } from './plainTextRenderer';
 import { PlainTextOptions } from './types';
-import { createMarkdownItInstance } from './plainText/markdownSetup';
-import { renderPlainText } from './plainText/tokenRenderers';
 
 // A default set of options to satisfy the PlainTextOptions type.
 // We can override specific properties for each test.
@@ -416,16 +416,10 @@ Text referencing [^a] and also [^b].
     });
 });
 
-describe('Legacy Renderer Fallback', () => {
-    it('uses the legacy renderer when explicitly requested', () => {
-        const markdown = '- Legacy example';
-        const md = createMarkdownItInstance();
-        const tokens = md.parse(markdown, {});
-
-        const legacy = renderPlainText(tokens, null, 0, { ...defaultOptions });
-        const result = convertMarkdownToPlainText(markdown, { ...defaultOptions, useLegacyRenderer: true });
-
-        expect(result).toBe(legacy);
+describe('Integration', () => {
+    it('renders the repository README without throwing', () => {
+        const markdown = fs.readFileSync(path.resolve(__dirname, '../README.md'), 'utf8');
+        expect(() => convertMarkdownToPlainText(markdown, defaultOptions)).not.toThrow();
     });
 });
 

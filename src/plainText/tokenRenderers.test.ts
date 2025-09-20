@@ -4,27 +4,12 @@ import {
     formatTable,
     parseTableTokens,
     calculateColumnWidths,
+    TokenFragmentRenderer,
 } from './tokenRenderers';
-import { PlainTextOptions } from '../types';
 import MarkdownIt from 'markdown-it';
 
 // A default set of options to satisfy the PlainTextOptions type.
 // We can override specific properties for each test.
-const defaultOptions: PlainTextOptions = {
-    preserveSuperscript: false,
-    preserveSubscript: false,
-    preserveEmphasis: false,
-    preserveBold: false,
-    preserveHeading: false,
-    preserveStrikethrough: false,
-    preserveHorizontalRule: false,
-    preserveMark: false,
-    preserveInsert: false,
-    displayEmojis: true,
-    hyperlinkBehavior: 'title',
-    indentType: 'spaces',
-};
-
 // Helper function to generate tokens from a markdown string
 const generateTableTokens = (markdown: string) => {
     const md = new MarkdownIt();
@@ -39,6 +24,24 @@ const generateTableTokens = (markdown: string) => {
         return tokens.slice(tableOpenIndex + 1, tableCloseIndex);
     }
     return [];
+};
+
+const simpleFragmentRenderer: TokenFragmentRenderer = (tokens) => {
+    let result = '';
+    for (const token of tokens) {
+        if (token.type === 'text') {
+            result += token.content;
+        } else if (token.type === 'softbreak' || token.type === 'hardbreak') {
+            result += '\n';
+        }
+
+        if (token.children) {
+            result += simpleFragmentRenderer(token.children, null, 0);
+        } else if (token.markup && (token.type.endsWith('_open') || token.type.endsWith('_close'))) {
+            result += token.markup;
+        }
+    }
+    return result;
 };
 
 describe('unescape', () => {
@@ -68,7 +71,7 @@ describe('Table Rendering', () => {
 | Cell 1   | Cell 2   |
 `;
         const tableTokens = generateTableTokens(markdownTable);
-        const tableData = parseTableTokens(tableTokens, defaultOptions, null, 0);
+        const tableData = parseTableTokens(tableTokens, simpleFragmentRenderer, null, 0);
         const colWidths = calculateColumnWidths(tableData);
         const result = formatTable(tableData, colWidths);
 
@@ -89,7 +92,7 @@ Cell 1    Cell 2
 | Data  | More Data            |
 `;
         const tableTokens = generateTableTokens(markdownTable);
-        const tableData = parseTableTokens(tableTokens, defaultOptions, null, 0);
+        const tableData = parseTableTokens(tableTokens, simpleFragmentRenderer, null, 0);
         const colWidths = calculateColumnWidths(tableData);
         const result = formatTable(tableData, colWidths);
 
@@ -110,12 +113,7 @@ Data   More Data
 | *Italic* | **Bold** |
 `;
         const tableTokens = generateTableTokens(markdownTable);
-        const tableData = parseTableTokens(
-            tableTokens,
-            { ...defaultOptions, preserveEmphasis: true, preserveBold: true },
-            null,
-            0
-        );
+        const tableData = parseTableTokens(tableTokens, simpleFragmentRenderer, null, 0);
 
         expect(tableData.rows[1].cells[0]).toBe('*Italic*');
         expect(tableData.rows[1].cells[1]).toBe('**Bold**');

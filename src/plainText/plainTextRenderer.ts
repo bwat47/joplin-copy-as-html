@@ -9,7 +9,6 @@ import type MarkdownIt from 'markdown-it';
 import type { Token } from 'markdown-it';
 import type { PlainTextOptions } from '../types';
 import { PlainTextBlockFormatter, PlainTextBlock } from './plainTextFormatter';
-import { createMarkdownItInstance } from './markdownSetup';
 import {
     extractBlockTokens,
     parseListTokens,
@@ -322,7 +321,6 @@ export class PlainTextRenderer {
                     blockTokens,
                     { type: 'bullet' },
                     indentLevel,
-                    this.options,
                     (fragmentTokens, ctx, level) => this.renderTokenFragment(fragmentTokens, ctx, level)
                 );
                 this.blocks.push({ type: 'list', items });
@@ -351,7 +349,6 @@ export class PlainTextRenderer {
                     blockTokens,
                     { type: 'ordered', index: start },
                     indentLevel,
-                    this.options,
                     (fragmentTokens, ctx, level) => this.renderTokenFragment(fragmentTokens, ctx, level)
                 );
                 this.blocks.push({ type: 'list', items });
@@ -383,10 +380,9 @@ export class PlainTextRenderer {
             this.setSkipUntil(endIndex);
             const tableData = parseTableTokens(
                 blockTokens,
-                this.options,
+                (fragmentTokens, ctx, level) => this.renderTokenFragment(fragmentTokens, ctx, level),
                 null,
-                this.listDepth,
-                (fragmentTokens, ctx, level) => this.renderTokenFragment(fragmentTokens, ctx, level)
+                this.listDepth
             );
             this.blocks.push({ type: 'table', data: tableData });
             return '';
@@ -522,9 +518,4 @@ export class PlainTextRenderer {
 export function renderMarkdownToPlainText(md: MarkdownIt, markdown: string, options: PlainTextOptions): string {
     const renderer = new PlainTextRenderer(md, options);
     return renderer.render(markdown);
-}
-
-export function renderPlainTextWithBlocks(markdown: string, options: PlainTextOptions, debug: boolean = false): string {
-    const md = createMarkdownItInstance(debug);
-    return renderMarkdownToPlainText(md, markdown, options);
 }

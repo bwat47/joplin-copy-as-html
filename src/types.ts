@@ -41,8 +41,6 @@ export interface PlainTextOptions {
     displayEmojis: boolean;
     hyperlinkBehavior: 'title' | 'url' | 'markdown';
     indentType: 'spaces' | 'tabs';
-    /** Allows forcing the legacy plain text renderer despite the block pipeline default. */
-    useLegacyRenderer?: boolean;
 }
 
 export interface TableRow {

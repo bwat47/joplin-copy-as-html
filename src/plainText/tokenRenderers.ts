@@ -10,7 +10,7 @@
 
 import type { Token } from 'markdown-it';
 import { PlainTextOptions, TableData, TableRow, ListItem } from '../types';
-import { PLAIN_TEXT_CONSTANTS, INLINE_MARKERS, PLAIN_TEXT_REGEX } from '../constants';
+import { PLAIN_TEXT_CONSTANTS } from '../constants';
 import stringWidth from 'string-width';
 
 export type LinkStackItem = { href: string; title: string };
@@ -40,11 +40,11 @@ export function isExternalHttpUrl(url: string): boolean {
  */
 export function parseTableTokens(
     tableTokens: Token[],
-    options: PlainTextOptions,
+    renderFragment: TokenFragmentRenderer,
     listContext: ListContext,
-    indentLevel: number,
-    renderFragment?: TokenFragmentRenderer
+    indentLevel: number
 ): TableData {
+    if (!renderFragment) throw new Error('renderFragment is required to parse table tokens');
     const tableRows: TableRow[] = [];
     let currentRow: string[] = [];
     let isHeaderRow = false;
@@ -63,10 +63,7 @@ export function parseTableTokens(
             ) {
                 const inner = tableTokens[cellIndex];
                 if (inner.type === 'inline' && inner.children) {
-                    const renderFn = renderFragment
-                        ? renderFragment
-                        : (tokens) => renderPlainText(tokens, listContext, indentLevel, options);
-                    cellContent += renderFn(inner.children, listContext, indentLevel);
+                    cellContent += renderFragment(inner.children, listContext, indentLevel);
                 } else if (inner.type === 'text') {
                     cellContent += inner.content;
                 }
@@ -118,29 +115,15 @@ export function formatTable(tableData: TableData, colWidths: number[]): string {
 }
 
 /**
- * Main orchestrator for table rendering.
- */
-export function renderTableFromTokens(
-    tableTokens: Token[],
-    options: PlainTextOptions,
-    listContext: ListContext,
-    indentLevel: number
-): string {
-    const tableData = parseTableTokens(tableTokens, options, listContext, indentLevel);
-    const colWidths = calculateColumnWidths(tableData);
-    return formatTable(tableData, colWidths);
-}
-
-/**
  * Parses list-related tokens into a structured array of ListItem objects.
  */
 export function parseListTokens(
     listTokens: Token[],
     listContext: ListContext,
     indentLevel: number,
-    options: PlainTextOptions,
-    renderFragment?: TokenFragmentRenderer
+    renderFragment: TokenFragmentRenderer
 ): ListItem[] {
+    if (!renderFragment) throw new Error('renderFragment is required to parse list tokens');
     const items: ListItem[] = [];
     const ordered = !!(listContext && listContext.type === 'ordered');
     let index =
@@ -159,11 +142,7 @@ export function parseListTokens(
                 if (nestingDepth > 0) itemTokens.push(scanTok);
                 scanIndex++;
             }
-            const renderFn = renderFragment
-                ? renderFragment
-                : (tokens: Token[], ctx: ListContext, level: number) =>
-                      renderPlainText(tokens, ctx, level, options);
-            const content = renderFn(itemTokens, listContext, indentLevel);
+            const content = renderFragment(itemTokens, listContext, indentLevel);
             items.push({
                 content: content.trim(),
                 ordered,
@@ -205,17 +184,6 @@ export function formatList(listItems: ListItem[], options: PlainTextOptions): st
 /**
  * Parses and formats a list from markdown-it tokens.
  */
-export function renderListFromTokens(
-    listTokens: Token[],
-    listContext: ListContext,
-    indentLevel: number,
-    options: PlainTextOptions,
-    renderFragment?: TokenFragmentRenderer
-): string {
-    const listItems = parseListTokens(listTokens, listContext, indentLevel, options, renderFragment);
-    return formatList(listItems, options);
-}
-
 /**
  * Handles opening of a markdown link token.
  */
@@ -294,172 +262,4 @@ export function extractBlockTokens(tokens: Token[], startIndex: number): { block
  */
 export function collapseExtraBlankLines(text: string): string {
     return text.replace(/\n{3,}/g, '\n'.repeat(PLAIN_TEXT_CONSTANTS.MAX_PARAGRAPH_NEWLINES));
-}
-
-function normalizeHeadingLevel(tag?: string): number {
-    if (!tag || tag[0] !== 'h') return 1;
-    const n = parseInt(tag.slice(1), 10);
-    return Math.min(6, Math.max(1, isNaN(n) ? 1 : n));
-}
-
-/**
- * Recursively renders an array of markdown-it tokens into a plain text string.
- */
-export function renderPlainText(
-    tokens: Token[],
-    listContext: ListContext = null,
-    indentLevel: number = 0,
-    options: PlainTextOptions
-): string {
-    let result = '';
-    const linkStack: LinkStackItem[] = [];
-    for (let i = 0; i < tokens.length; i++) {
-        const t = tokens[i];
-
-        if (t.type === 'table_open' || t.type === 'bullet_list_open' || t.type === 'ordered_list_open') {
-            const { blockTokens, endIndex } = extractBlockTokens(tokens, i);
-
-            if (t.type === 'table_open') {
-                result += renderTableFromTokens(blockTokens, options, listContext, indentLevel);
-            } else {
-                result += renderListFromTokens(
-                    blockTokens,
-                    t.type === 'ordered_list_open' ? { type: 'ordered', index: 1 } : { type: 'bullet' },
-                    indentLevel + 1,
-                    options
-                );
-            }
-
-            const nextToken = tokens[endIndex + 1];
-            if (
-                nextToken &&
-                (nextToken.type === 'paragraph_open' ||
-                    nextToken.type === 'heading_open' ||
-                    nextToken.type === 'hr' ||
-                    nextToken.type === 'thematic_break' ||
-                    nextToken.type === 'text' ||
-                    nextToken.type === 'bullet_list_open' ||
-                    nextToken.type === 'ordered_list_open' ||
-                    nextToken.type === 'fence' ||
-                    nextToken.type === 'code_block' ||
-                    nextToken.type === 'blockquote_open')
-            ) {
-                if (!result.endsWith('\n\n')) result = result.replace(/\n*$/, '\n\n');
-            }
-            i = endIndex;
-            continue;
-        }
-
-        switch (t.type) {
-            case 'fence':
-            case 'code_block': {
-                const lines = t.content.split('\n');
-                if (
-                    lines.length > 2 &&
-                    lines[0].trim().startsWith(PLAIN_TEXT_CONSTANTS.CODE_FENCE_MARKER) &&
-                    lines[lines.length - 1].trim().startsWith(PLAIN_TEXT_CONSTANTS.CODE_FENCE_MARKER)
-                ) {
-                    result += lines.slice(1, -1).join('\n') + '\n';
-                } else {
-                    result += t.content + '\n';
-                }
-                break;
-            }
-            case 'code_inline':
-                result += t.content;
-                break;
-            case 'inline':
-                if (t.children) result += renderPlainText(t.children, listContext, indentLevel, options);
-                break;
-            case 'heading_open':
-                if (options.preserveHeading) {
-                    const level = normalizeHeadingLevel(t.tag);
-                    result += PLAIN_TEXT_CONSTANTS.HEADING_PREFIX_CHAR.repeat(level) + ' ';
-                }
-                break;
-            case 'heading_close':
-                result += '\n\n';
-                break;
-            case 'hr':
-            case 'thematic_break':
-                if (options.preserveHorizontalRule) {
-                    result += `${PLAIN_TEXT_CONSTANTS.HORIZONTAL_RULE_MARKER}\n\n`;
-                } else {
-                    result += '\u00A0\n\n'; // Non-breaking space + paragraph spacing
-                }
-                break;
-            case 'em_open':
-            case 'em_close':
-                if (options.preserveEmphasis) result += t.markup;
-                break;
-            case 'strong_open':
-            case 'strong_close':
-                if (options.preserveBold) result += t.markup;
-                break;
-            case 'mark_open':
-            case 'mark_close':
-                if (options.preserveMark) result += INLINE_MARKERS.MARK;
-                break;
-            case 'ins_open':
-            case 'ins_close':
-                if (options.preserveInsert) result += INLINE_MARKERS.INSERT;
-                break;
-            case 's_open':
-            case 's_close':
-                if (options.preserveStrikethrough) result += INLINE_MARKERS.STRIKETHROUGH;
-                break;
-            case 'sub_open':
-            case 'sub_close':
-                if (options.preserveSubscript) result += INLINE_MARKERS.SUB;
-                break;
-            case 'sup_open':
-            case 'sup_close':
-                if (options.preserveSuperscript) result += INLINE_MARKERS.SUP;
-                break;
-            case 'link_open':
-                result = handleLinkToken(t, linkStack, result);
-                break;
-            case 'link_close':
-                result = handleLinkCloseToken(linkStack, options, result);
-                break;
-            case 'emoji':
-                if (options.displayEmojis) result += t.content;
-                break;
-            case 'text': {
-                const content = t.content
-                    .replace(PLAIN_TEXT_REGEX.FOOTNOTE_REF, '[$1]')
-                    .replace(PLAIN_TEXT_REGEX.FOOTNOTE_DEF, '[$1]:');
-                result = handleTextToken(t, content, linkStack, options, result);
-                break;
-            }
-            case 'softbreak':
-            case 'hardbreak':
-                result += '\n';
-                break;
-            case 'paragraph_close':
-                result += '\n\n';
-                break;
-            case 'blockquote_close': {
-                result += '\n\n';
-                let k = i + 1;
-                while (
-                    k < tokens.length &&
-                    (tokens[k].type === 'paragraph_open' ||
-                        tokens[k].type === 'paragraph_close' ||
-                        tokens[k].type === 'softbreak' ||
-                        tokens[k].type === 'hardbreak')
-                ) {
-                    k++;
-                }
-                if (k < tokens.length && tokens[k].type === 'blockquote_open') {
-                    result = result.replace(/\n*$/, '\n\n');
-                }
-                result = collapseExtraBlankLines(result);
-                break;
-            }
-            default:
-                break;
-        }
-    }
-    return result;
 }
