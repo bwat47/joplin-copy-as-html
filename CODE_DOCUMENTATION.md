@@ -46,8 +46,11 @@ copy-as-html/
 │  │  ├─ domPostProcess.ts               # Sanitize HTML, Joplin internal link cleanup, swap image src (html images)
 │  │  ├─ markdownSetup.ts                # markdown-it instance + plugin loading (HTML path)
 │  └─ plainText/
-│     ├─ tokenRenderers.ts               # Core token → text rendering logic (tables, lists, links, inline)
-│     ├─ tokenRenderers.test.ts          # Unit tests for token renderers (tables, blank lines, etc.)
+│     ├─ renderer.ts                     # Block-based plain text renderer (markdown-it hooks)
+│     ├─ plainTextFormatter.ts           # Block → text formatter (spacing, lists, tables)
+│     ├─ plainTextFormatter.test.ts      # Formatter unit tests
+│     ├─ tokenRenderers.ts               # Shared helpers (tables, lists, links, unescape)
+│     ├─ tokenRenderers.test.ts          # Unit tests for helpers (tables, blank lines, etc.)
 │     ├─ markdownSetup.ts                # markdown-it instance + plugin loading (plain text path)
 ├─ dist/                                 # (Git-ignored) compiled plugin output when built
 └─ node_modules/                         # Installed dependencies
@@ -366,6 +369,27 @@ Notes
 
 - No re-sanitization occurs after DOM rewriting; only plugin-generated HTML is injected post-sanitize.
 - Width/height attributes on raw HTML images are preserved; markdown images reflect markdown-it defaults.
+
+#### Plain Text Pipeline
+
+1. **Orchestrator (`plainTextRenderer.ts`)**
+    - Creates a markdown-it instance via `plainText/markdownSetup.ts` (with plugins relevant to plain text output).
+    - Instantiates `PlainTextRenderer` (`plainText/renderer.ts`), which hooks into markdown-it to collect semantic blocks.
+    - Feeds the block list into `PlainTextBlockFormatter` for final string output.
+
+2. **Renderer Hooks (`plainText/renderer.ts`)**
+    - Installs custom rules for paragraphs, headings, lists, tables, blockquotes, code, links, emojis, and inline formatting markers.
+    - Delegates list/table parsing to `plainText/tokenRenderers.ts`, which now only contains pure helper utilities.
+    - Maintains lightweight state (link stack, fragment stack, list depth) while collecting blocks.
+
+3. **Formatter (`plainText/plainTextFormatter.ts`)**
+    - Applies explicit spacing rules between block types.
+    - Uses shared helpers (`formatList`, `formatTable`) for final formatting.
+    - Honors user options (preserve flags, indentation choice, hyperlink behavior).
+
+4. **Tests**
+    - `plainTextRenderer.test.ts` exercises end-to-end behavior and regression cases.
+    - Unit tests exist for token helpers and formatter spacing logic.
 
 ### Resource Loading Enhancements
 
