@@ -12,7 +12,7 @@
 
 import { PlainTextOptions } from './types';
 import { createMarkdownItInstance } from './plainText/markdownSetup';
-import { PlainTextRenderer } from './plainText/plainTextRenderer';
+import { PlainTextRenderer } from './plainText/renderer';
 
 /**
  * Converts markdown to plain text using the provided options.
