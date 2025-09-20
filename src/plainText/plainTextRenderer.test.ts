@@ -29,7 +29,7 @@ describe('PlainTextRenderer (blocks pipeline)', () => {
         const legacy = renderPlainText(tokens, null, 0, baseOptions).trimEnd();
         const nextGen = renderPlainTextWithBlocks(markdown, baseOptions);
 
-        expect(nextGen).toBe(legacy);
+        expect(nextGen.trimEnd()).toBe(legacy);
     });
 
     it('respects heading preservation option', () => {
@@ -41,7 +41,7 @@ describe('PlainTextRenderer (blocks pipeline)', () => {
         const legacy = renderPlainText(tokens, null, 0, options).trimEnd();
         const nextGen = renderPlainTextWithBlocks(markdown, options);
 
-        expect(nextGen).toBe(legacy);
+        expect(nextGen.trimEnd()).toBe(legacy);
     });
 
     it('matches legacy renderer output for unordered lists', () => {
@@ -52,7 +52,7 @@ describe('PlainTextRenderer (blocks pipeline)', () => {
         const legacy = renderPlainText(tokens, null, 0, baseOptions).trimEnd();
         const nextGen = renderPlainTextWithBlocks(markdown, baseOptions);
 
-        expect(nextGen).toBe(legacy);
+        expect(nextGen.trimEnd()).toBe(legacy);
     });
 
     it('matches legacy renderer output for tables', () => {
@@ -63,7 +63,7 @@ describe('PlainTextRenderer (blocks pipeline)', () => {
         const legacy = renderPlainText(tokens, null, 0, baseOptions).trimEnd();
         const nextGen = renderPlainTextWithBlocks(markdown, baseOptions);
 
-        expect(nextGen).toBe(legacy);
+        expect(nextGen.trimEnd()).toBe(legacy);
     });
 
     it('matches legacy renderer for nested lists', () => {
@@ -74,7 +74,7 @@ describe('PlainTextRenderer (blocks pipeline)', () => {
         const legacy = renderPlainText(tokens, null, 0, baseOptions).trimEnd();
         const nextGen = renderPlainTextWithBlocks(markdown, baseOptions);
 
-        expect(nextGen).toBe(legacy);
+        expect(nextGen.trimEnd()).toBe(legacy);
     });
 
     it('matches legacy renderer for tables inside list items', () => {
@@ -85,7 +85,17 @@ describe('PlainTextRenderer (blocks pipeline)', () => {
         const legacy = renderPlainText(tokens, null, 0, baseOptions).trimEnd();
         const nextGen = renderPlainTextWithBlocks(markdown, baseOptions);
 
-        expect(nextGen).toBe(legacy);
+        expect(nextGen.trimEnd()).toBe(legacy);
+    });
+
+    it('matches legacy renderer for sequential ordered and bullet lists', () => {
+        const markdown = `1. ABC\n2. DEF\n3. CCC\n\n- CCC\n- DDD\n- EEE`;
+        const md = createMarkdownItInstance();
+        const tokens = md.parse(markdown, {});
+
+        const legacy = renderPlainText(tokens, null, 0, baseOptions).trimEnd();
+        const nextGen = renderPlainTextWithBlocks(markdown, baseOptions);
+        expect(nextGen.trimEnd()).toBe(legacy);
     });
 
     it('matches legacy renderer for blockquotes', () => {

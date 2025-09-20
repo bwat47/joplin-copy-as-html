@@ -98,6 +98,7 @@ export const DEFAULT_BLOCK_SPACING_RULES: Readonly<BlockSpacingRules> = {
         table: true,
         code: true,
         blockquote: true,
+        list: true,
     },
     table: {
         heading: true,
@@ -215,9 +216,15 @@ export class PlainTextBlockFormatter {
     }
 
     private renderList(block: PlainTextListBlock, lines: string[]): void {
-        const formatted = formatList(block.items, this.options).replace(/\n+$/g, '');
+        const formatted = formatList(block.items, this.options);
         if (!formatted) return;
-        lines.push(...formatted.split('\n'));
+        const trimmed = formatted.replace(/\n+$/g, '');
+        if (trimmed) {
+            lines.push(...trimmed.split('\n'));
+        }
+        if (/\n+$/.test(formatted)) {
+            lines.push('');
+        }
     }
 
     private renderTable(block: PlainTextTableBlock, lines: string[]): void {

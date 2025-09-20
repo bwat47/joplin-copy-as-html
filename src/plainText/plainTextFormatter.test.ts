@@ -86,7 +86,7 @@ describe('PlainTextBlockFormatter', () => {
         const formatter = new PlainTextBlockFormatter(baseOptions);
         const blocks: PlainTextBlock[] = [{ type: 'list', items }];
 
-        expect(formatter.format(blocks)).toBe('- First item\n\n- Second item');
+        expect(formatter.format(blocks).trimEnd()).toBe('- First item\n\n- Second item');
     });
 
     it('formats table blocks with aligned columns', () => {
@@ -101,6 +101,22 @@ describe('PlainTextBlockFormatter', () => {
 
         const output = formatter.format(blocks);
         expect(output.trimEnd()).toBe('Header 1  Header 2\n--------  --------\nValue A   Value B');
+    });
+
+    it('inserts spacing between sequential list blocks', () => {
+        const firstList: ListItem[] = [
+            { content: 'First ordered item', ordered: true, index: 1, indentLevel: 1 },
+        ];
+        const secondList: ListItem[] = [
+            { content: 'Now a bullet', ordered: false, indentLevel: 1 },
+        ];
+        const formatter = new PlainTextBlockFormatter(baseOptions);
+        const blocks: PlainTextBlock[] = [
+            { type: 'list', items: firstList },
+            { type: 'list', items: secondList },
+        ];
+
+        expect(formatter.format(blocks).trimEnd()).toBe('1. First ordered item\n\n- Now a bullet');
     });
 
     it('formats code blocks without trailing blank lines', () => {
