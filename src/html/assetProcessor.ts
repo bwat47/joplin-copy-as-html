@@ -195,20 +195,93 @@ export async function downloadRemoteImageAsBase64(url: string): Promise<string> 
             return createRemoteImageError(url, `is not an image (Content-Type: ${contentType})`);
         }
 
-        const arrayBuffer = await response.arrayBuffer();
-        const buffer = Buffer.from(arrayBuffer);
+        const contentLengthHeader = response.headers.get('content-length');
+        if (contentLengthHeader) {
+            const declaredSize = Number(contentLengthHeader);
+            if (!Number.isNaN(declaredSize) && declaredSize > CONSTANTS.MAX_IMAGE_SIZE_BYTES) {
+                return createRemoteImageError(
+                    url,
+                    `is too large (${Math.round(declaredSize / 1024 / 1024)}MB). Maximum size: ${Math.round(CONSTANTS.MAX_IMAGE_SIZE_BYTES / 1024 / 1024)}MB`
+                );
+            }
+        }
 
-        if (buffer.length > CONSTANTS.MAX_IMAGE_SIZE_BYTES) {
+        const stream = response.body;
+        if (!stream) {
+            return createRemoteImageError(url, 'could not read response body');
+        }
+
+        const chunks: Buffer[] = [];
+        let totalSize = 0;
+
+        const handleChunk = (chunk: Buffer | Uint8Array): boolean => {
+            const bufferChunk = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
+            totalSize += bufferChunk.length;
+            if (totalSize > CONSTANTS.MAX_IMAGE_SIZE_BYTES) {
+                return false;
+            }
+            chunks.push(bufferChunk);
+            return true;
+        };
+
+        const webStream = stream as
+            | {
+                  getReader?: () => {
+                      read: () => Promise<{ done: boolean; value?: Uint8Array }>;
+                      cancel: () => Promise<void>;
+                      releaseLock?: () => void;
+                  };
+              }
+            | undefined;
+        if (typeof webStream?.getReader === 'function') {
+            const reader = webStream.getReader();
+            try {
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+                    if (!value) continue;
+                    if (!handleChunk(value)) {
+                        await reader.cancel();
+                        return createRemoteImageError(url, 'exceeded maximum size during download');
+                    }
+                }
+            } finally {
+                reader.releaseLock?.();
+            }
+        } else if (Symbol.asyncIterator in stream) {
+            const asyncIterable = stream as AsyncIterable<Uint8Array | Buffer> & { destroy?: (error?: Error) => void };
+            try {
+                for await (const chunk of asyncIterable) {
+                    if (!handleChunk(chunk)) {
+                        if (typeof asyncIterable.destroy === 'function') {
+                            asyncIterable.destroy();
+                        }
+                        return createRemoteImageError(url, 'exceeded maximum size during download');
+                    }
+                }
+            } catch (streamErr) {
+                const msg = (streamErr as Error)?.message ?? String(streamErr);
+                return createRemoteImageError(url, `download failed: ${msg}`);
+            }
+        } else {
+            const arrayBuffer = await response.arrayBuffer();
+            const buffer = Buffer.from(arrayBuffer);
+            chunks.push(buffer);
+            totalSize = buffer.length;
+        }
+
+        if (totalSize > CONSTANTS.MAX_IMAGE_SIZE_BYTES) {
             return createRemoteImageError(
                 url,
-                `is too large (${Math.round(buffer.length / 1024 / 1024)}MB). Maximum size: ${Math.round(CONSTANTS.MAX_IMAGE_SIZE_BYTES / 1024 / 1024)}MB`
+                `is too large (${Math.round(totalSize / 1024 / 1024)}MB). Maximum size: ${Math.round(CONSTANTS.MAX_IMAGE_SIZE_BYTES / 1024 / 1024)}MB`
             );
         }
 
-        if (buffer.length > CONSTANTS.MAX_IMAGE_SIZE_WARNING) {
-            console.warn(`[copy-as-html] Large remote image: ${url} is ${Math.round(buffer.length / 1024 / 1024)}MB`);
+        if (totalSize > CONSTANTS.MAX_IMAGE_SIZE_WARNING) {
+            console.warn(`[copy-as-html] Large remote image: ${url} is ${Math.round(totalSize / 1024 / 1024)}MB`);
         }
 
+        const buffer = chunks.length === 1 ? chunks[0] : Buffer.concat(chunks);
         const base64 = buffer.toString('base64');
         return `data:${contentType};base64,${base64}`;
     } catch (err) {
