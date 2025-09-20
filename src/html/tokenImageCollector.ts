@@ -15,8 +15,7 @@ import type MarkdownIt from 'markdown-it';
  * Collect image URLs from markdown-it tokens for a given markdown input.
  */
 export function collectImageUrls(md: MarkdownIt, markdown: string, env?: unknown): Set<string> {
-    const envObj: Record<string, unknown> =
-        env && typeof env === 'object' ? (env as Record<string, unknown>) : {};
+    const envObj: Record<string, unknown> = env && typeof env === 'object' ? (env as Record<string, unknown>) : {};
     const tokens = md.parse(markdown, envObj);
     const urls = new Set<string>();
 

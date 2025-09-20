@@ -62,4 +62,3 @@ describe('imageRendererRule', () => {
         expect(html).not.toContain(`:/${id}`);
     });
 });
-

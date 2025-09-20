@@ -18,10 +18,7 @@ beforeEach(() => {
 describe('domPostProcess', () => {
     it('rewrites raw HTML <img> src from map', () => {
         const html = '<p>before <img src="https://x/a.png" alt="a"> after</p>';
-        const map = new Map<string, string>([[
-            'https://x/a.png',
-            'data:image/png;base64,QUJD',
-        ]]);
+        const map = new Map<string, string>([['https://x/a.png', 'data:image/png;base64,QUJD']]);
         const out = postProcessHtml(html, { imageSrcMap: map });
         expect(out).toContain('src="data:image/png;base64,QUJD"');
         expect(out).not.toContain('https://x/a.png');
@@ -30,10 +27,7 @@ describe('domPostProcess', () => {
     it('replaces raw HTML <img> with error span when mapped to error HTML', () => {
         const html = '<p>before <img src="https://x/b.png" alt="b"> after</p>';
         const err = '<span style="color:red">Remote image download failed</span>';
-        const map = new Map<string, string>([[
-            'https://x/b.png',
-            err,
-        ]]);
+        const map = new Map<string, string>([['https://x/b.png', err]]);
         const out = postProcessHtml(html, { imageSrcMap: map });
         expect(out).toContain(err);
         expect(out).not.toContain('<img');
@@ -41,10 +35,7 @@ describe('domPostProcess', () => {
 
     it('does not touch images inside pre/code', () => {
         const html = '<pre><code>&lt;img src="https://x/c.png"&gt;</code></pre>';
-        const map = new Map<string, string>([[
-            'https://x/c.png',
-            'data:image/png;base64,Zm9v',
-        ]]);
+        const map = new Map<string, string>([['https://x/c.png', 'data:image/png;base64,Zm9v']]);
         const out = postProcessHtml(html, { imageSrcMap: map });
         // The raw <img> is inside code, so remains as text; ensure original URL still present
         expect(out).toContain('https://x/c.png');

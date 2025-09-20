@@ -261,9 +261,7 @@ export class PlainTextRenderer {
 
         rendererRules.hr = (tokens, idx) => {
             if (this.shouldSkipToken(idx)) return '';
-            const marker = this.options.preserveHorizontalRule
-                ? PLAIN_TEXT_CONSTANTS.HORIZONTAL_RULE_MARKER
-                : '\u00A0';
+            const marker = this.options.preserveHorizontalRule ? PLAIN_TEXT_CONSTANTS.HORIZONTAL_RULE_MARKER : '\u00A0';
             this.flushParagraph();
             this.blocks.push({ type: 'paragraph', lines: [marker] });
             return '';
@@ -433,9 +431,7 @@ export class PlainTextRenderer {
             this.currentParagraph += text;
             return;
         }
-        const fragmentBase = this.fragmentStack.length
-            ? this.fragmentStack[this.fragmentStack.length - 1]
-            : 0;
+        const fragmentBase = this.fragmentStack.length ? this.fragmentStack[this.fragmentStack.length - 1] : 0;
         const lastIndex = this.blocks.length - 1;
         if (lastIndex >= fragmentBase && this.blocks.length > 0) {
             const lastBlock = this.blocks[this.blocks.length - 1];

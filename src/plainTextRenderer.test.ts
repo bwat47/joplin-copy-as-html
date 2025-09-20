@@ -109,7 +109,7 @@ describe('Character Preservation Options', () => {
 
         // Test when option is disabled (default behavior)
         const disabledResult = convertMarkdownToPlainText(input, defaultOptions);
-        
+
         // Special case for horizontal rule: nbsp gets trimmed, so check raw result
         if (optionName === 'preserveHorizontalRule') {
             expect(disabledResult).toBe(expectedWhenDisabled);

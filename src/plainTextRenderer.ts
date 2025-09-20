@@ -21,7 +21,11 @@ import { PlainTextRenderer } from './plainText/renderer';
  * @param debug Enable debug logging for plugin loading.
  * @returns The resulting plain text string.
  */
-export function convertMarkdownToPlainText(markdown: string, options: PlainTextOptions, debug: boolean = false): string {
+export function convertMarkdownToPlainText(
+    markdown: string,
+    options: PlainTextOptions,
+    debug: boolean = false
+): string {
     const md = createMarkdownItInstance(debug);
     const renderer = new PlainTextRenderer(md, options);
     return renderer.render(markdown);

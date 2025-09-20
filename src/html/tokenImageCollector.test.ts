@@ -50,4 +50,3 @@ describe('tokenImageCollector', () => {
         expect(urls.has('https://raw.example/img.jpg')).toBe(true);
     });
 });
-

@@ -92,12 +92,8 @@ describe('PlainTextBlockFormatter', () => {
     });
 
     it('inserts spacing between sequential list blocks', () => {
-        const firstList: ListItem[] = [
-            { content: 'First ordered item', ordered: true, index: 1, indentLevel: 1 },
-        ];
-        const secondList: ListItem[] = [
-            { content: 'Now a bullet', ordered: false, indentLevel: 1 },
-        ];
+        const firstList: ListItem[] = [{ content: 'First ordered item', ordered: true, index: 1, indentLevel: 1 }];
+        const secondList: ListItem[] = [{ content: 'Now a bullet', ordered: false, indentLevel: 1 }];
         const formatter = new PlainTextBlockFormatter(baseOptions);
         const blocks: PlainTextBlock[] = [
             { type: 'list', items: firstList },
@@ -109,9 +105,7 @@ describe('PlainTextBlockFormatter', () => {
 
     it('formats code blocks without trailing blank lines', () => {
         const formatter = new PlainTextBlockFormatter(baseOptions);
-        const blocks: PlainTextBlock[] = [
-            { type: 'code', lines: ['const x = 1;', 'console.log(x);'] },
-        ];
+        const blocks: PlainTextBlock[] = [{ type: 'code', lines: ['const x = 1;', 'console.log(x);'] }];
 
         expect(formatter.format(blocks)).toBe('const x = 1;\nconsole.log(x);');
     });

@@ -20,12 +20,7 @@ beforeEach(() => {
 describe('assetProcessor buildImageEmbedMap', () => {
     it('should deduplicate Joplin resource fetches by resource id', async () => {
         const id = genResourceId();
-        const urls = new Set<string>([
-            `:/${id}`,
-            `:/${id}#anchor`,
-            `joplin://resource/${id}`,
-            `:/${id}?query=param`,
-        ]);
+        const urls = new Set<string>([`:/${id}`, `:/${id}#anchor`, `joplin://resource/${id}`, `:/${id}?query=param`]);
 
         // Mock Joplin API for a single resource fetch (2 calls: metadata + file)
         (joplin.data.get as jest.Mock)

@@ -14,11 +14,7 @@ function isJoplinResourceUrl(src: string): boolean {
     return LINK_RESOURCE_MATCHERS.some((rx) => rx.test(src));
 }
 
-export function installImageSwapRule(
-    md: MarkdownIt,
-    imageSrcMap: Map<string, string>,
-    options: HtmlOptions
-): void {
+export function installImageSwapRule(md: MarkdownIt, imageSrcMap: Map<string, string>, options: HtmlOptions): void {
     const defaultImage =
         md.renderer.rules.image || ((tokens, idx, _opts, _env, self) => self.renderToken(tokens, idx, _opts));
 

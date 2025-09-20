@@ -597,7 +597,7 @@ Final content.`;
         mockGlobalPlugins();
 
         const result = await processHtmlConversion(markdown);
-        
+
         // Should contain task list elements
         expect(result).toContain('type="checkbox"');
         expect(result).toContain('checked=""');
