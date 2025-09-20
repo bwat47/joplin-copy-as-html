@@ -12,6 +12,7 @@
 
 import { PlainTextOptions } from './types';
 import { createMarkdownItInstance } from './plainText/markdownSetup';
+import { PlainTextRenderer } from './plainText/plainTextRenderer';
 import { renderPlainText } from './plainText/tokenRenderers';
 
 /**
@@ -25,4 +26,17 @@ export function convertMarkdownToPlainText(markdown: string, options: PlainTextO
     const md = createMarkdownItInstance(debug);
     const tokens = md.parse(markdown, {});
     return renderPlainText(tokens, null, 0, options);
+}
+
+/**
+ * Experimental block-based renderer variant.
+ */
+export function convertMarkdownToPlainTextWithBlocks(
+    markdown: string,
+    options: PlainTextOptions,
+    debug: boolean = false
+): string {
+    const md = createMarkdownItInstance(debug);
+    const renderer = new PlainTextRenderer(md, options);
+    return renderer.render(markdown);
 }

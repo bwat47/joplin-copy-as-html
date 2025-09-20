@@ -13,8 +13,9 @@ import { PlainTextOptions, TableData, TableRow, ListItem } from '../types';
 import { PLAIN_TEXT_CONSTANTS, INLINE_MARKERS, PLAIN_TEXT_REGEX } from '../constants';
 import stringWidth from 'string-width';
 
-type LinkStackItem = { href: string; title: string };
-type ListContext = { type: 'ordered'; index: number } | { type: 'bullet' } | null;
+export type LinkStackItem = { href: string; title: string };
+export type ListContext = { type: 'ordered'; index: number } | { type: 'bullet' } | null;
+export type TokenFragmentRenderer = (tokens: Token[], listContext: ListContext, indentLevel: number) => string;
 
 /**
  * Removes markdown backslash escapes from a string.
@@ -41,7 +42,8 @@ export function parseTableTokens(
     tableTokens: Token[],
     options: PlainTextOptions,
     listContext: ListContext,
-    indentLevel: number
+    indentLevel: number,
+    renderFragment?: TokenFragmentRenderer
 ): TableData {
     const tableRows: TableRow[] = [];
     let currentRow: string[] = [];
@@ -61,7 +63,10 @@ export function parseTableTokens(
             ) {
                 const inner = tableTokens[cellIndex];
                 if (inner.type === 'inline' && inner.children) {
-                    cellContent += renderPlainText(inner.children, listContext, indentLevel, options);
+                    const renderFn = renderFragment
+                        ? renderFragment
+                        : (tokens) => renderPlainText(tokens, listContext, indentLevel, options);
+                    cellContent += renderFn(inner.children, listContext, indentLevel);
                 } else if (inner.type === 'text') {
                     cellContent += inner.content;
                 }
@@ -133,7 +138,8 @@ export function parseListTokens(
     listTokens: Token[],
     listContext: ListContext,
     indentLevel: number,
-    options: PlainTextOptions
+    options: PlainTextOptions,
+    renderFragment?: TokenFragmentRenderer
 ): ListItem[] {
     const items: ListItem[] = [];
     const ordered = !!(listContext && listContext.type === 'ordered');
@@ -153,7 +159,11 @@ export function parseListTokens(
                 if (nestingDepth > 0) itemTokens.push(scanTok);
                 scanIndex++;
             }
-            const content = renderPlainText(itemTokens, listContext, indentLevel, options);
+            const renderFn = renderFragment
+                ? renderFragment
+                : (tokens: Token[], ctx: ListContext, level: number) =>
+                      renderPlainText(tokens, ctx, level, options);
+            const content = renderFn(itemTokens, listContext, indentLevel);
             items.push({
                 content: content.trim(),
                 ordered,
@@ -178,7 +188,12 @@ export function formatList(listItems: ListItem[], options: PlainTextOptions): st
         const prefix = item.ordered
             ? `${item.index}${PLAIN_TEXT_CONSTANTS.ORDERED_SUFFIX}`
             : PLAIN_TEXT_CONSTANTS.BULLET_PREFIX;
-        lines.push(indent + prefix + item.content);
+        const segments = item.content.split('\n');
+        const firstSegment = segments.shift() ?? '';
+        lines.push(indent + prefix + firstSegment);
+        for (const segment of segments) {
+            lines.push(segment);
+        }
         if (PLAIN_TEXT_CONSTANTS.LIST_ITEM_TRAILING_BLANK_LINE) lines.push('');
     }
     while (lines.length > 1 && lines[lines.length - 1] === '' && lines[lines.length - 2] === '') {
@@ -194,9 +209,10 @@ export function renderListFromTokens(
     listTokens: Token[],
     listContext: ListContext,
     indentLevel: number,
-    options: PlainTextOptions
+    options: PlainTextOptions,
+    renderFragment?: TokenFragmentRenderer
 ): string {
-    const listItems = parseListTokens(listTokens, listContext, indentLevel, options);
+    const listItems = parseListTokens(listTokens, listContext, indentLevel, options, renderFragment);
     return formatList(listItems, options);
 }
 
