@@ -67,7 +67,6 @@ function selectPreferredFunction(
  *
  * Later strategies are only tried if earlier ones fail.
  */
-
 const strategies: PluginDetectionStrategy[] = [
     {
         name: 'direct-function',
