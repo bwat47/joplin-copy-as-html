@@ -43,7 +43,10 @@ function collectFunctionKeys(plugin: Record<string, unknown>): string[] {
     return Object.keys(plugin).filter((key) => typeof plugin[key] === 'function');
 }
 
-function selectPreferredFunction(plugin: Record<string, unknown>, keys: string[]): [MarkdownItPlugin | undefined, string | undefined] {
+function selectPreferredFunction(
+    plugin: Record<string, unknown>,
+    keys: string[]
+): [MarkdownItPlugin | undefined, string | undefined] {
     const priority = ['full', 'default'];
     for (const preferred of priority) {
         if (keys.includes(preferred)) {
@@ -53,6 +56,17 @@ function selectPreferredFunction(plugin: Record<string, unknown>, keys: string[]
     const fallbackKey = keys[0];
     return [plugin[fallbackKey] as MarkdownItPlugin, fallbackKey];
 }
+
+/**
+ * Plugin detection strategies in priority order.
+ *
+ * Order matters:
+ * 1. Direct functions (most common, fastest check)
+ * 2. Known property names (common patterns)
+ * 3. Generic object inspection (catch-all)
+ *
+ * Later strategies are only tried if earlier ones fail.
+ */
 
 const strategies: PluginDetectionStrategy[] = [
     {
