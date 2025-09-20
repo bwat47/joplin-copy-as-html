@@ -193,7 +193,7 @@ export class PlainTextBlockFormatter {
             previousBlock = block;
         }
 
-        return lines.join('\n').replace(/\n+$/g, '\n').trimEnd();
+        return lines.join('\n');
     }
 
     private renderParagraph(block: PlainTextParagraphBlock, lines: string[]): void {

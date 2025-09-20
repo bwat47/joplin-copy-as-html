@@ -52,6 +52,7 @@ export class PlainTextRenderer {
             this.installCustomRules();
             const tokens = this.md.parse(markdown, {});
             this.md.renderer.render(tokens, this.md.options, {});
+            this.flushParagraph();
         } finally {
             this.restoreOriginalRules(originalRules);
         }
@@ -80,6 +81,8 @@ export class PlainTextRenderer {
         rules.set('blockquote_close', rendererRules.blockquote_close);
         rules.set('fence', rendererRules.fence);
         rules.set('code_block', rendererRules.code_block);
+        rules.set('hr', rendererRules.hr);
+        rules.set('thematic_break', rendererRules.thematic_break);
         rules.set('link_open', rendererRules.link_open);
         rules.set('link_close', rendererRules.link_close);
         rules.set('em_open', rendererRules.em_open);
@@ -256,6 +259,17 @@ export class PlainTextRenderer {
             this.appendText(tokens[idx].content);
             return '';
         };
+
+        rendererRules.hr = (tokens, idx) => {
+            if (this.shouldSkipToken(idx)) return '';
+            const marker = this.options.preserveHorizontalRule
+                ? `${PLAIN_TEXT_CONSTANTS.HORIZONTAL_RULE_MARKER}\n\n`
+                : '\u00A0\n\n';
+            this.appendText(marker);
+            return '';
+        };
+
+        rendererRules.thematic_break = rendererRules.hr;
 
         rendererRules.blockquote_open = (tokens, idx) => {
             if (this.shouldSkipToken(idx)) return '';

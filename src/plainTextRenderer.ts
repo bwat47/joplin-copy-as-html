@@ -24,6 +24,22 @@ import { renderPlainText } from './plainText/tokenRenderers';
  */
 export function convertMarkdownToPlainText(markdown: string, options: PlainTextOptions, debug: boolean = false): string {
     const md = createMarkdownItInstance(debug);
+    const shouldUseLegacy =
+        options.useLegacyRenderer === true || process.env.COPY_AS_HTML_LEGACY_PLAIN_TEXT === '1';
+
+    if (!shouldUseLegacy) {
+        try {
+            const renderer = new PlainTextRenderer(md, options);
+            return renderer.render(markdown);
+        } catch (error) {
+            if (process.env.COPY_AS_HTML_BLOCK_RENDERER_STRICT === '1') {
+                throw error;
+            }
+            // eslint-disable-next-line no-console
+            console.warn('[copy-as-plain-text] Falling back to legacy plain text renderer:', error);
+        }
+    }
+
     const tokens = md.parse(markdown, {});
     return renderPlainText(tokens, null, 0, options);
 }

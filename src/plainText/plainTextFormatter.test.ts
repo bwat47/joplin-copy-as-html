@@ -99,7 +99,8 @@ describe('PlainTextBlockFormatter', () => {
         const formatter = new PlainTextBlockFormatter(baseOptions);
         const blocks: PlainTextBlock[] = [{ type: 'table', data: tableData }];
 
-        expect(formatter.format(blocks)).toBe('Header 1  Header 2\n--------  --------\nValue A   Value B');
+        const output = formatter.format(blocks);
+        expect(output.trimEnd()).toBe('Header 1  Header 2\n--------  --------\nValue A   Value B');
     });
 
     it('formats code blocks without trailing blank lines', () => {
