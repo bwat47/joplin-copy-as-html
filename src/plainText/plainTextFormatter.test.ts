@@ -56,7 +56,6 @@ describe('PlainTextBlockFormatter', () => {
             paragraph: {
                 heading: false,
                 paragraph: false,
-                raw: false,
             },
         });
         const blocks: PlainTextBlock[] = [
@@ -65,17 +64,6 @@ describe('PlainTextBlockFormatter', () => {
         ];
 
         expect(formatter.format(blocks)).toBe('Paragraph alpha.\nParagraph beta.');
-    });
-
-    it('renders raw blocks verbatim and respects spacing from previous block', () => {
-        const formatter = new PlainTextBlockFormatter(baseOptions);
-        const blocks: PlainTextBlock[] = [
-            { type: 'paragraph', lines: ['Paragraph start.'] },
-            { type: 'raw', text: '--- raw block ---' },
-            { type: 'paragraph', lines: ['Paragraph end.'] },
-        ];
-
-        expect(formatter.format(blocks)).toBe('Paragraph start.\n\n--- raw block ---\n\nParagraph end.');
     });
 
     it('formats list blocks with configured indentation', () => {

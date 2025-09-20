@@ -21,11 +21,6 @@ export type PlainTextHeadingBlock = {
     text: string;
 };
 
-export type PlainTextRawBlock = {
-    type: 'raw';
-    text: string;
-};
-
 export type PlainTextListBlock = {
     type: 'list';
     items: ListItem[];
@@ -49,7 +44,6 @@ export type PlainTextBlockquoteBlock = {
 export type PlainTextBlock =
     | PlainTextParagraphBlock
     | PlainTextHeadingBlock
-    | PlainTextRawBlock
     | PlainTextListBlock
     | PlainTextTableBlock
     | PlainTextCodeBlock
@@ -68,22 +62,12 @@ export const DEFAULT_BLOCK_SPACING_RULES: Readonly<BlockSpacingRules> = {
     heading: {
         heading: true,
         paragraph: true,
-        raw: true,
         list: true,
         table: true,
         code: true,
         blockquote: true,
     },
     paragraph: {
-        heading: true,
-        paragraph: true,
-        raw: true,
-        list: true,
-        table: true,
-        code: true,
-        blockquote: true,
-    },
-    raw: {
         heading: true,
         paragraph: true,
         list: true,
@@ -94,7 +78,6 @@ export const DEFAULT_BLOCK_SPACING_RULES: Readonly<BlockSpacingRules> = {
     list: {
         heading: true,
         paragraph: true,
-        raw: true,
         table: true,
         code: true,
         blockquote: true,
@@ -103,7 +86,6 @@ export const DEFAULT_BLOCK_SPACING_RULES: Readonly<BlockSpacingRules> = {
     table: {
         heading: true,
         paragraph: true,
-        raw: true,
         list: true,
         code: true,
         blockquote: true,
@@ -111,7 +93,6 @@ export const DEFAULT_BLOCK_SPACING_RULES: Readonly<BlockSpacingRules> = {
     code: {
         heading: true,
         paragraph: true,
-        raw: true,
         list: true,
         table: true,
         blockquote: true,
@@ -120,7 +101,6 @@ export const DEFAULT_BLOCK_SPACING_RULES: Readonly<BlockSpacingRules> = {
     blockquote: {
         heading: true,
         paragraph: true,
-        raw: true,
         list: true,
         table: true,
         code: true,
@@ -172,9 +152,6 @@ export class PlainTextBlockFormatter {
                 case 'heading':
                     this.renderHeading(block, lines);
                     break;
-                case 'raw':
-                    this.renderRaw(block, lines);
-                    break;
                 case 'list':
                     this.renderList(block, lines);
                     break;
@@ -209,10 +186,6 @@ export class PlainTextBlockFormatter {
         } else {
             lines.push(block.text);
         }
-    }
-
-    private renderRaw(block: PlainTextRawBlock, lines: string[]): void {
-        lines.push(block.text);
     }
 
     private renderList(block: PlainTextListBlock, lines: string[]): void {
