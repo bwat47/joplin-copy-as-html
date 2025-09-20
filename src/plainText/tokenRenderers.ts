@@ -41,7 +41,6 @@ export function parseTableTokens(
     listContext: ListContext,
     indentLevel: number
 ): TableData {
-    if (!renderFragment) throw new Error('renderFragment is required to parse table tokens');
     const tableRows: TableRow[] = [];
     let currentRow: string[] = [];
     let isHeaderRow = false;
@@ -120,7 +119,6 @@ export function parseListTokens(
     indentLevel: number,
     renderFragment: TokenFragmentRenderer
 ): ListItem[] {
-    if (!renderFragment) throw new Error('renderFragment is required to parse list tokens');
     const items: ListItem[] = [];
     const ordered = !!(listContext && listContext.type === 'ordered');
     let index =
