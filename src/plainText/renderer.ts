@@ -46,71 +46,24 @@ export class PlainTextRenderer {
         this.skipUntilIndex = null;
         this.listDepth = 0;
         this.linkStack = [];
-        const originalRules = this.captureOriginalRules();
-        try {
+        return this.withScopedRules(() => {
             this.installCustomRules();
             const tokens = this.md.parse(markdown, {});
             this.md.renderer.render(tokens, this.md.options, {});
             this.flushParagraph();
+            return new PlainTextBlockFormatter(this.options).format(this.blocks);
+        });
+    }
+
+    private withScopedRules<T>(run: () => T): T {
+        const renderer = this.md.renderer;
+        const originalRules = renderer.rules;
+        const tempRules: typeof originalRules = { ...originalRules };
+        renderer.rules = tempRules;
+        try {
+            return run();
         } finally {
-            this.restoreOriginalRules(originalRules);
-        }
-        return new PlainTextBlockFormatter(this.options).format(this.blocks);
-    }
-
-    private captureOriginalRules(): Map<string, MarkdownIt.Renderer.RenderRule | undefined> {
-        const rules = new Map<string, MarkdownIt.Renderer.RenderRule | undefined>();
-        const rendererRules = this.md.renderer.rules;
-        rules.set('paragraph_open', rendererRules.paragraph_open);
-        rules.set('paragraph_close', rendererRules.paragraph_close);
-        rules.set('heading_open', rendererRules.heading_open);
-        rules.set('heading_close', rendererRules.heading_close);
-        rules.set('text', rendererRules.text);
-        rules.set('softbreak', rendererRules.softbreak);
-        rules.set('hardbreak', rendererRules.hardbreak);
-        rules.set('bullet_list_open', rendererRules.bullet_list_open);
-        rules.set('bullet_list_close', rendererRules.bullet_list_close);
-        rules.set('ordered_list_open', rendererRules.ordered_list_open);
-        rules.set('ordered_list_close', rendererRules.ordered_list_close);
-        rules.set('list_item_open', rendererRules.list_item_open);
-        rules.set('list_item_close', rendererRules.list_item_close);
-        rules.set('table_open', rendererRules.table_open);
-        rules.set('table_close', rendererRules.table_close);
-        rules.set('blockquote_open', rendererRules.blockquote_open);
-        rules.set('blockquote_close', rendererRules.blockquote_close);
-        rules.set('fence', rendererRules.fence);
-        rules.set('code_block', rendererRules.code_block);
-        rules.set('hr', rendererRules.hr);
-        rules.set('thematic_break', rendererRules.thematic_break);
-        rules.set('link_open', rendererRules.link_open);
-        rules.set('link_close', rendererRules.link_close);
-        rules.set('em_open', rendererRules.em_open);
-        rules.set('em_close', rendererRules.em_close);
-        rules.set('strong_open', rendererRules.strong_open);
-        rules.set('strong_close', rendererRules.strong_close);
-        rules.set('mark_open', rendererRules.mark_open);
-        rules.set('mark_close', rendererRules.mark_close);
-        rules.set('ins_open', rendererRules.ins_open);
-        rules.set('ins_close', rendererRules.ins_close);
-        rules.set('s_open', rendererRules.s_open);
-        rules.set('s_close', rendererRules.s_close);
-        rules.set('sub_open', rendererRules.sub_open);
-        rules.set('sub_close', rendererRules.sub_close);
-        rules.set('sup_open', rendererRules.sup_open);
-        rules.set('sup_close', rendererRules.sup_close);
-        rules.set('emoji', rendererRules.emoji);
-        rules.set('code_inline', rendererRules.code_inline);
-        return rules;
-    }
-
-    private restoreOriginalRules(rules: Map<string, MarkdownIt.Renderer.RenderRule | undefined>): void {
-        const rendererRules = this.md.renderer.rules;
-        for (const [key, rule] of rules.entries()) {
-            if (rule) {
-                rendererRules[key] = rule;
-            } else {
-                delete rendererRules[key];
-            }
+            renderer.rules = originalRules;
         }
     }
 
