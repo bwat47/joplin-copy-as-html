@@ -445,15 +445,7 @@ export class PlainTextRenderer {
         if (!content) return [];
         const withoutTrailingNewlines = content.replace(/\n+$/g, '');
         if (!withoutTrailingNewlines) return [];
-        const lines = withoutTrailingNewlines.split('\n');
-        if (
-            lines.length > 2 &&
-            lines[0].trim().startsWith(PLAIN_TEXT_CONSTANTS.CODE_FENCE_MARKER) &&
-            lines[lines.length - 1].trim().startsWith(PLAIN_TEXT_CONSTANTS.CODE_FENCE_MARKER)
-        ) {
-            return lines.slice(1, -1);
-        }
-        return lines;
+        return withoutTrailingNewlines.split('\n');
     }
 
     private normalizeHeadingLevel(tag?: string): number {
