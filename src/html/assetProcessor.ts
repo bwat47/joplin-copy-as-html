@@ -25,9 +25,28 @@ import { defaultStylesheet } from '../defaultStylesheet';
  * @param italic Whether to italicize the message.
  * @returns HTML span string.
  */
+function escapeHtml(value: string): string {
+    return value.replace(/[&<>"']/g, (char) => {
+        switch (char) {
+            case '&':
+                return '&amp;';
+            case '<':
+                return '&lt;';
+            case '>':
+                return '&gt;';
+            case '"':
+                return '&quot;';
+            case "'":
+                return '&#39;';
+            default:
+                return char;
+        }
+    });
+}
+
 function createErrorSpan(message: string, italic = false): string {
     const style = `color: ${HTML_CONSTANTS.ERROR_COLOR};${italic ? ' font-style: italic;' : ''}`;
-    return `<span style="${style}">${message}</span>`;
+    return `<span style="${style}">${escapeHtml(message)}</span>`;
 }
 
 /**
