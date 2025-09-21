@@ -98,7 +98,6 @@ export function postProcessHtml(
             'img',
             'code',
             'pre',
-            'div',
             'span',
             // Definition lists
             'dl',
