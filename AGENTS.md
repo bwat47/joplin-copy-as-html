@@ -9,6 +9,7 @@
 - `tests` live alongside sources as `*.test.ts` files.
 - `publish/` Build artifacts (`*.jpl`) created by the dist task.
 - `webpack.config.js` Build pipeline; `jest.config.js` test setup.
+- `CODE_DOCUMENTATION.md` - overview of project architecture and design decisions.
 
 ## Build, Test, and Development Commands
 
