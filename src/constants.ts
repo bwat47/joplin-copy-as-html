@@ -2,14 +2,7 @@
  * @fileoverview Configuration Constants - Centralized plugin settings and patterns
  *
  * Contains all configuration constants, regex patterns, and magic numbers used
- * throughout the plugin. Organized into logical groups:
- *
- * - SETTINGS: Plugin-specific setting keys for user preferences
- * - CONSTANTS: Processing limits, timeouts, and formatting values
- * - JOPLIN_SETTINGS: Global Joplin markdown plugin setting keys
- *
- * Centralizing constants here improves maintainability and makes the codebase
- * more self-documenting by giving context to numeric values and string patterns.
+ * throughout the plugin.
  *
  * @author bwat47
  * @since 1.0.16
@@ -34,7 +27,7 @@ export const SETTINGS = {
     DEBUG: 'debug',
 };
 
-// Constants for timeouts, formatting, and dimension keys
+// Timeouts used for asset processing
 export const CONSTANTS = {
     BASE64_TIMEOUT_MS: 5000, //5s
     REMOTE_TIMEOUT_MS: 10000, //10s
