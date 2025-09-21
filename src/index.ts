@@ -15,8 +15,6 @@
 
 import joplin from 'api';
 import { SettingItemType, ToastType, MenuItemLocation } from 'api/types';
-
-// Import from your new files
 import { SETTINGS } from './constants';
 import { processHtmlConversion } from './htmlRenderer';
 import { convertMarkdownToPlainText } from './plainTextRenderer';
