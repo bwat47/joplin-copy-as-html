@@ -22,6 +22,13 @@ import {
 } from './tokenRenderers';
 import { INLINE_MARKERS, PLAIN_TEXT_CONSTANTS, PLAIN_TEXT_REGEX } from '../constants';
 
+type RendererStateSnapshot = {
+    currentParagraph: string | null;
+    skipUntilIndex: number | null;
+    listDepth: number;
+    linkStack: LinkStackItem[];
+};
+
 /**
  * Collector that uses markdown-it renderer hooks to build semantic blocks.
  */
@@ -71,14 +78,20 @@ export class PlainTextRenderer {
         const rendererRules = this.md.renderer.rules;
 
         rendererRules.paragraph_open = (tokens, idx) => {
-            if (this.shouldSkipToken(idx)) return '';
+            if (this.shouldSkipToken(idx)) {
+                this.consumeSkipIfNeeded(idx);
+                return '';
+            }
             this.flushParagraph();
             this.currentParagraph = '';
             return '';
         };
 
         rendererRules.paragraph_close = (tokens, idx) => {
-            if (this.shouldSkipToken(idx)) return '';
+            if (this.shouldSkipToken(idx)) {
+                this.consumeSkipIfNeeded(idx);
+                return '';
+            }
             if (this.currentParagraph) {
                 this.blocks.push({ type: 'paragraph', lines: this.splitParagraphLines(this.currentParagraph) });
                 this.currentParagraph = null;
@@ -87,7 +100,10 @@ export class PlainTextRenderer {
         };
 
         rendererRules.heading_open = (tokens, idx) => {
-            if (this.shouldSkipToken(idx)) return '';
+            if (this.shouldSkipToken(idx)) {
+                this.consumeSkipIfNeeded(idx);
+                return '';
+            }
             this.flushParagraph();
             const token = tokens[idx];
             const level = this.normalizeHeadingLevel(token.tag);
@@ -96,12 +112,15 @@ export class PlainTextRenderer {
         };
 
         rendererRules.heading_close = (tokens, idx) => {
-            this.shouldSkipToken(idx);
+            this.consumeSkipIfNeeded(idx);
             return '';
         };
 
         rendererRules.text = (tokens, idx) => {
-            if (this.shouldSkipToken(idx)) return '';
+            if (this.shouldSkipToken(idx)) {
+                this.consumeSkipIfNeeded(idx);
+                return '';
+            }
             const token = tokens[idx];
             const content = token.content
                 .replace(PLAIN_TEXT_REGEX.FOOTNOTE_REF, '[$1]')
@@ -114,7 +133,10 @@ export class PlainTextRenderer {
         };
 
         rendererRules.softbreak = (tokens, idx) => {
-            if (this.shouldSkipToken(idx)) return '';
+            if (this.shouldSkipToken(idx)) {
+                this.consumeSkipIfNeeded(idx);
+                return '';
+            }
             if (this.currentParagraph !== null) {
                 this.currentParagraph += '\n';
             }
@@ -122,7 +144,10 @@ export class PlainTextRenderer {
         };
 
         rendererRules.hardbreak = (tokens, idx) => {
-            if (this.shouldSkipToken(idx)) return '';
+            if (this.shouldSkipToken(idx)) {
+                this.consumeSkipIfNeeded(idx);
+                return '';
+            }
             if (this.currentParagraph !== null) {
                 this.currentParagraph += '\n';
             }
@@ -130,13 +155,19 @@ export class PlainTextRenderer {
         };
 
         rendererRules.link_open = (tokens, idx) => {
-            if (this.shouldSkipToken(idx)) return '';
+            if (this.shouldSkipToken(idx)) {
+                this.consumeSkipIfNeeded(idx);
+                return '';
+            }
             handleLinkToken(tokens[idx], this.linkStack, '');
             return '';
         };
 
         rendererRules.link_close = (tokens, idx) => {
-            if (this.shouldSkipToken(idx)) return '';
+            if (this.shouldSkipToken(idx)) {
+                this.consumeSkipIfNeeded(idx);
+                return '';
+            }
             const appended = handleLinkCloseToken(this.linkStack, this.options, '');
             if (appended) {
                 this.appendText(appended);
@@ -145,7 +176,10 @@ export class PlainTextRenderer {
         };
 
         rendererRules.em_open = (tokens, idx) => {
-            if (this.shouldSkipToken(idx)) return '';
+            if (this.shouldSkipToken(idx)) {
+                this.consumeSkipIfNeeded(idx);
+                return '';
+            }
             if (this.options.preserveEmphasis) this.appendText(tokens[idx].markup);
             return '';
         };
@@ -153,7 +187,10 @@ export class PlainTextRenderer {
         rendererRules.em_close = rendererRules.em_open;
 
         rendererRules.strong_open = (tokens, idx) => {
-            if (this.shouldSkipToken(idx)) return '';
+            if (this.shouldSkipToken(idx)) {
+                this.consumeSkipIfNeeded(idx);
+                return '';
+            }
             if (this.options.preserveBold) this.appendText(tokens[idx].markup);
             return '';
         };
@@ -161,7 +198,10 @@ export class PlainTextRenderer {
         rendererRules.strong_close = rendererRules.strong_open;
 
         rendererRules.mark_open = (tokens, idx) => {
-            if (this.shouldSkipToken(idx)) return '';
+            if (this.shouldSkipToken(idx)) {
+                this.consumeSkipIfNeeded(idx);
+                return '';
+            }
             if (this.options.preserveMark) this.appendText(INLINE_MARKERS.MARK);
             return '';
         };
@@ -169,7 +209,10 @@ export class PlainTextRenderer {
         rendererRules.mark_close = rendererRules.mark_open;
 
         rendererRules.ins_open = (tokens, idx) => {
-            if (this.shouldSkipToken(idx)) return '';
+            if (this.shouldSkipToken(idx)) {
+                this.consumeSkipIfNeeded(idx);
+                return '';
+            }
             if (this.options.preserveInsert) this.appendText(INLINE_MARKERS.INSERT);
             return '';
         };
@@ -177,7 +220,10 @@ export class PlainTextRenderer {
         rendererRules.ins_close = rendererRules.ins_open;
 
         rendererRules.s_open = (tokens, idx) => {
-            if (this.shouldSkipToken(idx)) return '';
+            if (this.shouldSkipToken(idx)) {
+                this.consumeSkipIfNeeded(idx);
+                return '';
+            }
             if (this.options.preserveStrikethrough) this.appendText(INLINE_MARKERS.STRIKETHROUGH);
             return '';
         };
@@ -185,7 +231,10 @@ export class PlainTextRenderer {
         rendererRules.s_close = rendererRules.s_open;
 
         rendererRules.sub_open = (tokens, idx) => {
-            if (this.shouldSkipToken(idx)) return '';
+            if (this.shouldSkipToken(idx)) {
+                this.consumeSkipIfNeeded(idx);
+                return '';
+            }
             if (this.options.preserveSubscript) this.appendText(INLINE_MARKERS.SUB);
             return '';
         };
@@ -193,7 +242,10 @@ export class PlainTextRenderer {
         rendererRules.sub_close = rendererRules.sub_open;
 
         rendererRules.sup_open = (tokens, idx) => {
-            if (this.shouldSkipToken(idx)) return '';
+            if (this.shouldSkipToken(idx)) {
+                this.consumeSkipIfNeeded(idx);
+                return '';
+            }
             if (this.options.preserveSuperscript) this.appendText(INLINE_MARKERS.SUP);
             return '';
         };
@@ -201,19 +253,28 @@ export class PlainTextRenderer {
         rendererRules.sup_close = rendererRules.sup_open;
 
         rendererRules.emoji = (tokens, idx) => {
-            if (this.shouldSkipToken(idx)) return '';
+            if (this.shouldSkipToken(idx)) {
+                this.consumeSkipIfNeeded(idx);
+                return '';
+            }
             if (this.options.displayEmojis) this.appendText(tokens[idx].content);
             return '';
         };
 
         rendererRules.code_inline = (tokens, idx) => {
-            if (this.shouldSkipToken(idx)) return '';
+            if (this.shouldSkipToken(idx)) {
+                this.consumeSkipIfNeeded(idx);
+                return '';
+            }
             this.appendText(tokens[idx].content);
             return '';
         };
 
         rendererRules.hr = (tokens, idx) => {
-            if (this.shouldSkipToken(idx)) return '';
+            if (this.shouldSkipToken(idx)) {
+                this.consumeSkipIfNeeded(idx);
+                return '';
+            }
             const marker = this.options.preserveHorizontalRule ? PLAIN_TEXT_CONSTANTS.HORIZONTAL_RULE_MARKER : '\u00A0';
             this.flushParagraph();
             this.blocks.push({ type: 'paragraph', lines: [marker] });
@@ -223,7 +284,10 @@ export class PlainTextRenderer {
         rendererRules.thematic_break = rendererRules.hr;
 
         rendererRules.blockquote_open = (tokens, idx) => {
-            if (this.shouldSkipToken(idx)) return '';
+            if (this.shouldSkipToken(idx)) {
+                this.consumeSkipIfNeeded(idx);
+                return '';
+            }
             this.flushParagraph();
             const { blockTokens, endIndex } = extractBlockTokens(tokens, idx);
             this.setSkipUntil(endIndex);
@@ -237,12 +301,15 @@ export class PlainTextRenderer {
         };
 
         rendererRules.blockquote_close = (tokens, idx) => {
-            this.shouldSkipToken(idx);
+            this.consumeSkipIfNeeded(idx);
             return '';
         };
 
         rendererRules.fence = (tokens, idx) => {
-            if (this.shouldSkipToken(idx)) return '';
+            if (this.shouldSkipToken(idx)) {
+                this.consumeSkipIfNeeded(idx);
+                return '';
+            }
             this.flushParagraph();
             const token = tokens[idx];
             const lines = this.buildCodeLines(token.content);
@@ -251,7 +318,10 @@ export class PlainTextRenderer {
         };
 
         rendererRules.code_block = (tokens, idx) => {
-            if (this.shouldSkipToken(idx)) return '';
+            if (this.shouldSkipToken(idx)) {
+                this.consumeSkipIfNeeded(idx);
+                return '';
+            }
             this.flushParagraph();
             const token = tokens[idx];
             const lines = this.buildCodeLines(token.content);
@@ -260,7 +330,10 @@ export class PlainTextRenderer {
         };
 
         rendererRules.bullet_list_open = (tokens, idx) => {
-            if (this.shouldSkipToken(idx)) return '';
+            if (this.shouldSkipToken(idx)) {
+                this.consumeSkipIfNeeded(idx);
+                return '';
+            }
             this.flushParagraph();
             const { blockTokens, endIndex } = extractBlockTokens(tokens, idx);
             this.setSkipUntil(endIndex);
@@ -282,12 +355,15 @@ export class PlainTextRenderer {
         };
 
         rendererRules.bullet_list_close = (tokens, idx) => {
-            this.shouldSkipToken(idx);
+            this.consumeSkipIfNeeded(idx);
             return '';
         };
 
         rendererRules.ordered_list_open = (tokens, idx) => {
-            if (this.shouldSkipToken(idx)) return '';
+            if (this.shouldSkipToken(idx)) {
+                this.consumeSkipIfNeeded(idx);
+                return '';
+            }
             this.flushParagraph();
             const { blockTokens, endIndex } = extractBlockTokens(tokens, idx);
             this.setSkipUntil(endIndex);
@@ -310,22 +386,25 @@ export class PlainTextRenderer {
         };
 
         rendererRules.ordered_list_close = (tokens, idx) => {
-            this.shouldSkipToken(idx);
+            this.consumeSkipIfNeeded(idx);
             return '';
         };
 
         rendererRules.list_item_open = (tokens, idx) => {
-            this.shouldSkipToken(idx);
+            this.consumeSkipIfNeeded(idx);
             return '';
         };
 
         rendererRules.list_item_close = (tokens, idx) => {
-            this.shouldSkipToken(idx);
+            this.consumeSkipIfNeeded(idx);
             return '';
         };
 
         rendererRules.table_open = (tokens, idx) => {
-            if (this.shouldSkipToken(idx)) return '';
+            if (this.shouldSkipToken(idx)) {
+                this.consumeSkipIfNeeded(idx);
+                return '';
+            }
             this.flushParagraph();
             const { blockTokens, endIndex } = extractBlockTokens(tokens, idx);
             this.setSkipUntil(endIndex);
@@ -340,7 +419,7 @@ export class PlainTextRenderer {
         };
 
         rendererRules.table_close = (tokens, idx) => {
-            this.shouldSkipToken(idx);
+            this.consumeSkipIfNeeded(idx);
             return '';
         };
     }
@@ -358,18 +437,15 @@ export class PlainTextRenderer {
 
     private shouldSkipToken(index?: number): boolean {
         if (typeof index !== 'number') return false;
-        if (this.skipUntilIndex === null) {
-            return false;
-        }
-        if (index < this.skipUntilIndex) {
-            return true;
-        }
-        if (index === this.skipUntilIndex) {
+        if (this.skipUntilIndex === null) return false;
+        return index <= this.skipUntilIndex;
+    }
+
+    private consumeSkipIfNeeded(index?: number): void {
+        if (typeof index !== 'number') return;
+        if (this.skipUntilIndex !== null && index >= this.skipUntilIndex) {
             this.skipUntilIndex = null;
-            return true;
         }
-        this.skipUntilIndex = null;
-        return false;
     }
 
     private setSkipUntil(index: number): void {
@@ -403,10 +479,7 @@ export class PlainTextRenderer {
     private renderTokenFragment(tokens: Token[], _listContext: ListContext, indentLevel: number): string {
         const originalLength = this.blocks.length;
         this.fragmentStack.push(originalLength);
-        const previousParagraph = this.currentParagraph;
-        const previousSkip = this.skipUntilIndex;
-        const previousDepth = this.listDepth;
-        const previousLinkStack = this.linkStack;
+        const snapshot = this.captureState();
 
         this.currentParagraph = null;
         this.skipUntilIndex = null;
@@ -423,13 +496,26 @@ export class PlainTextRenderer {
         const fragmentBlocks = this.blocks.splice(originalLength);
         const formatted = new PlainTextBlockFormatter(this.options).format(fragmentBlocks);
 
-        this.currentParagraph = previousParagraph;
-        this.skipUntilIndex = previousSkip;
-        this.listDepth = previousDepth;
-        this.linkStack = previousLinkStack;
+        this.restoreState(snapshot);
         this.fragmentStack.pop();
 
         return formatted;
+    }
+
+    private captureState(): RendererStateSnapshot {
+        return {
+            currentParagraph: this.currentParagraph,
+            skipUntilIndex: this.skipUntilIndex,
+            listDepth: this.listDepth,
+            linkStack: this.linkStack,
+        };
+    }
+
+    private restoreState(snapshot: RendererStateSnapshot): void {
+        this.currentParagraph = snapshot.currentParagraph;
+        this.skipUntilIndex = snapshot.skipUntilIndex;
+        this.listDepth = snapshot.listDepth;
+        this.linkStack = snapshot.linkStack;
     }
 
     private getOrderedListStart(token: Token): number {
