@@ -41,10 +41,12 @@ export class PlainTextRenderer {
     private listDepth = 0;
     private linkStack: LinkStackItem[] = [];
     private readonly fragmentStack: number[] = [];
+    private readonly formatter: PlainTextBlockFormatter;
 
     constructor(md: MarkdownIt, options: PlainTextOptions) {
         this.md = md;
         this.options = options;
+        this.formatter = new PlainTextBlockFormatter(options);
     }
 
     render(markdown: string): string {
@@ -58,7 +60,7 @@ export class PlainTextRenderer {
             const tokens = this.md.parse(markdown, {});
             this.md.renderer.render(tokens, this.md.options, {});
             this.flushParagraph();
-            return new PlainTextBlockFormatter(this.options).format(this.blocks);
+            return this.formatter.format(this.blocks);
         });
     }
 
@@ -447,7 +449,7 @@ export class PlainTextRenderer {
         }
 
         const fragmentBlocks = this.blocks.splice(originalLength);
-        const formatted = new PlainTextBlockFormatter(this.options).format(fragmentBlocks);
+        const formatted = this.formatter.format(fragmentBlocks);
 
         this.restoreState(snapshot);
         this.fragmentStack.pop();
