@@ -244,7 +244,9 @@ export class PlainTextRenderer {
 
         rules.hr = (_tokens, idx) =>
             this.handleToken(idx, () => {
-                const marker = this.options.preserveHorizontalRule ? PLAIN_TEXT_CONSTANTS.HORIZONTAL_RULE_MARKER : '\u00A0';
+                const marker = this.options.preserveHorizontalRule
+                    ? PLAIN_TEXT_CONSTANTS.HORIZONTAL_RULE_MARKER
+                    : '\u00A0';
                 this.flushParagraph();
                 this.blocks.push({ type: 'paragraph', lines: [marker] });
                 return '';
