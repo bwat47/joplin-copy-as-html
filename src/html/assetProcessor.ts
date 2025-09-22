@@ -97,12 +97,19 @@ function validateResourceId(id: string): boolean {
 async function withTimeout<T>(
     promise: Promise<T>,
     timeoutMs: number,
-    errorMessage: string = 'Operation timed out'
+    errorMessage: string = 'Operation timed out',
+    onTimeout?: () => void
 ): Promise<T> {
     let timeoutId: NodeJS.Timeout;
 
     const timeoutPromise = new Promise<never>((_, reject) => {
-        timeoutId = setTimeout(() => reject(new Error(errorMessage)), timeoutMs);
+        timeoutId = setTimeout(() => {
+            try {
+                onTimeout?.();
+            } finally {
+                reject(new Error(errorMessage));
+            }
+        }, timeoutMs);
     });
 
     try {
@@ -191,6 +198,7 @@ export async function convertResourceToBase64(id: string): Promise<string> {
  */
 export async function downloadRemoteImageAsBase64(url: string): Promise<string> {
     try {
+        const controller = new AbortController();
         const response = await withTimeout(
             fetch(url, {
                 // Avoid leaking cookies/referrer in Electron/Hybrid environments
@@ -200,9 +208,11 @@ export async function downloadRemoteImageAsBase64(url: string): Promise<string> 
                     'User-Agent': CONSTANTS.REMOTE_IMAGE_USER_AGENT,
                     Accept: 'image/*',
                 },
+                signal: controller.signal,
             }),
             CONSTANTS.REMOTE_TIMEOUT_MS,
-            'Remote image download timeout'
+            'Remote image download timeout',
+            () => controller.abort()
         );
 
         if (!response.ok) {
@@ -232,11 +242,17 @@ export async function downloadRemoteImageAsBase64(url: string): Promise<string> 
 
         const chunks: Buffer[] = [];
         let totalSize = 0;
+        const abortForSize = () => {
+            if (!controller.signal.aborted) {
+                controller.abort();
+            }
+        };
 
         const handleChunk = (chunk: Buffer | Uint8Array): boolean => {
             const bufferChunk = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
             totalSize += bufferChunk.length;
             if (totalSize > CONSTANTS.MAX_IMAGE_SIZE_BYTES) {
+                abortForSize();
                 return false;
             }
             chunks.push(bufferChunk);
