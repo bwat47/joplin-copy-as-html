@@ -75,353 +75,296 @@ export class PlainTextRenderer {
     }
 
     private installCustomRules(): void {
-        const rendererRules = this.md.renderer.rules;
+        this.installParagraphRules();
+        this.installHeadingRules();
+        this.installInlineRules();
+        this.installBreakRules();
+        this.installLinkRules();
+        this.installEmphasisRules();
+        this.installEmojiAndCodeRules();
+        this.installHorizontalRule();
+        this.installBlockquoteRules();
+        this.installCodeBlockRules();
+        this.installListRules();
+        this.installTableRules();
+    }
 
-        rendererRules.paragraph_open = (tokens, idx) => {
-            if (this.shouldSkipToken(idx)) {
-                this.consumeSkipIfNeeded(idx);
+    private installParagraphRules(): void {
+        const rules = this.md.renderer.rules;
+
+        rules.paragraph_open = (tokens, idx) =>
+            this.handleToken(idx, () => {
+                this.flushParagraph();
+                this.currentParagraph = '';
                 return '';
-            }
-            this.flushParagraph();
-            this.currentParagraph = '';
-            return '';
-        };
+            });
 
-        rendererRules.paragraph_close = (tokens, idx) => {
-            if (this.shouldSkipToken(idx)) {
-                this.consumeSkipIfNeeded(idx);
+        rules.paragraph_close = (tokens, idx) =>
+            this.handleToken(idx, () => {
+                if (this.currentParagraph) {
+                    this.blocks.push({ type: 'paragraph', lines: this.splitParagraphLines(this.currentParagraph) });
+                    this.currentParagraph = null;
+                }
                 return '';
-            }
-            if (this.currentParagraph) {
-                this.blocks.push({ type: 'paragraph', lines: this.splitParagraphLines(this.currentParagraph) });
-                this.currentParagraph = null;
-            }
-            return '';
-        };
+            });
+    }
 
-        rendererRules.heading_open = (tokens, idx) => {
-            if (this.shouldSkipToken(idx)) {
-                this.consumeSkipIfNeeded(idx);
+    private installHeadingRules(): void {
+        const rules = this.md.renderer.rules;
+
+        rules.heading_open = (tokens, idx) =>
+            this.handleToken(idx, () => {
+                this.flushParagraph();
+                const token = tokens[idx];
+                const level = this.normalizeHeadingLevel(token.tag);
+                this.blocks.push({ type: 'heading', level, text: '' });
                 return '';
-            }
-            this.flushParagraph();
-            const token = tokens[idx];
-            const level = this.normalizeHeadingLevel(token.tag);
-            this.blocks.push({ type: 'heading', level, text: '' });
-            return '';
-        };
+            });
 
-        rendererRules.heading_close = (tokens, idx) => {
-            this.consumeSkipIfNeeded(idx);
-            return '';
-        };
+        rules.heading_close = (_tokens, idx) => this.handleToken(idx, () => '');
+    }
 
-        rendererRules.text = (tokens, idx) => {
-            if (this.shouldSkipToken(idx)) {
-                this.consumeSkipIfNeeded(idx);
+    private installInlineRules(): void {
+        const rules = this.md.renderer.rules;
+
+        rules.text = (tokens, idx) =>
+            this.handleToken(idx, () => {
+                const token = tokens[idx];
+                const content = token.content
+                    .replace(PLAIN_TEXT_REGEX.FOOTNOTE_REF, '[$1]')
+                    .replace(PLAIN_TEXT_REGEX.FOOTNOTE_DEF, '[$1]:');
+                const appended = handleTextToken(token, content, this.linkStack, this.options, '');
+                if (appended) {
+                    this.appendText(appended);
+                }
                 return '';
-            }
-            const token = tokens[idx];
-            const content = token.content
-                .replace(PLAIN_TEXT_REGEX.FOOTNOTE_REF, '[$1]')
-                .replace(PLAIN_TEXT_REGEX.FOOTNOTE_DEF, '[$1]:');
-            const appended = handleTextToken(token, content, this.linkStack, this.options, '');
-            if (appended) {
-                this.appendText(appended);
-            }
-            return '';
-        };
+            });
+    }
 
-        rendererRules.softbreak = (tokens, idx) => {
-            if (this.shouldSkipToken(idx)) {
-                this.consumeSkipIfNeeded(idx);
+    private installBreakRules(): void {
+        const rules = this.md.renderer.rules;
+
+        const createBreakHandler = () => (tokens: Token[], idx: number) =>
+            this.handleToken(idx, () => {
+                if (this.currentParagraph !== null) {
+                    this.currentParagraph += '\n';
+                }
                 return '';
-            }
-            if (this.currentParagraph !== null) {
-                this.currentParagraph += '\n';
-            }
-            return '';
-        };
+            });
 
-        rendererRules.hardbreak = (tokens, idx) => {
-            if (this.shouldSkipToken(idx)) {
-                this.consumeSkipIfNeeded(idx);
+        rules.softbreak = createBreakHandler();
+        rules.hardbreak = createBreakHandler();
+    }
+
+    private installLinkRules(): void {
+        const rules = this.md.renderer.rules;
+
+        rules.link_open = (tokens, idx) =>
+            this.handleToken(idx, () => {
+                handleLinkToken(tokens[idx], this.linkStack, '');
                 return '';
-            }
-            if (this.currentParagraph !== null) {
-                this.currentParagraph += '\n';
-            }
-            return '';
-        };
+            });
 
-        rendererRules.link_open = (tokens, idx) => {
-            if (this.shouldSkipToken(idx)) {
-                this.consumeSkipIfNeeded(idx);
+        rules.link_close = (_tokens, idx) =>
+            this.handleToken(idx, () => {
+                const appended = handleLinkCloseToken(this.linkStack, this.options, '');
+                if (appended) {
+                    this.appendText(appended);
+                }
                 return '';
-            }
-            handleLinkToken(tokens[idx], this.linkStack, '');
-            return '';
-        };
+            });
+    }
 
-        rendererRules.link_close = (tokens, idx) => {
-            if (this.shouldSkipToken(idx)) {
-                this.consumeSkipIfNeeded(idx);
+    private installEmphasisRules(): void {
+        const rules = this.md.renderer.rules;
+
+        const createMarkerHandler = (shouldPreserve: boolean, marker: string) => (_tokens: Token[], idx: number) =>
+            this.handleToken(idx, () => {
+                if (shouldPreserve) this.appendText(marker);
                 return '';
-            }
-            const appended = handleLinkCloseToken(this.linkStack, this.options, '');
-            if (appended) {
-                this.appendText(appended);
-            }
-            return '';
-        };
+            });
 
-        rendererRules.em_open = (tokens, idx) => {
-            if (this.shouldSkipToken(idx)) {
-                this.consumeSkipIfNeeded(idx);
+        const emphasisHandler = (tokens: Token[], idx: number) =>
+            this.handleToken(idx, () => {
+                if (this.options.preserveEmphasis) this.appendText(tokens[idx].markup);
                 return '';
-            }
-            if (this.options.preserveEmphasis) this.appendText(tokens[idx].markup);
-            return '';
-        };
+            });
 
-        rendererRules.em_close = rendererRules.em_open;
-
-        rendererRules.strong_open = (tokens, idx) => {
-            if (this.shouldSkipToken(idx)) {
-                this.consumeSkipIfNeeded(idx);
+        const boldHandler = (tokens: Token[], idx: number) =>
+            this.handleToken(idx, () => {
+                if (this.options.preserveBold) this.appendText(tokens[idx].markup);
                 return '';
-            }
-            if (this.options.preserveBold) this.appendText(tokens[idx].markup);
-            return '';
-        };
+            });
 
-        rendererRules.strong_close = rendererRules.strong_open;
+        rules.em_open = emphasisHandler;
+        rules.em_close = emphasisHandler;
 
-        rendererRules.mark_open = (tokens, idx) => {
-            if (this.shouldSkipToken(idx)) {
-                this.consumeSkipIfNeeded(idx);
+        rules.strong_open = boldHandler;
+        rules.strong_close = boldHandler;
+
+        const markHandler = createMarkerHandler(this.options.preserveMark, INLINE_MARKERS.MARK);
+        rules.mark_open = markHandler;
+        rules.mark_close = markHandler;
+
+        const insertHandler = createMarkerHandler(this.options.preserveInsert, INLINE_MARKERS.INSERT);
+        rules.ins_open = insertHandler;
+        rules.ins_close = insertHandler;
+
+        const strikeHandler = createMarkerHandler(this.options.preserveStrikethrough, INLINE_MARKERS.STRIKETHROUGH);
+        rules.s_open = strikeHandler;
+        rules.s_close = strikeHandler;
+
+        const subHandler = createMarkerHandler(this.options.preserveSubscript, INLINE_MARKERS.SUB);
+        rules.sub_open = subHandler;
+        rules.sub_close = subHandler;
+
+        const supHandler = createMarkerHandler(this.options.preserveSuperscript, INLINE_MARKERS.SUP);
+        rules.sup_open = supHandler;
+        rules.sup_close = supHandler;
+    }
+
+    private installEmojiAndCodeRules(): void {
+        const rules = this.md.renderer.rules;
+
+        rules.emoji = (tokens, idx) =>
+            this.handleToken(idx, () => {
+                if (this.options.displayEmojis) this.appendText(tokens[idx].content);
                 return '';
-            }
-            if (this.options.preserveMark) this.appendText(INLINE_MARKERS.MARK);
-            return '';
-        };
+            });
 
-        rendererRules.mark_close = rendererRules.mark_open;
-
-        rendererRules.ins_open = (tokens, idx) => {
-            if (this.shouldSkipToken(idx)) {
-                this.consumeSkipIfNeeded(idx);
+        rules.code_inline = (tokens, idx) =>
+            this.handleToken(idx, () => {
+                this.appendText(tokens[idx].content);
                 return '';
-            }
-            if (this.options.preserveInsert) this.appendText(INLINE_MARKERS.INSERT);
-            return '';
-        };
+            });
+    }
 
-        rendererRules.ins_close = rendererRules.ins_open;
+    private installHorizontalRule(): void {
+        const rules = this.md.renderer.rules;
 
-        rendererRules.s_open = (tokens, idx) => {
-            if (this.shouldSkipToken(idx)) {
-                this.consumeSkipIfNeeded(idx);
+        rules.hr = (_tokens, idx) =>
+            this.handleToken(idx, () => {
+                const marker = this.options.preserveHorizontalRule ? PLAIN_TEXT_CONSTANTS.HORIZONTAL_RULE_MARKER : '\u00A0';
+                this.flushParagraph();
+                this.blocks.push({ type: 'paragraph', lines: [marker] });
                 return '';
-            }
-            if (this.options.preserveStrikethrough) this.appendText(INLINE_MARKERS.STRIKETHROUGH);
-            return '';
-        };
+            });
 
-        rendererRules.s_close = rendererRules.s_open;
+        rules.thematic_break = rules.hr;
+    }
 
-        rendererRules.sub_open = (tokens, idx) => {
-            if (this.shouldSkipToken(idx)) {
-                this.consumeSkipIfNeeded(idx);
+    private installBlockquoteRules(): void {
+        const rules = this.md.renderer.rules;
+
+        rules.blockquote_open = (tokens, idx) =>
+            this.handleToken(idx, () => {
+                this.flushParagraph();
+                const { blockTokens, endIndex } = extractBlockTokens(tokens, idx);
+                this.setSkipUntil(endIndex);
+                const fragment = this.renderTokenFragment(blockTokens, null, this.listDepth);
+                const normalized = collapseExtraBlankLines(fragment).replace(/^\n+/, '').replace(/\n+$/, '');
+                const lines = normalized ? normalized.split('\n') : [];
+                if (lines.length) {
+                    this.blocks.push({ type: 'blockquote', lines });
+                }
                 return '';
-            }
-            if (this.options.preserveSubscript) this.appendText(INLINE_MARKERS.SUB);
-            return '';
-        };
+            });
 
-        rendererRules.sub_close = rendererRules.sub_open;
+        rules.blockquote_close = (_tokens, idx) => this.handleToken(idx, () => '');
+    }
 
-        rendererRules.sup_open = (tokens, idx) => {
-            if (this.shouldSkipToken(idx)) {
-                this.consumeSkipIfNeeded(idx);
+    private installCodeBlockRules(): void {
+        const rules = this.md.renderer.rules;
+
+        const handler = (tokens: Token[], idx: number) =>
+            this.handleToken(idx, () => {
+                this.flushParagraph();
+                const token = tokens[idx];
+                const lines = this.buildCodeLines(token.content);
+                this.blocks.push({ type: 'code', lines });
                 return '';
-            }
-            if (this.options.preserveSuperscript) this.appendText(INLINE_MARKERS.SUP);
-            return '';
-        };
+            });
 
-        rendererRules.sup_close = rendererRules.sup_open;
+        rules.fence = handler;
+        rules.code_block = handler;
+    }
 
-        rendererRules.emoji = (tokens, idx) => {
-            if (this.shouldSkipToken(idx)) {
-                this.consumeSkipIfNeeded(idx);
+    private installListRules(): void {
+        const rules = this.md.renderer.rules;
+
+        rules.bullet_list_open = (tokens, idx) =>
+            this.handleToken(idx, () => {
+                this.flushParagraph();
+                const { blockTokens, endIndex } = extractBlockTokens(tokens, idx);
+                this.setSkipUntil(endIndex);
+                const previousDepth = this.listDepth;
+                const indentLevel = previousDepth + 1;
+                this.listDepth = indentLevel;
+                try {
+                    const items = parseListTokens(
+                        blockTokens,
+                        { type: 'bullet' },
+                        indentLevel,
+                        (fragmentTokens, ctx, level) => this.renderTokenFragment(fragmentTokens, ctx, level)
+                    );
+                    this.blocks.push({ type: 'list', items });
+                } finally {
+                    this.listDepth = previousDepth;
+                }
                 return '';
-            }
-            if (this.options.displayEmojis) this.appendText(tokens[idx].content);
-            return '';
-        };
+            });
 
-        rendererRules.code_inline = (tokens, idx) => {
-            if (this.shouldSkipToken(idx)) {
-                this.consumeSkipIfNeeded(idx);
+        rules.ordered_list_open = (tokens, idx) =>
+            this.handleToken(idx, () => {
+                this.flushParagraph();
+                const { blockTokens, endIndex } = extractBlockTokens(tokens, idx);
+                this.setSkipUntil(endIndex);
+                const start = this.getOrderedListStart(tokens[idx]);
+                const previousDepth = this.listDepth;
+                const indentLevel = previousDepth + 1;
+                this.listDepth = indentLevel;
+                try {
+                    const items = parseListTokens(
+                        blockTokens,
+                        { type: 'ordered', index: start },
+                        indentLevel,
+                        (fragmentTokens, ctx, level) => this.renderTokenFragment(fragmentTokens, ctx, level)
+                    );
+                    this.blocks.push({ type: 'list', items });
+                } finally {
+                    this.listDepth = previousDepth;
+                }
                 return '';
-            }
-            this.appendText(tokens[idx].content);
-            return '';
-        };
+            });
 
-        rendererRules.hr = (tokens, idx) => {
-            if (this.shouldSkipToken(idx)) {
-                this.consumeSkipIfNeeded(idx);
-                return '';
-            }
-            const marker = this.options.preserveHorizontalRule ? PLAIN_TEXT_CONSTANTS.HORIZONTAL_RULE_MARKER : '\u00A0';
-            this.flushParagraph();
-            this.blocks.push({ type: 'paragraph', lines: [marker] });
-            return '';
-        };
+        rules.bullet_list_close = (_tokens, idx) => this.handleToken(idx, () => '');
 
-        rendererRules.thematic_break = rendererRules.hr;
+        rules.ordered_list_close = (_tokens, idx) => this.handleToken(idx, () => '');
 
-        rendererRules.blockquote_open = (tokens, idx) => {
-            if (this.shouldSkipToken(idx)) {
-                this.consumeSkipIfNeeded(idx);
-                return '';
-            }
-            this.flushParagraph();
-            const { blockTokens, endIndex } = extractBlockTokens(tokens, idx);
-            this.setSkipUntil(endIndex);
-            const fragment = this.renderTokenFragment(blockTokens, null, this.listDepth);
-            const normalized = collapseExtraBlankLines(fragment).replace(/^\n+/, '').replace(/\n+$/, '');
-            const lines = normalized ? normalized.split('\n') : [];
-            if (lines.length) {
-                this.blocks.push({ type: 'blockquote', lines });
-            }
-            return '';
-        };
+        rules.list_item_open = (_tokens, idx) => this.handleToken(idx, () => '');
 
-        rendererRules.blockquote_close = (tokens, idx) => {
-            this.consumeSkipIfNeeded(idx);
-            return '';
-        };
+        rules.list_item_close = (_tokens, idx) => this.handleToken(idx, () => '');
+    }
 
-        rendererRules.fence = (tokens, idx) => {
-            if (this.shouldSkipToken(idx)) {
-                this.consumeSkipIfNeeded(idx);
-                return '';
-            }
-            this.flushParagraph();
-            const token = tokens[idx];
-            const lines = this.buildCodeLines(token.content);
-            this.blocks.push({ type: 'code', lines });
-            return '';
-        };
+    private installTableRules(): void {
+        const rules = this.md.renderer.rules;
 
-        rendererRules.code_block = (tokens, idx) => {
-            if (this.shouldSkipToken(idx)) {
-                this.consumeSkipIfNeeded(idx);
-                return '';
-            }
-            this.flushParagraph();
-            const token = tokens[idx];
-            const lines = this.buildCodeLines(token.content);
-            this.blocks.push({ type: 'code', lines });
-            return '';
-        };
-
-        rendererRules.bullet_list_open = (tokens, idx) => {
-            if (this.shouldSkipToken(idx)) {
-                this.consumeSkipIfNeeded(idx);
-                return '';
-            }
-            this.flushParagraph();
-            const { blockTokens, endIndex } = extractBlockTokens(tokens, idx);
-            this.setSkipUntil(endIndex);
-            const previousDepth = this.listDepth;
-            const indentLevel = previousDepth + 1;
-            this.listDepth = indentLevel;
-            try {
-                const items = parseListTokens(
+        rules.table_open = (tokens, idx) =>
+            this.handleToken(idx, () => {
+                this.flushParagraph();
+                const { blockTokens, endIndex } = extractBlockTokens(tokens, idx);
+                this.setSkipUntil(endIndex);
+                const tableData = parseTableTokens(
                     blockTokens,
-                    { type: 'bullet' },
-                    indentLevel,
-                    (fragmentTokens, ctx, level) => this.renderTokenFragment(fragmentTokens, ctx, level)
+                    (fragmentTokens, ctx, level) => this.renderTokenFragment(fragmentTokens, ctx, level),
+                    null,
+                    this.listDepth
                 );
-                this.blocks.push({ type: 'list', items });
-            } finally {
-                this.listDepth = previousDepth;
-            }
-            return '';
-        };
-
-        rendererRules.bullet_list_close = (tokens, idx) => {
-            this.consumeSkipIfNeeded(idx);
-            return '';
-        };
-
-        rendererRules.ordered_list_open = (tokens, idx) => {
-            if (this.shouldSkipToken(idx)) {
-                this.consumeSkipIfNeeded(idx);
+                this.blocks.push({ type: 'table', data: tableData });
                 return '';
-            }
-            this.flushParagraph();
-            const { blockTokens, endIndex } = extractBlockTokens(tokens, idx);
-            this.setSkipUntil(endIndex);
-            const start = this.getOrderedListStart(tokens[idx]);
-            const previousDepth = this.listDepth;
-            const indentLevel = previousDepth + 1;
-            this.listDepth = indentLevel;
-            try {
-                const items = parseListTokens(
-                    blockTokens,
-                    { type: 'ordered', index: start },
-                    indentLevel,
-                    (fragmentTokens, ctx, level) => this.renderTokenFragment(fragmentTokens, ctx, level)
-                );
-                this.blocks.push({ type: 'list', items });
-            } finally {
-                this.listDepth = previousDepth;
-            }
-            return '';
-        };
+            });
 
-        rendererRules.ordered_list_close = (tokens, idx) => {
-            this.consumeSkipIfNeeded(idx);
-            return '';
-        };
-
-        rendererRules.list_item_open = (tokens, idx) => {
-            this.consumeSkipIfNeeded(idx);
-            return '';
-        };
-
-        rendererRules.list_item_close = (tokens, idx) => {
-            this.consumeSkipIfNeeded(idx);
-            return '';
-        };
-
-        rendererRules.table_open = (tokens, idx) => {
-            if (this.shouldSkipToken(idx)) {
-                this.consumeSkipIfNeeded(idx);
-                return '';
-            }
-            this.flushParagraph();
-            const { blockTokens, endIndex } = extractBlockTokens(tokens, idx);
-            this.setSkipUntil(endIndex);
-            const tableData = parseTableTokens(
-                blockTokens,
-                (fragmentTokens, ctx, level) => this.renderTokenFragment(fragmentTokens, ctx, level),
-                null,
-                this.listDepth
-            );
-            this.blocks.push({ type: 'table', data: tableData });
-            return '';
-        };
-
-        rendererRules.table_close = (tokens, idx) => {
-            this.consumeSkipIfNeeded(idx);
-            return '';
-        };
+        rules.table_close = (_tokens, idx) => this.handleToken(idx, () => '');
     }
 
     private flushParagraph(): void {
@@ -446,6 +389,14 @@ export class PlainTextRenderer {
         if (this.skipUntilIndex !== null && index >= this.skipUntilIndex) {
             this.skipUntilIndex = null;
         }
+    }
+
+    private handleToken<T>(index: number, handler: () => T, defaultValue: T = '' as unknown as T): T {
+        if (this.shouldSkipToken(index)) {
+            this.consumeSkipIfNeeded(index);
+            return defaultValue;
+        }
+        return handler();
     }
 
     private setSkipUntil(index: number): void {
