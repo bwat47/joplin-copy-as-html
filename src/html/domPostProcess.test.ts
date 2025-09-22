@@ -24,13 +24,13 @@ describe('domPostProcess', () => {
         expect(out).not.toContain('https://x/a.png');
     });
 
-    it('replaces raw HTML <img> with error span when mapped to error HTML', () => {
+    it('replaces raw HTML <img> with fallback message when mapping fails', () => {
         const html = '<p>before <img src="https://x/b.png" alt="b"> after</p>';
-        const err = '<span style="color:red">Remote image download failed</span>';
-        const map = new Map<string, string>([['https://x/b.png', err]]);
+        const map = new Map<string, string>([['https://x/b.png', '<span>ignored</span>']]);
         const out = postProcessHtml(html, { imageSrcMap: map });
-        expect(out).toContain(err);
+        expect(out).toContain('Image failed to load');
         expect(out).not.toContain('<img');
+        expect(out).not.toContain('https://x/b.png');
     });
 
     it('does not touch images inside pre/code', () => {

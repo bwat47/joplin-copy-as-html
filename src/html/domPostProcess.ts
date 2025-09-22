@@ -18,6 +18,7 @@
  * @returns The processed HTML string.
  */
 import DOMPurify from 'dompurify';
+import { HTML_CONSTANTS } from '../constants';
 
 // Initialize DOMPurify instance
 let purifyInstance: typeof DOMPurify;
@@ -217,10 +218,11 @@ export function postProcessHtml(
                 if (mapped.startsWith('data:image/')) {
                     img.setAttribute('src', mapped);
                 } else {
-                    // Replace the <img> with the mapped error HTML in a type-safe way
-                    const wrapper = doc.createElement('span');
-                    wrapper.innerHTML = mapped;
-                    img.parentNode?.replaceChild(wrapper, img);
+                    // Replace the <img> with a consistent inline error message
+                    const fallback = doc.createElement('span');
+                    fallback.textContent = 'Image failed to load';
+                    fallback.style.color = HTML_CONSTANTS.ERROR_COLOR;
+                    img.parentNode?.replaceChild(fallback, img);
                 }
             }
         });
