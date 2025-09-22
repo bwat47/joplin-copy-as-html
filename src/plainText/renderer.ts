@@ -20,7 +20,7 @@ import {
     handleTextToken,
     LinkStackItem,
 } from './tokenRenderers';
-import { INLINE_MARKERS, PLAIN_TEXT_CONSTANTS, PLAIN_TEXT_REGEX } from '../constants';
+import { PLAIN_TEXT_CONSTANTS, PLAIN_TEXT_REGEX } from '../constants';
 
 type RendererStateSnapshot = {
     currentParagraph: string | null;
@@ -180,47 +180,37 @@ export class PlainTextRenderer {
     private installEmphasisRules(): void {
         const rules = this.md.renderer.rules;
 
-        const createMarkerHandler = (shouldPreserve: boolean, marker: string) => (_tokens: Token[], idx: number) =>
+        const createMarkupHandler = (shouldPreserve: boolean) => (tokens: Token[], idx: number) =>
             this.handleToken(idx, () => {
-                if (shouldPreserve) this.appendText(marker);
+                if (shouldPreserve) this.appendText(tokens[idx].markup);
                 return '';
             });
 
-        const emphasisHandler = (tokens: Token[], idx: number) =>
-            this.handleToken(idx, () => {
-                if (this.options.preserveEmphasis) this.appendText(tokens[idx].markup);
-                return '';
-            });
-
-        const boldHandler = (tokens: Token[], idx: number) =>
-            this.handleToken(idx, () => {
-                if (this.options.preserveBold) this.appendText(tokens[idx].markup);
-                return '';
-            });
-
+        const emphasisHandler = createMarkupHandler(this.options.preserveEmphasis);
         rules.em_open = emphasisHandler;
         rules.em_close = emphasisHandler;
 
+        const boldHandler = createMarkupHandler(this.options.preserveBold);
         rules.strong_open = boldHandler;
         rules.strong_close = boldHandler;
 
-        const markHandler = createMarkerHandler(this.options.preserveMark, INLINE_MARKERS.MARK);
+        const markHandler = createMarkupHandler(this.options.preserveMark);
         rules.mark_open = markHandler;
         rules.mark_close = markHandler;
 
-        const insertHandler = createMarkerHandler(this.options.preserveInsert, INLINE_MARKERS.INSERT);
+        const insertHandler = createMarkupHandler(this.options.preserveInsert);
         rules.ins_open = insertHandler;
         rules.ins_close = insertHandler;
 
-        const strikeHandler = createMarkerHandler(this.options.preserveStrikethrough, INLINE_MARKERS.STRIKETHROUGH);
+        const strikeHandler = createMarkupHandler(this.options.preserveStrikethrough);
         rules.s_open = strikeHandler;
         rules.s_close = strikeHandler;
 
-        const subHandler = createMarkerHandler(this.options.preserveSubscript, INLINE_MARKERS.SUB);
+        const subHandler = createMarkupHandler(this.options.preserveSubscript);
         rules.sub_open = subHandler;
         rules.sub_close = subHandler;
 
-        const supHandler = createMarkerHandler(this.options.preserveSuperscript, INLINE_MARKERS.SUP);
+        const supHandler = createMarkupHandler(this.options.preserveSuperscript);
         rules.sup_open = supHandler;
         rules.sup_close = supHandler;
     }

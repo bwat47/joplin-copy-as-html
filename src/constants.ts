@@ -94,15 +94,6 @@ export const PLAIN_TEXT_CONSTANTS = {
     TABLE_CELL_PADDING: 2,
 } as const;
 
-// Inline markdown markers used when preserving formatting (centralized to avoid magic strings)
-export const INLINE_MARKERS = {
-    MARK: '==', // highlight
-    INSERT: '++', // inserted / underline
-    STRIKETHROUGH: '~~', // strike
-    SUB: '~', // subscript
-    SUP: '^', // superscript
-} as const;
-
 // Regex patterns for footnote references and definitions
 export const PLAIN_TEXT_REGEX = {
     FOOTNOTE_REF: /\[\^([^\]]+)\]/g,
