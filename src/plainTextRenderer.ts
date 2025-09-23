@@ -14,7 +14,8 @@
 
 import { PlainTextOptions } from './types';
 import { createMarkdownItInstance } from './plainText/markdownSetup';
-import { PlainTextRenderer } from './plainText/renderer';
+import { collectPlainTextBlocks } from './plainText/plainTextCollector';
+import { PlainTextBlockFormatter } from './plainText/plainTextFormatter';
 
 /**
  * Converts markdown to plain text using the provided options.
@@ -29,6 +30,7 @@ export function convertMarkdownToPlainText(
     debug: boolean = false
 ): string {
     const md = createMarkdownItInstance(debug);
-    const renderer = new PlainTextRenderer(md, options);
-    return renderer.render(markdown);
+    const blocks = collectPlainTextBlocks(md, markdown, options);
+    const formatter = new PlainTextBlockFormatter(options);
+    return formatter.format(blocks);
 }

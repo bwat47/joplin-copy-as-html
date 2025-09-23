@@ -37,13 +37,14 @@
 - Render markdown-it output using a custom image rule (`imageRendererRule.ts`) that swaps `src` values or strips disallowed images.
 - Sanitize and normalize the document in `domPostProcess.ts` with DOMPurify: patch internal links, wrap lone `<img>` elements, and apply embed map updates for raw HTML images.
 
-### Plain Text Pipeline (`plainTextRenderer.ts`)
+### Plain Text Pipeline (`plainTextCollector.ts` + `renderer.ts`)
 
-- `plainText/renderer.ts` hooks into markdown-it to stream semantic blocks (paragraphs, lists, tables, code, etc.).
-- `tokenRenderers.ts` contains the pure helpers for list indentation, table alignment (`string-width` aware), hyperlink handling, and blank-line rules.
-- `plainText/plainTextFormatter.ts` assembles the final string, applying spacing and user-selected preservation options.
+- `plainText/plainTextCollector.ts` walks the markdown-it token stream directly (no renderer hooks) and produces `PlainTextBlock[]` for paragraphs, headings, lists, tables, blockquotes, and code blocks.
+- `plainText/tokenRenderers.ts` provides pure helpers for lists, tables, links, and blank-line rules used by the collector.
+- `plainText/plainTextFormatter.ts` assembles the final string from blocks, applying spacing and user-selected preservation options.
+- `plainText/renderer.ts` is now a thin wrapper that invokes the collector and formatter, preserving the previous API for tests.
 
-## Notable Modules
+### Notable Modules
 
 - `pluginUtils.ts` – Detects CommonJS/ESM/default exports to load markdown-it plugins consistently, logs clear failures, and avoids duplicate logic.
 - `utils.ts` – Houses `withTimeout`, resource ID parsing, and option validation shared across pipelines.
@@ -80,7 +81,7 @@ All default to `false` unless noted.
 1. Add an output format: create `src/<format>/` with its own `markdownSetup.ts`, renderer, and formatter; reuse `pluginUtils.ts` and utilities.
 2. Introduce new settings: extend `types.ts`, register defaults in `index.ts`, validate in `utils.ts`, and propagate through orchestrators.
 3. Support additional resource schemes: augment `assetProcessor.ts` (no changes required in pure renderers).
-4. Enhance plain text rules: adjust `plainText/renderer.ts` (and supporting helpers in `tokenRenderers.ts`) and update corresponding tests.
+4. Enhance plain text rules: adjust `plainText/plainTextCollector.ts` (and supporting helpers in `tokenRenderers.ts`) and update corresponding tests.
 
 ## Testing Strategy
 
