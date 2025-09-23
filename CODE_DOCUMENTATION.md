@@ -18,7 +18,7 @@
 - `src/utils.ts` – validation helpers, error formatting, timeout wrappers.
 - `src/pluginUtils.ts` – resilient markdown-it plugin loader; shared by both renderers.
 - `src/html/` – HTML renderer pipeline (`htmlRenderer.ts`, `assetProcessor.ts`, `domPostProcess.ts`, `markdownSetup.ts`).
-- `src/plainText/` – plain text pipeline (`renderer.ts`, `plainTextFormatter.ts`, `tokenRenderers.ts`, `markdownSetup.ts`).
+- `src/plainText/` – plain text pipeline (`plainTextCollector.ts`, `plainTextFormatter.ts`, `tokenRenderers.ts`, `markdownSetup.ts`).
 - Tests live beside source (`*.test.ts`). `tests/` directory is unused.
 
 ## Architecture Summary
@@ -37,12 +37,11 @@
 - Render markdown-it output using a custom image rule (`imageRendererRule.ts`) that swaps `src` values or strips disallowed images.
 - Sanitize and normalize the document in `domPostProcess.ts` with DOMPurify: patch internal links, wrap lone `<img>` elements, and apply embed map updates for raw HTML images.
 
-### Plain Text Pipeline (`plainTextCollector.ts` + `renderer.ts`)
+### Plain Text Pipeline (`plainTextCollector.ts`)
 
 - `plainText/plainTextCollector.ts` walks the markdown-it token stream directly (no renderer hooks) and produces `PlainTextBlock[]` for paragraphs, headings, lists, tables, blockquotes, and code blocks.
 - `plainText/tokenRenderers.ts` provides pure helpers for lists, tables, links, and blank-line rules used by the collector.
 - `plainText/plainTextFormatter.ts` assembles the final string from blocks, applying spacing and user-selected preservation options.
-- `plainText/renderer.ts` is now a thin wrapper that invokes the collector and formatter, preserving the previous API for tests.
 
 ### Notable Modules
 
