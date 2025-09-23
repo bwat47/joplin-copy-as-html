@@ -12,7 +12,7 @@ import stringWidth from 'string-width';
 
 export type LinkStackItem = { href: string; title: string };
 export type ListContext = { type: 'ordered'; index: number } | { type: 'bullet' } | null;
-export type TokenFragmentRenderer = (tokens: Token[], listContext: ListContext, indentLevel: number) => string;
+export type InlineRenderer = (tokens: Token[], listContext: ListContext, indentLevel: number) => string;
 
 /**
  * Removes markdown backslash escapes from a string.
@@ -37,7 +37,7 @@ export function isExternalHttpUrl(url: string): boolean {
  */
 export function parseTableTokens(
     tableTokens: Token[],
-    renderFragment: TokenFragmentRenderer,
+    renderInlineTokens: InlineRenderer,
     listContext: ListContext,
     indentLevel: number
 ): TableData {
@@ -59,7 +59,7 @@ export function parseTableTokens(
             ) {
                 const inner = tableTokens[cellIndex];
                 if (inner.type === 'inline' && inner.children) {
-                    cellContent += renderFragment(inner.children, listContext, indentLevel);
+                    cellContent += renderInlineTokens(inner.children, listContext, indentLevel);
                 } else if (inner.type === 'text') {
                     cellContent += inner.content;
                 }
@@ -117,7 +117,7 @@ export function parseListTokens(
     listTokens: Token[],
     listContext: ListContext,
     indentLevel: number,
-    renderFragment: TokenFragmentRenderer
+    renderInlineTokens: InlineRenderer
 ): ListItem[] {
     const items: ListItem[] = [];
     const ordered = !!(listContext && listContext.type === 'ordered');
@@ -137,7 +137,7 @@ export function parseListTokens(
                 if (nestingDepth > 0) itemTokens.push(scanTok);
                 scanIndex++;
             }
-            const content = renderFragment(itemTokens, listContext, indentLevel);
+            const content = renderInlineTokens(itemTokens, listContext, indentLevel);
             items.push({
                 content: content.trim(),
                 ordered,

@@ -4,7 +4,7 @@ import {
     formatTable,
     parseTableTokens,
     calculateColumnWidths,
-    TokenFragmentRenderer,
+    InlineRenderer,
 } from './tokenRenderers';
 import MarkdownIt from 'markdown-it';
 
@@ -26,7 +26,7 @@ const generateTableTokens = (markdown: string) => {
     return [];
 };
 
-const simpleFragmentRenderer: TokenFragmentRenderer = (tokens) => {
+const simpleInlineRenderer: InlineRenderer = (tokens) => {
     let result = '';
     for (const token of tokens) {
         if (token.type === 'text') {
@@ -36,7 +36,7 @@ const simpleFragmentRenderer: TokenFragmentRenderer = (tokens) => {
         }
 
         if (token.children) {
-            result += simpleFragmentRenderer(token.children, null, 0);
+            result += simpleInlineRenderer(token.children, null, 0);
         } else if (token.markup && (token.type.endsWith('_open') || token.type.endsWith('_close'))) {
             result += token.markup;
         }
@@ -71,7 +71,7 @@ describe('Table Rendering', () => {
 | Cell 1   | Cell 2   |
 `;
         const tableTokens = generateTableTokens(markdownTable);
-        const tableData = parseTableTokens(tableTokens, simpleFragmentRenderer, null, 0);
+        const tableData = parseTableTokens(tableTokens, simpleInlineRenderer, null, 0);
         const colWidths = calculateColumnWidths(tableData);
         const result = formatTable(tableData, colWidths);
 
@@ -92,7 +92,7 @@ Cell 1    Cell 2
 | Data  | More Data            |
 `;
         const tableTokens = generateTableTokens(markdownTable);
-        const tableData = parseTableTokens(tableTokens, simpleFragmentRenderer, null, 0);
+        const tableData = parseTableTokens(tableTokens, simpleInlineRenderer, null, 0);
         const colWidths = calculateColumnWidths(tableData);
         const result = formatTable(tableData, colWidths);
 
@@ -113,7 +113,7 @@ Data   More Data
 | *Italic* | **Bold** |
 `;
         const tableTokens = generateTableTokens(markdownTable);
-        const tableData = parseTableTokens(tableTokens, simpleFragmentRenderer, null, 0);
+        const tableData = parseTableTokens(tableTokens, simpleInlineRenderer, null, 0);
 
         expect(tableData.rows[1].cells[0]).toBe('*Italic*');
         expect(tableData.rows[1].cells[1]).toBe('**Bold**');

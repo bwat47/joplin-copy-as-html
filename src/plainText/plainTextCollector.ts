@@ -2,8 +2,6 @@
  * @fileoverview Plain text token collector (primary implementation)
  *
  * Walks the markdown-it token stream directly and produces PlainTextBlock[]
- * without using renderer hooks or any fragment-based re-entry. This replaces
- * the former renderer-hooks approach and eliminates state snapshots.
  *
  * Architecture:
  * - tokens (md.parse) -> collector (this module) -> PlainTextBlock[] -> formatter
@@ -94,8 +92,8 @@ export function collectPlainTextBlocksFromTokens(
         return withoutTrailingNewlines.split('\n');
     }
 
-    function renderFragmentToString(fragmentTokens: Token[], ctx: ListContext, level: number): string {
-        const nestedBlocks = collectPlainTextBlocksFromTokens(md, fragmentTokens, options, level);
+    function renderInlineTokensToString(inlineTokens: Token[], ctx: ListContext, level: number): string {
+        const nestedBlocks = collectPlainTextBlocksFromTokens(md, inlineTokens, options, level);
         const formatter = new PlainTextBlockFormatter(options);
         return formatter.format(nestedBlocks);
     }
@@ -198,8 +196,8 @@ export function collectPlainTextBlocksFromTokens(
             case 'blockquote_open': {
                 flushParagraph();
                 const { blockTokens, endIndex } = extractBlockTokens(tokens, i);
-                const fragment = renderFragmentToString(blockTokens, null, listDepth);
-                const normalized = collapseExtraBlankLines(fragment).replace(/^\n+/, '').replace(/\n+$/, '');
+                const inlineText = renderInlineTokensToString(blockTokens, null, listDepth);
+                const normalized = collapseExtraBlankLines(inlineText).replace(/^\n+/, '').replace(/\n+$/, '');
                 const lines = normalized ? normalized.split('\n') : [];
                 if (lines.length) blocks.push({ type: 'blockquote', lines });
                 i = endIndex;
@@ -218,8 +216,8 @@ export function collectPlainTextBlocksFromTokens(
                 flushParagraph();
                 const { blockTokens, endIndex } = extractBlockTokens(tokens, i);
                 const indent = listDepth + 1;
-                const items = parseListTokens(blockTokens, { type: 'bullet' }, indent, (fragmentTokens, ctx, level) =>
-                    renderFragmentToString(fragmentTokens, ctx, level)
+                const items = parseListTokens(blockTokens, { type: 'bullet' }, indent, (inlineTokens, ctx, level) =>
+                    renderInlineTokensToString(inlineTokens, ctx, level)
                 );
                 blocks.push({ type: 'list', items });
                 i = endIndex;
@@ -237,7 +235,7 @@ export function collectPlainTextBlocksFromTokens(
                     blockTokens,
                     { type: 'ordered', index: start },
                     indent,
-                    (fragmentTokens, ctx, level) => renderFragmentToString(fragmentTokens, ctx, level)
+                    (inlineTokens, ctx, level) => renderInlineTokensToString(inlineTokens, ctx, level)
                 );
                 blocks.push({ type: 'list', items });
                 i = endIndex;
@@ -249,7 +247,7 @@ export function collectPlainTextBlocksFromTokens(
                 const { blockTokens, endIndex } = extractBlockTokens(tokens, i);
                 const tableData = parseTableTokens(
                     blockTokens,
-                    (fragmentTokens, ctx, level) => renderFragmentToString(fragmentTokens, ctx, level),
+                    (inlineTokens, ctx, level) => renderInlineTokensToString(inlineTokens, ctx, level),
                     null,
                     listDepth
                 );
