@@ -20,25 +20,9 @@
 import DOMPurify from 'dompurify';
 import { HTML_CONSTANTS } from '../constants';
 
-// Initialize DOMPurify instance
-let purifyInstance: typeof DOMPurify;
+// Initialize DOMPurify instance (jsdom provides window in tests; Electron provides window at runtime)
+const purifyInstance = DOMPurify;
 let purifyHooksInstalled = false;
-
-if (typeof window !== 'undefined') {
-    // Browser environment
-    purifyInstance = DOMPurify;
-} else {
-    // Node.js environment - try to load JSDOM dynamically
-    try {
-        // eslint-disable-next-line @typescript-eslint/no-require-imports
-        const { JSDOM } = require('jsdom');
-        const window = new JSDOM('').window;
-        purifyInstance = DOMPurify(window as unknown as Window & typeof globalThis);
-    } catch {
-        // JSDOM not available (e.g., in webpack bundle), use DOMPurify as-is
-        purifyInstance = DOMPurify;
-    }
-}
 
 function ensurePurifyHooks(): void {
     if (purifyHooksInstalled) return;
@@ -174,18 +158,8 @@ export function postProcessHtml(
         return sanitizedHtml;
     }
 
-    let doc: Document;
-    if (typeof window !== 'undefined') {
-        // Browser environment
-        const parser = new DOMParser();
-        doc = parser.parseFromString(`<body>${sanitizedHtml}</body>`, 'text/html');
-    } else {
-        // Node.js environment - use JSDOM
-        // eslint-disable-next-line @typescript-eslint/no-require-imports
-        const { JSDOM } = require('jsdom');
-        const dom = new JSDOM(`<body>${sanitizedHtml}</body>`);
-        doc = dom.window.document;
-    }
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(`<body>${sanitizedHtml}</body>`, 'text/html');
 
     // Clean up non-image Joplin resource links to be just their text content.
     // This handles links created by Joplin's rich text editor and markdown links.
