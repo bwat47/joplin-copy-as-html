@@ -1,7 +1,7 @@
 /**
  * @fileoverview Plain text parsing helpers
  *
- * Provides shared utilities for the block-based plain text renderer: table/list
+ * Provides shared utilities for the plain text renderer: table/list
  * parsing, link handling, unescape helpers, and spacing utilities.
  */
 
