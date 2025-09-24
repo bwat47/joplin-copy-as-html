@@ -1,5 +1,5 @@
 /**
- * @fileoverview Plain text token collector (primary implementation)
+ * @fileoverview Plain text token collector
  *
  * Walks the markdown-it token stream directly and produces PlainTextBlock[]
  *
