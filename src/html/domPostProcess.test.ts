@@ -33,6 +33,15 @@ describe('domPostProcess', () => {
         expect(out).not.toContain('https://x/b.png');
     });
 
+    it('replaces raw HTML <img> with fallback when mapping is a symbol', () => {
+        const html = '<p>before <img src="https://x/s.png" alt="s"> after</p>';
+        const map = new Map<string, string | symbol>([['https://x/s.png', Symbol('embed-error')]]);
+        const out = postProcessHtml(html, { imageSrcMap: map });
+        expect(out).toContain('Image failed to load');
+        expect(out).not.toContain('<img');
+        expect(out).not.toContain('https://x/s.png');
+    });
+
     it('does not touch images inside pre/code', () => {
         const html = '<pre><code>&lt;img src="https://x/c.png"&gt;</code></pre>';
         const map = new Map<string, string>([['https://x/c.png', 'data:image/png;base64,Zm9v']]);

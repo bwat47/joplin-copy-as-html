@@ -22,8 +22,8 @@ import { defaultStylesheet } from '../defaultStylesheet';
 // Note: User-facing error messages are handled during DOM post-processing.
 // Any non-data URI value returned from the functions below will be treated as an error
 // and replaced with a generic "Image failed to load" text in domPostProcess.ts.
-// Keep a single error token here for simplicity and rely on detailed console logs for diagnosis.
-export const EMBED_ERROR_TOKEN = '__EMBED_ERROR__';
+// Use a Symbol as the error token to avoid collisions with real URLs.
+export const EMBED_ERROR_TOKEN = Symbol('embed-error');
 
 /**
  * Safely extracts a Buffer from a Joplin file object returned by the API.
@@ -97,7 +97,7 @@ function isMinimalJoplinResource(obj: unknown): obj is Pick<JoplinResource, 'id'
  * @param id 32-character hex Joplin resource ID
  * @returns data:image/* base64 URI or an HTML error <span>
  */
-export async function convertResourceToBase64(id: string): Promise<string> {
+export async function convertResourceToBase64(id: string): Promise<string | symbol> {
     if (!validateResourceId(id)) {
         console.warn(`[copy-as-html] Invalid Joplin resource ID: :/${id}`);
         return EMBED_ERROR_TOKEN;
@@ -164,7 +164,7 @@ export async function convertResourceToBase64(id: string): Promise<string> {
  * @param url HTTP/HTTPS image URL
  * @returns data:image/* base64 URI or an HTML error <span>
  */
-export async function downloadRemoteImageAsBase64(url: string): Promise<string> {
+export async function downloadRemoteImageAsBase64(url: string): Promise<string | symbol> {
     try {
         const controller = new AbortController();
         const response = await withTimeout(
@@ -331,8 +331,8 @@ export async function getUserStylesheet(): Promise<string> {
 export async function buildImageEmbedMap(
     urls: Set<string>,
     opts: { embedImages: boolean; downloadRemoteImages: boolean }
-): Promise<Map<string, string>> {
-    const out = new Map<string, string>();
+): Promise<Map<string, string | symbol>> {
+    const out = new Map<string, string | symbol>();
     if (!urls.size || !opts.embedImages) return out;
 
     // Classify and dedupe
@@ -353,7 +353,7 @@ export async function buildImageEmbedMap(
     }
 
     // Fetch once per unique id/url
-    const idResults = new Map<string, string>();
+    const idResults = new Map<string, string | symbol>();
     const jobs: Array<Promise<void>> = [];
 
     for (const id of joplinIds) {

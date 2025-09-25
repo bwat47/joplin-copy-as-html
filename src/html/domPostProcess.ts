@@ -39,7 +39,7 @@ function ensurePurifyHooks(): void {
 
 export function postProcessHtml(
     html: string,
-    opts?: { imageSrcMap?: Map<string, string>; stripJoplinImages?: boolean }
+    opts?: { imageSrcMap?: Map<string, string | symbol>; stripJoplinImages?: boolean }
 ): string {
     ensurePurifyHooks();
     const sanitizedHtml = purifyInstance.sanitize(html, {
@@ -188,8 +188,8 @@ export function postProcessHtml(
             }
 
             const mapped = opts?.imageSrcMap?.get(src);
-            if (mapped) {
-                if (mapped.startsWith('data:image/')) {
+            if (mapped !== undefined) {
+                if (typeof mapped === 'string' && mapped.startsWith('data:image/')) {
                     img.setAttribute('src', mapped);
                 } else {
                     // Replace the <img> with a consistent inline error message
