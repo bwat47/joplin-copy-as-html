@@ -95,7 +95,7 @@ function isMinimalJoplinResource(obj: unknown): obj is Pick<JoplinResource, 'id'
  * Validates the ID, ensures the resource is an image, enforces size limits,
  * and returns a user-visible error span on failure.
  * @param id 32-character hex Joplin resource ID
- * @returns data:image/* base64 URI or an HTML error <span>
+ * @returns data:image/* base64 URI or error symbol
  */
 export async function convertResourceToBase64(id: string): Promise<string | symbol> {
     if (!validateResourceId(id)) {
@@ -162,7 +162,7 @@ export async function convertResourceToBase64(id: string): Promise<string | symb
  * Downloads a remote image and converts it to a base64 data URI.
  * Validates Content-Type and size; on failure returns a user-visible error span.
  * @param url HTTP/HTTPS image URL
- * @returns data:image/* base64 URI or an HTML error <span>
+ * @returns data:image/* base64 URI or error symbol
  */
 export async function downloadRemoteImageAsBase64(url: string): Promise<string | symbol> {
     try {
