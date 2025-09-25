@@ -20,7 +20,6 @@ import { validateHtmlSettings } from './utils';
 import { createMarkdownItInstance } from './html/markdownSetup';
 import { getUserStylesheet, buildImageEmbedMap } from './html/assetProcessor';
 import { collectImageUrls } from './html/tokenImageCollector';
-import { installImageSwapRule } from './html/imageRendererRule';
 import { postProcessHtml } from './html/domPostProcess';
 
 /**
@@ -65,7 +64,6 @@ export async function processHtmlConversion(selection: string, options?: HtmlOpt
     });
 
     // 5. Install renderer rule for markdown image tokens
-    installImageSwapRule(md, imageSrcMap, htmlOptions);
 
     // 6. Render synchronously
     let html = md.render(selection);
