@@ -13,55 +13,17 @@
  */
 
 import joplin from 'api';
-import { CONSTANTS, HTML_CONSTANTS, LINK_RESOURCE_MATCHERS } from '../constants';
+import { CONSTANTS, LINK_RESOURCE_MATCHERS } from '../constants';
 import { JoplinFileData, JoplinResource } from '../types';
 import * as fs from 'fs/promises';
 import * as path from 'path';
 import { defaultStylesheet } from '../defaultStylesheet';
 
-/**
- * Creates a consistent error HTML span for resource errors.
- * @param message The error message to display.
- * @param italic Whether to italicize the message.
- * @returns HTML span string.
- */
-function escapeHtml(value: string): string {
-    return value.replace(/[&<>"']/g, (char) => {
-        switch (char) {
-            case '&':
-                return '&amp;';
-            case '<':
-                return '&lt;';
-            case '>':
-                return '&gt;';
-            case '"':
-                return '&quot;';
-            case "'":
-                return '&#39;';
-            default:
-                return char;
-        }
-    });
-}
-
-function createErrorSpan(message: string, italic = false): string {
-    const style = `color: ${HTML_CONSTANTS.ERROR_COLOR};${italic ? ' font-style: italic;' : ''}`;
-    return `<span style="${style}">${escapeHtml(message)}</span>`;
-}
-
-/**
- * Creates a standardized error span for resource errors.
- */
-function createResourceError(id: string, reason: string): string {
-    return createErrorSpan(`Resource ":/${id}" ${reason}`);
-}
-
-/**
- * Creates a standardized error span for remote image errors.
- */
-function createRemoteImageError(url: string, reason: string): string {
-    return createErrorSpan(`Remote image ${url} ${reason}`);
-}
+// Note: User-facing error messages are handled during DOM post-processing.
+// Any non-data URI value returned from the functions below will be treated as an error
+// and replaced with a generic "Image failed to load" text in domPostProcess.ts.
+// Keep a single error token here for simplicity and rely on detailed console logs for diagnosis.
+export const EMBED_ERROR_TOKEN = '__EMBED_ERROR__';
 
 /**
  * Safely extracts a Buffer from a Joplin file object returned by the API.
@@ -137,23 +99,27 @@ function isMinimalJoplinResource(obj: unknown): obj is Pick<JoplinResource, 'id'
  */
 export async function convertResourceToBase64(id: string): Promise<string> {
     if (!validateResourceId(id)) {
-        return createResourceError(id, 'is not a valid Joplin resource ID.');
+        console.warn(`[copy-as-html] Invalid Joplin resource ID: :/${id}`);
+        return EMBED_ERROR_TOKEN;
     }
     try {
         const rawResource = await joplin.data.get(['resources', id], { fields: ['id', 'mime'] });
 
         // Not found: preserve existing combined not-found/not-image messaging
         if (!rawResource) {
-            return createResourceError(id, 'could not be found or is not an image.');
+            console.warn(`[copy-as-html] Resource not found or not an image: :/${id}`);
+            return EMBED_ERROR_TOKEN;
         }
 
         // Validate shape before casting to avoid runtime crashes on unexpected data
         if (!isMinimalJoplinResource(rawResource)) {
-            return createResourceError(id, 'metadata could not be retrieved');
+            console.warn(`[copy-as-html] Resource metadata invalid for :/${id}`);
+            return EMBED_ERROR_TOKEN;
         }
 
         if (!rawResource.mime.toLowerCase().startsWith('image/')) {
-            return createResourceError(id, 'could not be found or is not an image.');
+            console.warn(`[copy-as-html] Resource is not an image: :/${id} (${rawResource.mime})`);
+            return EMBED_ERROR_TOKEN;
         }
 
         // Use timeout wrapper to ensure cleanup
@@ -168,10 +134,12 @@ export async function convertResourceToBase64(id: string): Promise<string> {
 
             // Check file size limits
             if (fileBuffer.length > CONSTANTS.MAX_IMAGE_SIZE_BYTES) {
-                return createResourceError(
-                    id,
-                    `is too large (${Math.round(fileBuffer.length / 1024 / 1024)}MB). Maximum size: ${Math.round(CONSTANTS.MAX_IMAGE_SIZE_BYTES / 1024 / 1024)}MB`
+                console.warn(
+                    `[copy-as-html] Resource too large: :/${id} is ${Math.round(fileBuffer.length / 1024 / 1024)}MB (max ${Math.round(
+                        CONSTANTS.MAX_IMAGE_SIZE_BYTES / 1024 / 1024
+                    )}MB)`
                 );
+                return EMBED_ERROR_TOKEN;
             } else if (fileBuffer.length > CONSTANTS.MAX_IMAGE_SIZE_WARNING) {
                 console.warn(
                     `[copy-as-html] Large image detected: Resource :/${id} is ${Math.round(fileBuffer.length / 1024 / 1024)}MB`
@@ -179,14 +147,14 @@ export async function convertResourceToBase64(id: string): Promise<string> {
             }
         } catch (err) {
             const msg = err && err.message ? err.message : String(err);
-            return createResourceError(id, `could not be retrieved: ${msg}`);
+            console.error(`[copy-as-html] Error retrieving resource file :/${id}: ${msg}`);
+            return EMBED_ERROR_TOKEN;
         }
         const base64 = fileBuffer.toString('base64');
         return `data:${rawResource.mime};base64,${base64}`;
     } catch (err) {
         console.error(`[copy-as-html] Failed to convert resource :/${id} to base64:`, err);
-        const msg = err && err.message ? err.message : err;
-        return createResourceError(id, `could not be retrieved: ${msg}`);
+        return EMBED_ERROR_TOKEN;
     }
 }
 
@@ -216,28 +184,35 @@ export async function downloadRemoteImageAsBase64(url: string): Promise<string> 
         );
 
         if (!response.ok) {
-            return createRemoteImageError(url, `download failed: ${response.status} ${response.statusText}`);
+            console.warn(
+                `[copy-as-html] Remote image download failed ${url}: ${response.status} ${response.statusText}`
+            );
+            return EMBED_ERROR_TOKEN;
         }
 
         const contentType = response.headers.get('content-type');
         if (!contentType?.startsWith('image/')) {
-            return createRemoteImageError(url, `is not an image (Content-Type: ${contentType})`);
+            console.warn(`[copy-as-html] Remote content is not an image ${url} (Content-Type: ${contentType})`);
+            return EMBED_ERROR_TOKEN;
         }
 
         const contentLengthHeader = response.headers.get('content-length');
         if (contentLengthHeader) {
             const declaredSize = Number(contentLengthHeader);
             if (!Number.isNaN(declaredSize) && declaredSize > CONSTANTS.MAX_IMAGE_SIZE_BYTES) {
-                return createRemoteImageError(
-                    url,
-                    `is too large (${Math.round(declaredSize / 1024 / 1024)}MB). Maximum size: ${Math.round(CONSTANTS.MAX_IMAGE_SIZE_BYTES / 1024 / 1024)}MB`
+                console.warn(
+                    `[copy-as-html] Remote image too large ${url}: ${Math.round(declaredSize / 1024 / 1024)}MB (max ${Math.round(
+                        CONSTANTS.MAX_IMAGE_SIZE_BYTES / 1024 / 1024
+                    )}MB)`
                 );
+                return EMBED_ERROR_TOKEN;
             }
         }
 
         const stream = response.body;
         if (!stream) {
-            return createRemoteImageError(url, 'could not read response body');
+            console.warn(`[copy-as-html] Remote image had no readable body: ${url}`);
+            return EMBED_ERROR_TOKEN;
         }
 
         const chunks: Buffer[] = [];
@@ -277,7 +252,8 @@ export async function downloadRemoteImageAsBase64(url: string): Promise<string> 
                     if (!value) continue;
                     if (!handleChunk(value)) {
                         await reader.cancel();
-                        return createRemoteImageError(url, 'exceeded maximum size during download');
+                        console.warn(`[copy-as-html] Remote image exceeded maximum size during download: ${url}`);
+                        return EMBED_ERROR_TOKEN;
                     }
                 }
             } finally {
@@ -291,12 +267,14 @@ export async function downloadRemoteImageAsBase64(url: string): Promise<string> 
                         if (typeof asyncIterable.destroy === 'function') {
                             asyncIterable.destroy();
                         }
-                        return createRemoteImageError(url, 'exceeded maximum size during download');
+                        console.warn(`[copy-as-html] Remote image exceeded maximum size during download: ${url}`);
+                        return EMBED_ERROR_TOKEN;
                     }
                 }
             } catch (streamErr) {
                 const msg = (streamErr as Error)?.message ?? String(streamErr);
-                return createRemoteImageError(url, `download failed: ${msg}`);
+                console.warn(`[copy-as-html] Remote image stream error ${url}: ${msg}`);
+                return EMBED_ERROR_TOKEN;
             }
         } else {
             const arrayBuffer = await response.arrayBuffer();
@@ -306,10 +284,12 @@ export async function downloadRemoteImageAsBase64(url: string): Promise<string> 
         }
 
         if (totalSize > CONSTANTS.MAX_IMAGE_SIZE_BYTES) {
-            return createRemoteImageError(
-                url,
-                `is too large (${Math.round(totalSize / 1024 / 1024)}MB). Maximum size: ${Math.round(CONSTANTS.MAX_IMAGE_SIZE_BYTES / 1024 / 1024)}MB`
+            console.warn(
+                `[copy-as-html] Remote image too large after download ${url}: ${Math.round(totalSize / 1024 / 1024)}MB (max ${Math.round(
+                    CONSTANTS.MAX_IMAGE_SIZE_BYTES / 1024 / 1024
+                )}MB)`
             );
+            return EMBED_ERROR_TOKEN;
         }
 
         if (totalSize > CONSTANTS.MAX_IMAGE_SIZE_WARNING) {
@@ -321,8 +301,7 @@ export async function downloadRemoteImageAsBase64(url: string): Promise<string> 
         return `data:${contentType};base64,${base64}`;
     } catch (err) {
         console.error('[copy-as-html] Failed to download remote image:', url, err);
-        const msg = err?.message || String(err);
-        return createRemoteImageError(url, `download failed: ${msg}`);
+        return EMBED_ERROR_TOKEN;
     }
 }
 

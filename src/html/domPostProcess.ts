@@ -5,7 +5,7 @@
  * This includes:
  * - Sanitizing HTML
  * - Cleaning up Joplin-specific resource links
- * - Image embedding (for raw html img, markdown images handled by imageRendererRule.ts)
+ * - Image embedding
  *
  * @author bwat47
  * @since 1.1.8

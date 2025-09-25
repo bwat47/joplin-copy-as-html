@@ -6,8 +6,7 @@
  * - markdownSetup: Configures markdown-it with Joplin-compatible plugins.
  * - tokenImageCollector: Pre-scans tokens to collect image URLs outside code.
  * - assetProcessor: Builds a URL→dataURI map (with validation) and loads stylesheet.
- * - imageRendererRule: Swaps markdown image src using the prebuilt map.
- * - domPostProcess: Cleans the final HTML using DOMParser and DOMPurify, and rewrites raw HTML <img>.
+ * - domPostProcess: Cleans the final HTML using DOMParser and DOMPurify, embeds images.
  *
  * @author bwat47
  * @since 1.0.16
@@ -63,17 +62,15 @@ export async function processHtmlConversion(selection: string, options?: HtmlOpt
         downloadRemoteImages: htmlOptions.downloadRemoteImages,
     });
 
-    // 5. Install renderer rule for markdown image tokens
-
-    // 6. Render synchronously
+    // 5. Render synchronously
     let html = md.render(selection);
 
-    // 7. DOM pass for raw HTML <img> (and anchor cleanup, sanitization)
+    // 6. DOM pass: sanitize, normalize, and handle all <img> via imageSrcMap
     html = postProcessHtml(html, { imageSrcMap, stripJoplinImages: !htmlOptions.embedImages });
 
     let fragment = html.trim();
 
-    // 8. Optionally wrap in a full HTML document
+    // 7. Optionally wrap in a full HTML document
     if (htmlOptions.exportFullHtml) {
         const stylesheet = await getUserStylesheet();
         fragment = `<!DOCTYPE html>

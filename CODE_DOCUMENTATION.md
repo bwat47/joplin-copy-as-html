@@ -34,8 +34,7 @@
 
 - Pre-scan tokens to find image sources (`tokenImageCollector.ts`).
 - Build an embed map in `assetProcessor.ts`: resolve Joplin resources, optionally fetch remote images, and convert to base64.
-- Render markdown-it output using a custom image rule (`imageRendererRule.ts`) that swaps `src` values or strips disallowed images.
-- Sanitize and normalize the document in `domPostProcess.ts` with DOMPurify: patch internal links, wrap lone `<img>` elements, and apply embed map updates for raw HTML images.
+- Sanitize and normalize the document in `domPostProcess.ts` with DOMPurify: patch internal links, wrap lone `<img>` elements, and apply embed map updates for all images (both markdown-rendered and raw HTML).
 
 ### Plain Text Pipeline (`plainTextCollector.ts`)
 
