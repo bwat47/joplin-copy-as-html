@@ -323,7 +323,7 @@ export async function getUserStylesheet(): Promise<string> {
 }
 
 /**
- * Build a map of original image URL -> embedded value (data URI or error span),
+ * Build a map of original image URL -> embedded value (data URI or error token),
  * based on plugin options. Only returns mappings for URLs we intend to embed.
  * - Joplin resources (:/id, joplin://resource/id) are embedded when `embedImages` is true.
  * - Remote http(s) images are embedded when both `embedImages` and `downloadRemoteImages` are true.
