@@ -155,18 +155,13 @@ export async function createMarkdownItInstance(opts: MarkdownItFactoryOptions = 
 
     // GitHub alert blocks (e.g. > [!note]) - always enable if available; harmless if syntax unused
     if (markdownItGithubAlerts) {
-        const loaded = safePluginUse(
+        safePluginUse(
             md,
             markdownItGithubAlerts,
             { matchCaseSensitive: false, icons: {} }, // disable inline SVG icons for better email client compatibility
             'markdown-it-github-alerts',
             debug
         );
-        if (!loaded) {
-            if (debug) console.warn('[copy-as-html] Failed to load markdown-it-github-alerts via safePluginUse');
-        } else if (debug) {
-            console.log('[copy-as-html] markdown-it-github-alerts plugin registered');
-        }
     }
 
     // Replicate Joplin's non-image resource link marker so later cleanup still works
