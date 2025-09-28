@@ -46,11 +46,7 @@ function selectPreferredFunction(
     return [plugin[fallbackKey] as MarkdownItPlugin, fallbackKey];
 }
 
-function resolveCommonJsPlugin(
-    plugin: unknown,
-    pluginName: string,
-    debug: boolean
-): MarkdownItPlugin | undefined {
+function resolveCommonJsPlugin(plugin: unknown, pluginName: string, debug: boolean): MarkdownItPlugin | undefined {
     if (typeof plugin === 'function') {
         return plugin as MarkdownItPlugin;
     }
@@ -107,8 +103,6 @@ export function safeRequire<T>(factory: () => T, moduleId: string, logPrefix: st
 
 /**
  * Safe plugin loader that handles potential import issues.
- * This is the complex function that was hard to get right,
- * so we share it to avoid duplicating the logic.
  */
 export function safePluginUse(
     md: MarkdownIt,
@@ -135,7 +129,10 @@ export function safePluginUse(
                 }
                 console.warn(`[copy-as-html] Plugin ${pluginName} object:`, plugin);
             } else {
-                console.warn(`[copy-as-html] Could not find callable plugin function for ${pluginName}. Received:`, plugin);
+                console.warn(
+                    `[copy-as-html] Could not find callable plugin function for ${pluginName}. Received:`,
+                    plugin
+                );
             }
             return false;
         }
