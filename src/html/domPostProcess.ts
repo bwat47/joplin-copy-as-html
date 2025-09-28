@@ -124,7 +124,7 @@ export function postProcessHtml(
             'style',
             'class',
             'id',
-            'data-*', // for any legitimate data attributes
+            'data-resource-id',
             // Tables
             'colspan',
             'rowspan',
@@ -145,7 +145,6 @@ export function postProcessHtml(
         ],
         FORBID_TAGS: ['script', 'iframe', 'object', 'embed', 'form'],
         FORBID_ATTR: ['onload', 'onerror', 'onclick'], // Remove event handlers
-        ALLOW_DATA_ATTR: true,
     });
 
     // Check if we have any Joplin resource links or images to process
