@@ -20,6 +20,28 @@ import { processHtmlConversion } from './htmlRenderer';
 import { convertMarkdownToPlainText } from './plainTextRenderer';
 import { validatePlainTextSettings, validateHtmlSettings } from './utils';
 
+async function getMarkdownSelection(commandLabel: string): Promise<string | null> {
+    const showToast = async (message: string, type: ToastType = ToastType.Info) => {
+        await joplin.views.dialogs.showToast({ message, type });
+    };
+
+    try {
+        const selection = await joplin.commands.execute('editor.execCommand', { name: 'getSelection' });
+        if (typeof selection !== 'string') {
+            await showToast(`${commandLabel}: This command only works in the Markdown editor.`);
+            return null;
+        }
+        if (!selection.length) {
+            await showToast('No text selected.');
+            return null;
+        }
+        return selection;
+    } catch {
+        await showToast(`${commandLabel}: This command only works in the Markdown editor.`);
+        return null;
+    }
+}
+
 joplin.plugins.register({
     onStart: async function () {
         // Register main HTML copy command FIRST to avoid keyboard shortcut bug
@@ -29,26 +51,8 @@ joplin.plugins.register({
             iconName: 'fas fa-copy',
             execute: async () => {
                 try {
-                    // Safely attempt to get selection (only valid in Markdown editor)
-                    let selection: string | null = null;
-                    try {
-                        selection = await joplin.commands.execute('editor.execCommand', { name: 'getSelection' });
-                    } catch {
-                        // Swallow; will handle below
-                    }
-
-                    if (typeof selection !== 'string') {
-                        await joplin.views.dialogs.showToast({
-                            message: 'Copy as HTML: This command only works in the Markdown editor.',
-                            type: ToastType.Info,
-                        });
-                        return;
-                    }
-
-                    if (!selection) {
-                        await joplin.views.dialogs.showToast({ message: 'No text selected.', type: ToastType.Info });
-                        return;
-                    }
+                    const selection = await getMarkdownSelection('Copy as HTML');
+                    if (!selection) return;
 
                     // Gather and validate HTML settings
                     const htmlSettings = {
@@ -81,26 +85,8 @@ joplin.plugins.register({
             iconName: 'fas fa-copy',
             execute: async () => {
                 try {
-                    // Safely attempt to get selection (only valid in Markdown editor)
-                    let selection: string | null = null;
-                    try {
-                        selection = await joplin.commands.execute('editor.execCommand', { name: 'getSelection' });
-                    } catch {
-                        // Swallow; will handle below
-                    }
-
-                    if (typeof selection !== 'string') {
-                        await joplin.views.dialogs.showToast({
-                            message: 'Copy as Plain Text: This command only works in the Markdown editor.',
-                            type: ToastType.Info,
-                        });
-                        return;
-                    }
-
-                    if (!selection) {
-                        await joplin.views.dialogs.showToast({ message: 'No text selected.', type: ToastType.Info });
-                        return;
-                    }
+                    const selection = await getMarkdownSelection('Copy as Plain Text');
+                    if (!selection) return;
 
                     // Gather settings
                     const plainTextSettings = {
