@@ -16,7 +16,8 @@
 - `src/index.ts` – plugin entry point: registers settings/commands, clipboard flow, context menu filtering.
 - `src/constants.ts` / `src/types.ts` – shared configuration, string constants, and TypeScript contracts.
 - `src/utils.ts` – validation helpers, error formatting, timeout wrappers.
-- `src/pluginUtils.ts` – resilient markdown-it plugin loader; shared by both renderers.
+- `src/pluginUtils.ts` – resilient CommonJS markdown-it plugin loader utilities; shared by both renderers.
+- `src/esmPluginLoader.ts` – async loader and cache for bundling-friendly ESM markdown-it plugins.
 - `src/html/` – HTML renderer pipeline (`htmlRenderer.ts`, `assetProcessor.ts`, `domPostProcess.ts`, `markdownSetup.ts`).
 - `src/plainText/` – plain text pipeline (`plainTextCollector.ts`, `plainTextFormatter.ts`, `tokenRenderers.ts`, `markdownSetup.ts`).
 - Tests live beside source (`*.test.ts`). `tests/` directory is unused.
@@ -26,7 +27,7 @@
 ### Shared Flow
 
 1. Obtain settings and current Markdown via Joplin API.
-2. Build a markdown-it instance configured by `pluginUtils.ts` to reflect Joplin's plugin settings.
+2. Build a markdown-it instance configured by `pluginUtils.ts` and `esmPluginLoader.ts` to reflect Joplin's plugin settings.
 3. Run either the HTML or plain text pipeline.
 4. Copy the result to the clipboard and show toast feedback. Errors surface as notifications and console logs.
 
@@ -44,7 +45,8 @@
 
 ### Notable Modules
 
-- `pluginUtils.ts` – Detects CommonJS/ESM/default exports to load markdown-it plugins consistently, logs clear failures, and avoids duplicate logic.
+- `pluginUtils.ts` – Resolves CommonJS export patterns, wraps `md.use`, and provides consistent logging for plugin failures.
+- `esmPluginLoader.ts` – Dynamically imports ESM plugins with caching, falling back to runtime `import()` when needed and surfacing load failures.
 - `utils.ts` – Houses `withTimeout`, resource ID parsing, and option validation shared across pipelines.
 - `defaultStylesheet.ts` – Injected when `exportFullHtml` is enabled to produce a complete HTML document.
 - `testHelpers.ts` – Fixtures and mocks for renderer tests.
