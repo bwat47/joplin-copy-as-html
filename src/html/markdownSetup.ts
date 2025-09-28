@@ -14,7 +14,7 @@ import MarkdownIt from 'markdown-it';
 import { JOPLIN_SETTINGS, PLUGIN_DEFAULTS, HTML_CONSTANTS, LINK_RESOURCE_MATCHERS } from '../constants';
 import { safeGetGlobalSetting } from '../utils';
 import { safePluginUse, loadPluginsConditionally, safeRequire } from '../pluginUtils';
-import { getGithubAlertsPlugin } from '../esmPluginLoader';
+import { getGithubAlertsPlugin, getTaskListPlugin } from '../esmPluginLoader';
 
 // Import plugins with shared helper for robustness
 const markdownItMark = safeRequire(() => require('markdown-it-mark'), 'markdown-it-mark', '[copy-as-html]');
@@ -30,17 +30,12 @@ const markdownItMultimdTable = safeRequire(
     'markdown-it-multimd-table',
     '[copy-as-html]'
 );
-const markdownItTocDoneRight = safeRequire(
-    () => require('markdown-it-toc-done-right'),
-    'markdown-it-toc-done-right',
+const markdownItTableOfContents = safeRequire(
+    () => require('markdown-it-table-of-contents'),
+    'markdown-it-table-of-contents',
     '[copy-as-html]'
 );
 const markdownItAnchor = safeRequire(() => require('markdown-it-anchor'), 'markdown-it-anchor', '[copy-as-html]');
-const markdownItTaskLists = safeRequire(
-    () => require('markdown-it-task-lists'),
-    'markdown-it-task-lists',
-    '[copy-as-html]'
-);
 
 /**
  * Creates and configures a markdown-it instance based on Joplin's global settings.
@@ -52,7 +47,10 @@ export interface MarkdownItFactoryOptions {
 
 export async function createMarkdownItInstance(opts: MarkdownItFactoryOptions = {}): Promise<MarkdownIt> {
     const { debug = false } = opts;
-    const markdownItGithubAlerts = await getGithubAlertsPlugin();
+    const [markdownItGithubAlerts, markdownItTaskList] = await Promise.all([
+        getGithubAlertsPlugin(),
+        getTaskListPlugin(),
+    ]);
     // Get Joplin global settings with safe fallbacks
     const [
         globalSubEnabled,
@@ -136,13 +134,14 @@ export async function createMarkdownItInstance(opts: MarkdownItFactoryOptions = 
             },
             {
                 enabled: globalTocEnabled,
-                plugin: markdownItTocDoneRight,
-                name: 'markdown-it-toc-done-right',
+                plugin: markdownItTableOfContents,
+                name: 'markdown-it-table-of-contents',
                 options: {
-                    placeholder: HTML_CONSTANTS.TOC_PLACEHOLDER_PATTERN,
+                    markerPattern: new RegExp(`^${HTML_CONSTANTS.TOC_PLACEHOLDER_PATTERN}`, 'im'),
                     slugify: (s: string) => s.trim().toLowerCase().replace(/\s+/g, '-'),
                     containerId: HTML_CONSTANTS.TOC_CONTAINER_ID,
                     listType: 'ul',
+                    includeLevel: [1, 2, 3, 4, 5, 6],
                 },
             },
         ],
@@ -150,8 +149,8 @@ export async function createMarkdownItInstance(opts: MarkdownItFactoryOptions = 
     );
 
     // Add task list support (checkboxes) - always enabled since it's core Joplin functionality
-    if (markdownItTaskLists) {
-        safePluginUse(md, markdownItTaskLists, { enabled: true, lineNumber: false }, 'markdown-it-task-lists', debug);
+    if (markdownItTaskList) {
+        safePluginUse(md, markdownItTaskList, { label: true, disabled: true }, '@mdit/plugin-tasklist', debug);
     }
 
     // GitHub alert blocks (e.g. > [!note]) - always enable if available; harmless if syntax unused

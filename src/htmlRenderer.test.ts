@@ -599,10 +599,12 @@ Final content.`;
         const result = await processHtmlConversion(markdown);
 
         // Should contain task list elements
+        expect(result).toContain('class="task-list-container"');
+        expect(result).toContain('class="task-list-item"');
+        expect(result).toContain('class="task-list-item-checkbox"');
         expect(result).toContain('type="checkbox"');
-        expect(result).toContain('checked=""');
-        expect(result).toContain('class="task-list-item');
-        expect(result).toContain('class="contains-task-list"');
+        expect(result).toContain('checked="checked"');
+        expect(result).toContain('disabled="disabled"');
         expect(result).toContain('Completed task');
         expect(result).toContain('Incomplete task');
     });
