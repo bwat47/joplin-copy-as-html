@@ -21,6 +21,18 @@ export function registerESMPlugin(packageName: string, importer: ESMImporter): v
     esmImporters[packageName] = importer;
 }
 
+async function tryDynamicImportFallback(packageName: string): Promise<Record<string, unknown> | null> {
+    try {
+        const dynamicImport = new Function('specifier', 'return import(specifier);') as (
+            specifier: string
+        ) => Promise<unknown>;
+        return (await dynamicImport(packageName)) as Record<string, unknown>;
+    } catch (fallbackError) {
+        console.warn(`[copy-as-html] Dynamic import fallback failed for ${packageName}:`, fallbackError);
+        return null;
+    }
+}
+
 export async function loadESMPlugin(packageName: string, exportName: string = 'default'): Promise<ESMPlugin | null> {
     const cacheKey = `${packageName}:${exportName}`;
     const cached = esmPluginCache.get(cacheKey);
@@ -44,23 +56,15 @@ export async function loadESMPlugin(packageName: string, exportName: string = 'd
         try {
             moduleNamespace = (await importer()) as Record<string, unknown>;
         } catch (error) {
-            if ((error as { code?: string })?.code === 'ERR_REQUIRE_ESM') {
-                try {
-                    const dynamicImport = new Function('specifier', 'return import(specifier);') as (
-                        specifier: string
-                    ) => Promise<unknown>;
-                    moduleNamespace = (await dynamicImport(packageName)) as Record<string, unknown>;
-                } catch (fallbackError) {
-                    console.warn(
-                        `[copy-as-html] Failed to load ESM plugin ${packageName} via dynamic import:`,
-                        fallbackError
-                    );
-                    return null;
-                }
-            } else {
+            if ((error as { code?: string })?.code !== 'ERR_REQUIRE_ESM') {
                 console.warn(`[copy-as-html] Failed to load ESM plugin ${packageName}:`, error);
                 return null;
             }
+            const fallbackModule = await tryDynamicImportFallback(packageName);
+            if (!fallbackModule) {
+                return null;
+            }
+            moduleNamespace = fallbackModule;
         }
 
         const exportCandidate = moduleNamespace[exportName] ?? moduleNamespace.default ?? moduleNamespace;
