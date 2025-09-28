@@ -27,7 +27,7 @@ input {
 code,
 kbd,
 pre {
-	font-family: 'Aptos Mono', 'Cascadia Code', 'Consolas', 'Source Code Pro', Menlo, Monaco, 'Liberation Mono', monospace;
+	font-family: 'Aptos Mono', 'Cascadia Mono', 'Consolas', 'Source Code Pro', Menlo, Monaco, 'Liberation Mono', monospace;
 }
 
 pre {
