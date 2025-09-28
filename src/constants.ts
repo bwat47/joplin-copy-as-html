@@ -33,7 +33,6 @@ export const CONSTANTS = {
     REMOTE_TIMEOUT_MS: 10000, //10s
     MAX_IMAGE_SIZE_BYTES: 15 * 1024 * 1024, // 15MB limit
     MAX_IMAGE_SIZE_WARNING: 10 * 1024 * 1024, // 10MB warning threshold
-    JOPLIN_RESOURCE_ID_LENGTH: 32,
     // Generic User-Agent for remote image fetches to improve compatibility
     // while avoiding detailed browser impersonation.
     REMOTE_IMAGE_USER_AGENT: 'Mozilla/5.0',
@@ -78,6 +77,8 @@ export const LINK_RESOURCE_MATCHERS: RegExp[] = [
     /^:\/([a-f0-9]{32})(?:$|[/?#])/i,
     /^joplin:\/\/resource\/([a-f0-9]{32})(?:$|[/?#])/i,
 ];
+
+export const RESOURCE_ID_REGEX = /^[a-f0-9]{32}$/i;
 
 // Plain text renderer specific (values not already in CONSTANTS)
 export const PLAIN_TEXT_CONSTANTS = {

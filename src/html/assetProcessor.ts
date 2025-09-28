@@ -13,7 +13,7 @@
  */
 
 import joplin from 'api';
-import { CONSTANTS, LINK_RESOURCE_MATCHERS } from '../constants';
+import { CONSTANTS, LINK_RESOURCE_MATCHERS, RESOURCE_ID_REGEX } from '../constants';
 import { JoplinFileData, JoplinResource } from '../types';
 import * as fs from 'fs/promises';
 import * as path from 'path';
@@ -49,8 +49,7 @@ function extractFileBuffer(fileObj: JoplinFileData): Buffer {
  * @returns True if valid, false otherwise.
  */
 function validateResourceId(id: string): boolean {
-    const idRegex = new RegExp(`^[a-f0-9]{${CONSTANTS.JOPLIN_RESOURCE_ID_LENGTH}}$`, 'i');
-    return !!id && typeof id === 'string' && idRegex.test(id);
+    return typeof id === 'string' && id.length === 32 && RESOURCE_ID_REGEX.test(id);
 }
 
 /**
