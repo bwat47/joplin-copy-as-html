@@ -276,6 +276,7 @@ export async function downloadRemoteImageAsBase64(url: string): Promise<string |
                 return EMBED_ERROR_TOKEN;
             }
         } else {
+            // Fallback for environments where fetch responses are not streamable (e.g., unit tests)
             const arrayBuffer = await response.arrayBuffer();
             const buffer = Buffer.from(arrayBuffer);
             chunks.push(buffer);
