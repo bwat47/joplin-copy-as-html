@@ -14,6 +14,7 @@ import MarkdownIt from 'markdown-it';
 import { JOPLIN_SETTINGS, PLUGIN_DEFAULTS, HTML_CONSTANTS, LINK_RESOURCE_MATCHERS } from '../constants';
 import { safeGetGlobalSetting } from '../utils';
 import { safePluginUse, loadPluginsConditionally, safeRequire } from '../pluginUtils';
+import { getGithubAlertsPlugin } from '../esmPluginLoader';
 
 // Import plugins with shared helper for robustness
 const markdownItMark = safeRequire(() => require('markdown-it-mark'), 'markdown-it-mark', '[copy-as-html]');
@@ -40,9 +41,6 @@ const markdownItTaskLists = safeRequire(
     'markdown-it-task-lists',
     '[copy-as-html]'
 );
-let markdownItGithubAlerts: unknown;
-// markdown-it-github-alerts is ESM-only (see upstream repo commit: fc388da324182abd23b5acc5a8e16f93ddf771fe). We'll load it via dynamic import
-// inside createMarkdownItInstance. Keeping a placeholder variable for later assignment.
 
 /**
  * Creates and configures a markdown-it instance based on Joplin's global settings.
@@ -54,16 +52,7 @@ export interface MarkdownItFactoryOptions {
 
 export async function createMarkdownItInstance(opts: MarkdownItFactoryOptions = {}): Promise<MarkdownIt> {
     const { debug = false } = opts;
-    // If github alerts plugin not resolved via require (e.g., pure ESM resolution issues), attempt dynamic import here
-    if (!markdownItGithubAlerts) {
-        try {
-            const mod: unknown = await import('markdown-it-github-alerts');
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            markdownItGithubAlerts = (mod as any).default || mod;
-        } catch (e) {
-            console.warn('[copy-as-html] markdown-it-github-alerts dynamic import failed:', e);
-        }
-    }
+    const markdownItGithubAlerts = await getGithubAlertsPlugin();
     // Get Joplin global settings with safe fallbacks
     const [
         globalSubEnabled,
