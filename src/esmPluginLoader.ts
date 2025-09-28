@@ -63,7 +63,8 @@ export async function loadESMPlugin(packageName: string, exportName: string = 'd
     return plugin;
 }
 
-// Specific loaders that handle factory patterns explicitly
+// Convenience functions for specific plugins
+// If you encounter a factory pattern, handle it explicitly
 export async function getGithubAlertsPlugin(): Promise<ESMPlugin | null> {
     return loadESMPlugin('markdown-it-github-alerts', 'default');
 }

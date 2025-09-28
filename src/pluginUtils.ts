@@ -3,15 +3,14 @@
 /**
  * @fileoverview Plugin Loading Utilities - Safe markdown-it plugin management
  *
- * Provides robust loading of markdown-it plugins that handles diverse export patterns.
+ * Provides robust loading of CommonJS markdown-it plugins that handle diverse export patterns.
  *
  * The challenge: Different npm packages export plugins in various ways:
  * - Direct function exports: `module.exports = function(md) {...}`
  * - Object exports: `module.exports = {plugin: function(md) {...}}`
  * - Multi-function exports: `module.exports = {bare: fn1, full: fn2, light: fn3}`
- * - ES module exports: `export default function(md) {...}`
  *
- * This module automatically detects and handles all these patterns, with special
+ * This module automatically detects and handles these CommonJS patterns, with special
  * logic for complex plugins like markdown-it-emoji that export multiple variants.
  *
  * Originally developed to solve plugin loading conflicts between HTML and plain text
@@ -25,18 +24,8 @@ import MarkdownIt = require('markdown-it');
 
 type MarkdownItPlugin = (md: MarkdownIt, options?: unknown) => void;
 
-interface PluginDetectionStrategy {
-    name: string;
-    test: (plugin: unknown) => boolean;
-    extract: (plugin: unknown, ctx: { pluginName: string; debug: boolean }) => MarkdownItPlugin | undefined;
-}
-
 function isObject(plugin: unknown): plugin is Record<string, unknown> {
     return typeof plugin === 'object' && plugin !== null;
-}
-
-function hasCallableProperty(plugin: unknown, key: string): plugin is Record<string, unknown> {
-    return isObject(plugin) && typeof plugin[key] === 'function';
 }
 
 function collectFunctionKeys(plugin: Record<string, unknown>): string[] {
@@ -57,99 +46,52 @@ function selectPreferredFunction(
     return [plugin[fallbackKey] as MarkdownItPlugin, fallbackKey];
 }
 
-/**
- * Plugin detection strategies in priority order.
- *
- * Order matters:
- * 1. Direct functions (most common, fastest check)
- * 2. Known property names (common patterns)
- * 3. Generic object inspection (catch-all)
- *
- * Later strategies are only tried if earlier ones fail.
- */
-const strategies: PluginDetectionStrategy[] = [
-    {
-        name: 'direct-function',
-        test: (plugin) => typeof plugin === 'function',
-        extract: (plugin) => plugin as MarkdownItPlugin,
-    },
-    {
-        name: 'es-module-default',
-        test: (plugin) => hasCallableProperty(plugin, 'default'),
-        extract: (plugin) => (plugin as { default: unknown }).default as MarkdownItPlugin,
-    },
-    {
-        name: 'plugin-property',
-        test: (plugin) => hasCallableProperty(plugin, 'plugin'),
-        extract: (plugin) => (plugin as { plugin: unknown }).plugin as MarkdownItPlugin,
-    },
-    {
-        name: 'markdownit-property',
-        test: (plugin) => hasCallableProperty(plugin, 'markdownit'),
-        extract: (plugin) => (plugin as { markdownit: unknown }).markdownit as MarkdownItPlugin,
-    },
-    {
-        name: 'render-property',
-        test: (plugin) => hasCallableProperty(plugin, 'render'),
-        extract: (plugin) => (plugin as { render: unknown }).render as MarkdownItPlugin,
-    },
-    {
-        name: 'parse-property',
-        test: (plugin) => hasCallableProperty(plugin, 'parse'),
-        extract: (plugin) => (plugin as { parse: unknown }).parse as MarkdownItPlugin,
-    },
-    {
-        name: 'full-property',
-        test: (plugin) => hasCallableProperty(plugin, 'full'),
-        extract: (plugin) => (plugin as { full: unknown }).full as MarkdownItPlugin,
-    },
-    {
-        name: 'light-property',
-        test: (plugin) => hasCallableProperty(plugin, 'light'),
-        extract: (plugin) => (plugin as { light: unknown }).light as MarkdownItPlugin,
-    },
-    {
-        name: 'bare-property',
-        test: (plugin) => hasCallableProperty(plugin, 'bare'),
-        extract: (plugin) => (plugin as { bare: unknown }).bare as MarkdownItPlugin,
-    },
-    {
-        name: 'single-function-object',
-        test: (plugin) => {
-            if (!isObject(plugin)) return false;
-            const funcKeys = collectFunctionKeys(plugin);
-            return funcKeys.length === 1;
-        },
-        extract: (plugin) => {
-            const objectPlugin = plugin as Record<string, unknown>;
-            const funcKeys = collectFunctionKeys(objectPlugin);
-            if (!funcKeys.length) return undefined;
-            const key = funcKeys[0];
-            return objectPlugin[key] as MarkdownItPlugin;
-        },
-    },
-    {
-        name: 'multi-function-object',
-        test: (plugin) => {
-            if (!isObject(plugin)) return false;
-            const funcKeys = collectFunctionKeys(plugin);
-            return funcKeys.length > 1;
-        },
-        extract: (plugin, ctx) => {
-            const objectPlugin = plugin as Record<string, unknown>;
-            const funcKeys = collectFunctionKeys(objectPlugin);
-            if (!funcKeys.length) return undefined;
-            if (ctx.debug) {
-                console.log(`[copy-as-html] Plugin ${ctx.pluginName} has multiple functions:`, funcKeys);
+function resolveCommonJsPlugin(
+    plugin: unknown,
+    pluginName: string,
+    debug: boolean
+): MarkdownItPlugin | undefined {
+    if (typeof plugin === 'function') {
+        return plugin as MarkdownItPlugin;
+    }
+
+    if (!isObject(plugin)) {
+        return undefined;
+    }
+
+    const commonKeys = ['default', 'plugin'];
+    for (const key of commonKeys) {
+        const candidate = plugin[key];
+        if (typeof candidate === 'function') {
+            if (debug) {
+                console.log(`[copy-as-html] Plugin ${pluginName} selected property: ${key}`);
             }
-            const [selected, key] = selectPreferredFunction(objectPlugin, funcKeys);
-            if (ctx.debug && key) {
-                console.log(`[copy-as-html] Plugin ${ctx.pluginName} selected function: ${key}`);
-            }
-            return selected;
-        },
-    },
-];
+            return candidate as MarkdownItPlugin;
+        }
+    }
+
+    const funcKeys = collectFunctionKeys(plugin);
+    if (funcKeys.length === 0) {
+        return undefined;
+    }
+
+    if (funcKeys.length === 1) {
+        const key = funcKeys[0];
+        if (debug) {
+            console.log(`[copy-as-html] Plugin ${pluginName} using sole function export: ${key}`);
+        }
+        return plugin[key] as MarkdownItPlugin;
+    }
+
+    if (debug) {
+        console.log(`[copy-as-html] Plugin ${pluginName} has multiple function exports:`, funcKeys);
+    }
+    const [selected, key] = selectPreferredFunction(plugin, funcKeys);
+    if (debug && key) {
+        console.log(`[copy-as-html] Plugin ${pluginName} preferred function export: ${key}`);
+    }
+    return selected;
+}
 
 /**
  * Safely require a module and emit a consistent warning when it cannot be loaded.
@@ -181,20 +123,7 @@ export function safePluginUse(
     }
 
     try {
-        let pluginFunc: MarkdownItPlugin | undefined;
-        for (const strategy of strategies) {
-            if (!strategy.test(plugin)) {
-                continue;
-            }
-            pluginFunc = strategy.extract(plugin, { pluginName, debug });
-            if (pluginFunc) {
-                if (debug) {
-                    console.log(`[copy-as-html] Plugin ${pluginName} matched strategy: ${strategy.name}`);
-                }
-                break;
-            }
-        }
-
+        const pluginFunc = resolveCommonJsPlugin(plugin, pluginName, debug);
         if (!pluginFunc) {
             if (isObject(plugin)) {
                 const availableKeys = Object.keys(plugin);
@@ -206,10 +135,7 @@ export function safePluginUse(
                 }
                 console.warn(`[copy-as-html] Plugin ${pluginName} object:`, plugin);
             } else {
-                console.warn(
-                    `[copy-as-html] Could not find callable plugin function for ${pluginName} in:`,
-                    Object.keys(plugin || {})
-                );
+                console.warn(`[copy-as-html] Could not find callable plugin function for ${pluginName}. Received:`, plugin);
             }
             return false;
         }
