@@ -17,6 +17,7 @@ import joplin from 'api';
 import { SettingItemType, ToastType, MenuItemLocation } from 'api/types';
 import { SETTINGS } from './constants';
 import { processHtmlConversion } from './htmlRenderer';
+import type { PlainTextOptions } from './types';
 import { convertMarkdownToPlainText } from './plainTextRenderer';
 import { validatePlainTextSettings, validateHtmlSettings } from './utils';
 
@@ -42,6 +43,42 @@ async function getMarkdownSelection(commandLabel: string): Promise<string | null
     }
 }
 
+async function resolvePlainTextRenderingConfig(): Promise<{ plainTextOptions: PlainTextOptions; debug: boolean }> {
+    const plainTextSettings = {
+        preserveSuperscript: await joplin.settings.value(SETTINGS.PRESERVE_SUPERSCRIPT),
+        preserveSubscript: await joplin.settings.value(SETTINGS.PRESERVE_SUBSCRIPT),
+        preserveEmphasis: await joplin.settings.value(SETTINGS.PRESERVE_EMPHASIS),
+        preserveBold: await joplin.settings.value(SETTINGS.PRESERVE_BOLD),
+        preserveHeading: await joplin.settings.value(SETTINGS.PRESERVE_HEADING),
+        preserveStrikethrough: await joplin.settings.value(SETTINGS.PRESERVE_STRIKETHROUGH),
+        preserveHorizontalRule: await joplin.settings.value(SETTINGS.PRESERVE_HORIZONTAL_RULE),
+        preserveMark: await joplin.settings.value(SETTINGS.PRESERVE_MARK),
+        preserveInsert: await joplin.settings.value(SETTINGS.PRESERVE_INSERT),
+        displayEmojis: await joplin.settings.value(SETTINGS.DISPLAY_EMOJIS),
+        hyperlinkBehavior: await joplin.settings.value(SETTINGS.HYPERLINK_BEHAVIOR),
+        indentType: await joplin.settings.value(SETTINGS.INDENT_TYPE),
+    };
+    const plainTextOptions = validatePlainTextSettings(plainTextSettings);
+
+    let debug = false;
+    try {
+        debug = await joplin.settings.value(SETTINGS.DEBUG);
+    } catch {
+        // ignore - default to false when setting missing (tests)
+    }
+
+    return { plainTextOptions, debug };
+}
+
+function extractFirstDataUriImage(html: string): string | null {
+    // Grab the first embedded data URI image in the rendered HTML output.
+    const doubleQuoteMatch = html.match(/src\s*=\s*"(data:image\/[^"]+)"/i);
+    if (doubleQuoteMatch) return doubleQuoteMatch[1];
+    const singleQuoteMatch = html.match(/src\s*=\s*'(data:image\/[^']+)'/i);
+    return singleQuoteMatch ? singleQuoteMatch[1] : null;
+}
+
+
 joplin.plugins.register({
     onStart: async function () {
         // Register main HTML copy command FIRST to avoid keyboard shortcut bug
@@ -63,9 +100,21 @@ joplin.plugins.register({
                     const htmlOptions = validateHtmlSettings(htmlSettings);
 
                     const html = await processHtmlConversion(selection, htmlOptions);
-                    await joplin.clipboard.writeHtml(html);
+                    const { plainTextOptions, debug } = await resolvePlainTextRenderingConfig();
+                    const plainText = convertMarkdownToPlainText(selection, plainTextOptions, debug);
+                    const embeddedImage = extractFirstDataUriImage(html);
+                    const clipboardPayload: { html: string; text: string; image?: string } = {
+                        html,
+                        text: plainText,
+                    };
+                    if (embeddedImage) {
+                        clipboardPayload.image = embeddedImage;
+                    }
+                    await joplin.clipboard.writeMultiple(clipboardPayload);
                     await joplin.views.dialogs.showToast({
-                        message: 'Copied selection as HTML!',
+                        message: embeddedImage
+                            ? 'Copied selection with HTML, plain text, and image!'
+                            : 'Copied selection with HTML and plain text!',
                         type: ToastType.Success,
                     });
                 } catch (err) {
@@ -88,31 +137,7 @@ joplin.plugins.register({
                     const selection = await getMarkdownSelection('Copy as Plain Text');
                     if (!selection) return;
 
-                    // Gather settings
-                    const plainTextSettings = {
-                        preserveSuperscript: await joplin.settings.value(SETTINGS.PRESERVE_SUPERSCRIPT),
-                        preserveSubscript: await joplin.settings.value(SETTINGS.PRESERVE_SUBSCRIPT),
-                        preserveEmphasis: await joplin.settings.value(SETTINGS.PRESERVE_EMPHASIS),
-                        preserveBold: await joplin.settings.value(SETTINGS.PRESERVE_BOLD),
-                        preserveHeading: await joplin.settings.value(SETTINGS.PRESERVE_HEADING),
-                        preserveStrikethrough: await joplin.settings.value(SETTINGS.PRESERVE_STRIKETHROUGH),
-                        preserveHorizontalRule: await joplin.settings.value(SETTINGS.PRESERVE_HORIZONTAL_RULE),
-                        preserveMark: await joplin.settings.value(SETTINGS.PRESERVE_MARK),
-                        preserveInsert: await joplin.settings.value(SETTINGS.PRESERVE_INSERT),
-                        displayEmojis: await joplin.settings.value(SETTINGS.DISPLAY_EMOJIS),
-                        hyperlinkBehavior: await joplin.settings.value(SETTINGS.HYPERLINK_BEHAVIOR),
-                        indentType: await joplin.settings.value(SETTINGS.INDENT_TYPE),
-                    };
-                    const plainTextOptions = validatePlainTextSettings(plainTextSettings);
-
-                    // Get debug setting for plugin loading logs
-                    let debug = false;
-                    try {
-                        debug = await joplin.settings.value(SETTINGS.DEBUG);
-                    } catch {
-                        // ignore - use default false
-                    }
-
+                    const { plainTextOptions, debug } = await resolvePlainTextRenderingConfig();
                     const plainText = convertMarkdownToPlainText(selection, plainTextOptions, debug);
                     await joplin.clipboard.writeText(plainText);
                     await joplin.views.dialogs.showToast({
