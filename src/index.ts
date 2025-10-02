@@ -42,6 +42,33 @@ async function getMarkdownSelection(commandLabel: string): Promise<string | null
     }
 }
 
+async function resolvePlainTextRenderingConfig() {
+    const plainTextSettings = {
+        preserveSuperscript: await joplin.settings.value(SETTINGS.PRESERVE_SUPERSCRIPT),
+        preserveSubscript: await joplin.settings.value(SETTINGS.PRESERVE_SUBSCRIPT),
+        preserveEmphasis: await joplin.settings.value(SETTINGS.PRESERVE_EMPHASIS),
+        preserveBold: await joplin.settings.value(SETTINGS.PRESERVE_BOLD),
+        preserveHeading: await joplin.settings.value(SETTINGS.PRESERVE_HEADING),
+        preserveStrikethrough: await joplin.settings.value(SETTINGS.PRESERVE_STRIKETHROUGH),
+        preserveHorizontalRule: await joplin.settings.value(SETTINGS.PRESERVE_HORIZONTAL_RULE),
+        preserveMark: await joplin.settings.value(SETTINGS.PRESERVE_MARK),
+        preserveInsert: await joplin.settings.value(SETTINGS.PRESERVE_INSERT),
+        displayEmojis: await joplin.settings.value(SETTINGS.DISPLAY_EMOJIS),
+        hyperlinkBehavior: await joplin.settings.value(SETTINGS.HYPERLINK_BEHAVIOR),
+        indentType: await joplin.settings.value(SETTINGS.INDENT_TYPE),
+    };
+    const plainTextOptions = validatePlainTextSettings(plainTextSettings);
+
+    let debug = false;
+    try {
+        debug = await joplin.settings.value(SETTINGS.DEBUG);
+    } catch {
+        // ignore - use default false
+    }
+
+    return { plainTextOptions, debug };
+}
+
 joplin.plugins.register({
     onStart: async function () {
         // Register main HTML copy command FIRST to avoid keyboard shortcut bug
@@ -63,6 +90,25 @@ joplin.plugins.register({
                     const htmlOptions = validateHtmlSettings(htmlSettings);
 
                     const html = await processHtmlConversion(selection, htmlOptions);
+
+                    const clipboard = joplin.clipboard as unknown as {
+                        write?: (formats: { html?: string; text?: string }) => Promise<void>;
+                    };
+                    if (typeof clipboard.write === 'function') {
+                        try {
+                            const { plainTextOptions, debug } = await resolvePlainTextRenderingConfig();
+                            const plainText = convertMarkdownToPlainText(selection, plainTextOptions, debug);
+                            await joplin.clipboard.writeMultiple({ html, text: plainText });
+                            await joplin.views.dialogs.showToast({
+                                message: 'Copied selection as HTML (with plain text fallback)!',
+                                type: ToastType.Success,
+                            });
+                            return;
+                        } catch (multiFormatError) {
+                            console.warn('[copy-as-html] clipboard.write failed, falling back:', multiFormatError);
+                        }
+                    }
+
                     await joplin.clipboard.writeHtml(html);
                     await joplin.views.dialogs.showToast({
                         message: 'Copied selection as HTML!',
@@ -88,31 +134,7 @@ joplin.plugins.register({
                     const selection = await getMarkdownSelection('Copy as Plain Text');
                     if (!selection) return;
 
-                    // Gather settings
-                    const plainTextSettings = {
-                        preserveSuperscript: await joplin.settings.value(SETTINGS.PRESERVE_SUPERSCRIPT),
-                        preserveSubscript: await joplin.settings.value(SETTINGS.PRESERVE_SUBSCRIPT),
-                        preserveEmphasis: await joplin.settings.value(SETTINGS.PRESERVE_EMPHASIS),
-                        preserveBold: await joplin.settings.value(SETTINGS.PRESERVE_BOLD),
-                        preserveHeading: await joplin.settings.value(SETTINGS.PRESERVE_HEADING),
-                        preserveStrikethrough: await joplin.settings.value(SETTINGS.PRESERVE_STRIKETHROUGH),
-                        preserveHorizontalRule: await joplin.settings.value(SETTINGS.PRESERVE_HORIZONTAL_RULE),
-                        preserveMark: await joplin.settings.value(SETTINGS.PRESERVE_MARK),
-                        preserveInsert: await joplin.settings.value(SETTINGS.PRESERVE_INSERT),
-                        displayEmojis: await joplin.settings.value(SETTINGS.DISPLAY_EMOJIS),
-                        hyperlinkBehavior: await joplin.settings.value(SETTINGS.HYPERLINK_BEHAVIOR),
-                        indentType: await joplin.settings.value(SETTINGS.INDENT_TYPE),
-                    };
-                    const plainTextOptions = validatePlainTextSettings(plainTextSettings);
-
-                    // Get debug setting for plugin loading logs
-                    let debug = false;
-                    try {
-                        debug = await joplin.settings.value(SETTINGS.DEBUG);
-                    } catch {
-                        // ignore - use default false
-                    }
-
+                    const { plainTextOptions, debug } = await resolvePlainTextRenderingConfig();
                     const plainText = convertMarkdownToPlainText(selection, plainTextOptions, debug);
                     await joplin.clipboard.writeText(plainText);
                     await joplin.views.dialogs.showToast({
