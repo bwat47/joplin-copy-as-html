@@ -34,7 +34,7 @@ async function getMarkdownSelection(commandLabel: string): Promise<string | null
         }
         if (!selection.length) {
             await showToast('No text selected.');
-            return null;
+            return '';
         }
         return selection;
     } catch {
@@ -88,7 +88,7 @@ joplin.plugins.register({
             execute: async () => {
                 try {
                     const selection = await getMarkdownSelection('Copy as HTML');
-                    if (!selection) return;
+                    if (selection === null) return;
 
                     // Gather and validate HTML settings
                     const htmlSettings = {
@@ -97,6 +97,11 @@ joplin.plugins.register({
                         downloadRemoteImages: await joplin.settings.value(SETTINGS.DOWNLOAD_REMOTE_IMAGES),
                     };
                     const htmlOptions = validateHtmlSettings(htmlSettings);
+
+                    if (!selection.length) {
+                        await joplin.clipboard.write({});
+                        return;
+                    }
 
                     const html = await processHtmlConversion(selection, htmlOptions);
                     const { plainTextOptions, debug } = await resolvePlainTextRenderingConfig();
@@ -134,7 +139,7 @@ joplin.plugins.register({
             execute: async () => {
                 try {
                     const selection = await getMarkdownSelection('Copy as Plain Text');
-                    if (!selection) return;
+                    if (selection === null) return;
 
                     const { plainTextOptions, debug } = await resolvePlainTextRenderingConfig();
                     const plainText = convertMarkdownToPlainText(selection, plainTextOptions, debug);
