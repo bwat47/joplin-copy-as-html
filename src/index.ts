@@ -78,7 +78,6 @@ function extractFirstDataUriImage(html: string): string | null {
     return singleQuoteMatch ? singleQuoteMatch[1] : null;
 }
 
-
 joplin.plugins.register({
     onStart: async function () {
         // Register main HTML copy command FIRST to avoid keyboard shortcut bug
@@ -110,7 +109,7 @@ joplin.plugins.register({
                     if (embeddedImage) {
                         clipboardPayload.image = embeddedImage;
                     }
-                    await joplin.clipboard.writeMultiple(clipboardPayload);
+                    await joplin.clipboard.write(clipboardPayload);
                     await joplin.views.dialogs.showToast({
                         message: embeddedImage
                             ? 'Copied selection with HTML, plain text, and image!'
