@@ -36,5 +36,5 @@ export default class JoplinClipboard {
      *
      * <span class="platform-desktop">desktop</span>
      */
-    writeMultiple(content: ClipboardContent): Promise<void>;
+    write(content: ClipboardContent): Promise<void>;
 }

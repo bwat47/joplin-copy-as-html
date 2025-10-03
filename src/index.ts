@@ -98,7 +98,7 @@ joplin.plugins.register({
                         try {
                             const { plainTextOptions, debug } = await resolvePlainTextRenderingConfig();
                             const plainText = convertMarkdownToPlainText(selection, plainTextOptions, debug);
-                            await joplin.clipboard.writeMultiple({ html, text: plainText });
+                            await joplin.clipboard.write({ html, text: plainText });
                             await joplin.views.dialogs.showToast({
                                 message: 'Copied selection as HTML (with plain text fallback)!',
                                 type: ToastType.Success,
