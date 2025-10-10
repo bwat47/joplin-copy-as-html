@@ -13,6 +13,9 @@ The primary use case is copying text from Joplin and pasting formatted text into
 
 This will populate the clipboard's text/html category with the HTML formatted text.
 
+> [!NOTE]
+> In Joplin 3.5.4 and newer, it will populate both text/html and text/plain (allowing you to paste either formatted or plain text).
+
 ### Embed images as base64
 
 By default, the plugin will embed any images as base64 in the text/html output, allowing you paste text + images into external applications. However, this can be disabled in the plugin's settings.
@@ -131,8 +134,3 @@ Copy as Plain Text supports the markdown-it emoji plugin, so emoji such as :whit
 
 - The plugin's keyboard shortcuts sometimes don't work on cold start of Joplin, can be fixed by toggling editors or going to Tools | Options | Keyboard Shortcuts and back.
 - When using the "Full Document" mode for custom css styling, the full HTML document will be nested under another `<html>`/`<body>` in the clipboard. I don't think there's a way to fix this without having access to electron clipboard API. Nested html/body (while not technically valid HTML) is the best solution I found (doesn't seem to cause issues pasting into other apps and is the same thing that the obsidian copy document as html plugin does).
-
-## Misc
-
-> [!NOTE]
-> I originally wanted to implement a single action that populated both the text/html and the text/plain clipboard categories (allowing you to seamlessly paste as rich text or plain text), but this currently doesn't seem possible due limitations with joplin's clipboard API. The joplin clipboard API doesn't appear to allow writing both text/html and text/plain at the same time... you only get one or the other (if I'm wrong about this, please let me know!)
