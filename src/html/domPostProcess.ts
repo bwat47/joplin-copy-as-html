@@ -39,7 +39,7 @@ function ensurePurifyHooks(): void {
 
 export function postProcessHtml(
     html: string,
-    opts?: { imageSrcMap?: Map<string, string | symbol>; stripJoplinImages?: boolean }
+    opts?: { imageSrcMap?: Map<string, string | null>; stripJoplinImages?: boolean }
 ): string {
     ensurePurifyHooks();
     const sanitizedHtml = purifyInstance.sanitize(html, {

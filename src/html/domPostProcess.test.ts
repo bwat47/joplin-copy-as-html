@@ -18,7 +18,7 @@ beforeEach(() => {
 describe('domPostProcess', () => {
     it('rewrites raw HTML <img> src from map', () => {
         const html = '<p>before <img src="https://x/a.png" alt="a"> after</p>';
-        const map = new Map<string, string>([['https://x/a.png', 'data:image/png;base64,QUJD']]);
+        const map = new Map<string, string | null>([['https://x/a.png', 'data:image/png;base64,QUJD']]);
         const out = postProcessHtml(html, { imageSrcMap: map });
         expect(out).toContain('src="data:image/png;base64,QUJD"');
         expect(out).not.toContain('https://x/a.png');
@@ -26,16 +26,16 @@ describe('domPostProcess', () => {
 
     it('replaces raw HTML <img> with fallback message when mapping fails', () => {
         const html = '<p>before <img src="https://x/b.png" alt="b"> after</p>';
-        const map = new Map<string, string>([['https://x/b.png', '<span>ignored</span>']]);
+        const map = new Map<string, string | null>([['https://x/b.png', '<span>ignored</span>']]);
         const out = postProcessHtml(html, { imageSrcMap: map });
         expect(out).toContain('Image failed to load');
         expect(out).not.toContain('<img');
         expect(out).not.toContain('https://x/b.png');
     });
 
-    it('replaces raw HTML <img> with fallback when mapping is a symbol', () => {
+    it('replaces raw HTML <img> with fallback when mapping resolves to null', () => {
         const html = '<p>before <img src="https://x/s.png" alt="s"> after</p>';
-        const map = new Map<string, string | symbol>([['https://x/s.png', Symbol('embed-error')]]);
+        const map = new Map<string, string | null>([['https://x/s.png', null]]);
         const out = postProcessHtml(html, { imageSrcMap: map });
         expect(out).toContain('Image failed to load');
         expect(out).not.toContain('<img');

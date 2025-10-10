@@ -20,10 +20,10 @@ import * as path from 'path';
 import { defaultStylesheet } from '../defaultStylesheet';
 
 // Note: User-facing error messages are handled during DOM post-processing.
-// Any non-data URI value returned from the functions below will be treated as an error
-// and replaced with a generic "Image failed to load" text in domPostProcess.ts.
-// Use a Symbol as the error token to avoid collisions with real URLs.
-export const EMBED_ERROR_TOKEN = Symbol('embed-error');
+// Any return value that is not a data URI (doesn't begin with "data:image/") is treated as a failure
+// and replaced with a generic "Image failed to load" text in domPostProcess.ts. We return `null` for
+// errors so the type stays simple and there's no risk of colliding with real URLs.
+export const EMBED_ERROR_TOKEN: null = null;
 
 /**
  * Safely extracts a Buffer from a Joplin file object returned by the API.
@@ -94,9 +94,9 @@ function isMinimalJoplinResource(obj: unknown): obj is Pick<JoplinResource, 'id'
  * Validates the ID, ensures the resource is an image, enforces size limits,
  * and returns a user-visible error span on failure.
  * @param id 32-character hex Joplin resource ID
- * @returns data:image/* base64 URI or error symbol
+ * @returns data:image/* base64 URI or null on failure
  */
-export async function convertResourceToBase64(id: string): Promise<string | symbol> {
+export async function convertResourceToBase64(id: string): Promise<string | null> {
     if (!validateResourceId(id)) {
         console.warn(`[copy-as-html] Invalid Joplin resource ID: :/${id}`);
         return EMBED_ERROR_TOKEN;
@@ -161,9 +161,9 @@ export async function convertResourceToBase64(id: string): Promise<string | symb
  * Downloads a remote image and converts it to a base64 data URI.
  * Validates Content-Type and size; on failure returns a user-visible error span.
  * @param url HTTP/HTTPS image URL
- * @returns data:image/* base64 URI or error symbol
+ * @returns data:image/* base64 URI or null on failure
  */
-export async function downloadRemoteImageAsBase64(url: string): Promise<string | symbol> {
+export async function downloadRemoteImageAsBase64(url: string): Promise<string | null> {
     try {
         const controller = new AbortController();
         const response = await withTimeout(
@@ -323,7 +323,7 @@ export async function getUserStylesheet(): Promise<string> {
 }
 
 /**
- * Build a map of original image URL -> embedded value (data URI or error token),
+ * Build a map of original image URL -> embedded value (data URI or null),
  * based on plugin options. Only returns mappings for URLs we intend to embed.
  * - Joplin resources (:/id, joplin://resource/id) are embedded when `embedImages` is true.
  * - Remote http(s) images are embedded when both `embedImages` and `downloadRemoteImages` are true.
@@ -331,8 +331,8 @@ export async function getUserStylesheet(): Promise<string> {
 export async function buildImageEmbedMap(
     urls: Set<string>,
     opts: { embedImages: boolean; downloadRemoteImages: boolean }
-): Promise<Map<string, string | symbol>> {
-    const out = new Map<string, string | symbol>();
+): Promise<Map<string, string | null>> {
+    const out = new Map<string, string | null>();
     if (!urls.size || !opts.embedImages) return out;
 
     // Classify and dedupe
@@ -353,7 +353,7 @@ export async function buildImageEmbedMap(
     }
 
     // Fetch once per unique id/url
-    const idResults = new Map<string, string | symbol>();
+    const idResults = new Map<string, string | null>();
     const jobs: Array<Promise<void>> = [];
 
     for (const id of joplinIds) {
