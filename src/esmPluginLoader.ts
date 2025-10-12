@@ -4,12 +4,7 @@ import type MarkdownIt from 'markdown-it';
 type ESMPlugin = (md: MarkdownIt, options?: unknown) => void;
 type ESMImporter = () => Promise<unknown>;
 
-interface CacheEntry {
-    plugin: ESMPlugin | null;
-    promise?: Promise<ESMPlugin | null>;
-}
-
-const esmPluginCache = new Map<string, CacheEntry>();
+const esmPluginCache = new Map<string, Promise<ESMPlugin | null>>();
 const esmImporters: Record<string, ESMImporter> = {
     // Keep explicit mapping so Webpack can statically include these modules in the bundle.
     'markdown-it-github-alerts': () =>
@@ -36,13 +31,8 @@ async function tryDynamicImportFallback(packageName: string): Promise<Record<str
 export async function loadESMPlugin(packageName: string, exportName: string = 'default'): Promise<ESMPlugin | null> {
     const cacheKey = `${packageName}:${exportName}`;
     const cached = esmPluginCache.get(cacheKey);
-
-    if (cached && !cached.promise) {
-        return cached.plugin;
-    }
-
-    if (cached && cached.promise) {
-        return cached.promise;
+    if (cached) {
+        return cached;
     }
 
     const importer = esmImporters[packageName];
@@ -51,7 +41,7 @@ export async function loadESMPlugin(packageName: string, exportName: string = 'd
         return null;
     }
 
-    const importPromise = (async (): Promise<ESMPlugin | null> => {
+    const importPromise: Promise<ESMPlugin | null> = (async (): Promise<ESMPlugin | null> => {
         let moduleNamespace: Record<string, unknown>;
         try {
             moduleNamespace = (await importer()) as Record<string, unknown>;
@@ -77,11 +67,9 @@ export async function loadESMPlugin(packageName: string, exportName: string = 'd
         return exportCandidate as ESMPlugin;
     })();
 
-    esmPluginCache.set(cacheKey, { plugin: null, promise: importPromise });
-    const plugin = await importPromise;
-    esmPluginCache.set(cacheKey, { plugin });
+    esmPluginCache.set(cacheKey, importPromise);
 
-    return plugin;
+    return importPromise;
 }
 
 // Convenience functions for specific plugins
