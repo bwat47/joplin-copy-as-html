@@ -91,10 +91,7 @@ joplin.plugins.register({
 
                     const html = await processHtmlConversion(selection, htmlOptions);
 
-                    const clipboard = joplin.clipboard as unknown as {
-                        write?: (formats: { html?: string; text?: string }) => Promise<void>;
-                    };
-                    if (typeof clipboard.write === 'function') {
+                    if (typeof joplin.clipboard.write === 'function') {
                         try {
                             const { plainTextOptions, debug } = await resolvePlainTextRenderingConfig();
                             const plainText = convertMarkdownToPlainText(selection, plainTextOptions, debug);
