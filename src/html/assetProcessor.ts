@@ -58,25 +58,22 @@ function validateResourceId(id: string): boolean {
 async function withTimeout<T>(
     promise: Promise<T>,
     timeoutMs: number,
-    errorMessage: string = 'Operation timed out',
-    onTimeout?: () => void
+    errorMessage: string = 'Operation timed out'
 ): Promise<T> {
-    let timeoutId: NodeJS.Timeout;
+    let timeoutId: NodeJS.Timeout | undefined;
 
     const timeoutPromise = new Promise<never>((_, reject) => {
         timeoutId = setTimeout(() => {
-            try {
-                onTimeout?.();
-            } finally {
-                reject(new Error(errorMessage));
-            }
+            reject(new Error(errorMessage));
         }, timeoutMs);
     });
 
     try {
         return await Promise.race([promise, timeoutPromise]);
     } finally {
-        clearTimeout(timeoutId);
+        if (timeoutId !== undefined) {
+            clearTimeout(timeoutId);
+        }
     }
 }
 
@@ -164,8 +161,8 @@ export async function convertResourceToBase64(id: string): Promise<string | null
  * @returns data:image/* base64 URI or null on failure
  */
 export async function downloadRemoteImageAsBase64(url: string): Promise<string | null> {
+    const controller = new AbortController();
     try {
-        const controller = new AbortController();
         const response = await withTimeout(
             fetch(url, {
                 // Avoid leaking cookies/referrer in Electron/Hybrid environments
@@ -178,8 +175,7 @@ export async function downloadRemoteImageAsBase64(url: string): Promise<string |
                 signal: controller.signal,
             }),
             CONSTANTS.REMOTE_TIMEOUT_MS,
-            'Remote image download timeout',
-            () => controller.abort()
+            'Remote image download timeout'
         );
 
         if (!response.ok) {
@@ -300,6 +296,9 @@ export async function downloadRemoteImageAsBase64(url: string): Promise<string |
         const base64 = buffer.toString('base64');
         return `data:${contentType};base64,${base64}`;
     } catch (err) {
+        if (!controller.signal.aborted) {
+            controller.abort();
+        }
         console.error('[copy-as-html] Failed to download remote image:', url, err);
         return EMBED_ERROR_TOKEN;
     }
