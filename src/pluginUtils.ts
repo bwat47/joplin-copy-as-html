@@ -3,15 +3,12 @@
 /**
  * @fileoverview Plugin Loading Utilities - Safe markdown-it plugin management
  *
- * Provides robust loading of CommonJS markdown-it plugins that handle diverse export patterns.
+ * Resolves CommonJS plugin exports into a callable markdown-it plugin function.
  *
- * The challenge: Different npm packages export plugins in various ways:
- * - Direct function exports: `module.exports = function(md) {...}`
- * - Object exports: `module.exports = {plugin: function(md) {...}}`
- * - Multi-function exports: `module.exports = {bare: fn1, full: fn2, light: fn3}`
- *
- * This module automatically detects and handles these CommonJS patterns, with special
- * logic for complex plugins like markdown-it-emoji that export multiple variants.
+ * The markdown-it plugins that we use have various different export patterns:
+ * 1. Direct function export (most plugins)
+ * 2. ESM-style { default: fn } (markdown-it-anchor)
+ * 3. Multiple named exports (markdown-it-emoji: bare/full/light)
  *
  * @author bwat47
  * @since 1.1.0
@@ -33,7 +30,7 @@ function selectPreferredFunction(
     plugin: Record<string, unknown>,
     keys: string[]
 ): [MarkdownItPlugin | undefined, string | undefined] {
-    const priority = ['full', 'default'];
+    const priority = ['full', 'default', 'plugin'];
     for (const preferred of priority) {
         if (keys.includes(preferred)) {
             return [plugin[preferred] as MarkdownItPlugin, preferred];
@@ -52,17 +49,6 @@ function resolveCommonJsPlugin(plugin: unknown, pluginName: string, debug: boole
         return undefined;
     }
 
-    const commonKeys = ['default', 'plugin'];
-    for (const key of commonKeys) {
-        const candidate = plugin[key];
-        if (typeof candidate === 'function') {
-            if (debug) {
-                console.log(`[copy-as-html] Plugin ${pluginName} selected property: ${key}`);
-            }
-            return candidate as MarkdownItPlugin;
-        }
-    }
-
     const funcKeys = collectFunctionKeys(plugin);
     if (funcKeys.length === 0) {
         return undefined;
@@ -71,7 +57,7 @@ function resolveCommonJsPlugin(plugin: unknown, pluginName: string, debug: boole
     if (funcKeys.length === 1) {
         const key = funcKeys[0];
         if (debug) {
-            console.log(`[copy-as-html] Plugin ${pluginName} using sole function export: ${key}`);
+            console.log(`[copy-as-html] Plugin ${pluginName} using export: ${key}`);
         }
         return plugin[key] as MarkdownItPlugin;
     }
