@@ -220,11 +220,12 @@ export async function downloadRemoteImageAsBase64(url: string): Promise<string |
 
         const handleChunk = (chunk: Buffer | Uint8Array): boolean => {
             const bufferChunk = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
-            totalSize += bufferChunk.length;
-            if (totalSize > CONSTANTS.MAX_IMAGE_SIZE_BYTES) {
+            if (totalSize + bufferChunk.length > CONSTANTS.MAX_IMAGE_SIZE_BYTES) {
+                chunks.length = 0;
                 abortForSize();
                 return false;
             }
+            totalSize += bufferChunk.length;
             chunks.push(bufferChunk);
             return true;
         };
