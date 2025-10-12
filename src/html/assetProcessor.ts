@@ -296,11 +296,13 @@ export async function downloadRemoteImageAsBase64(url: string): Promise<string |
         const base64 = buffer.toString('base64');
         return `data:${contentType};base64,${base64}`;
     } catch (err) {
+        controller.abort();
+        console.error('[copy-as-html] Failed to download remote image:', url, err);
+        return EMBED_ERROR_TOKEN;
+    } finally {
         if (!controller.signal.aborted) {
             controller.abort();
         }
-        console.error('[copy-as-html] Failed to download remote image:', url, err);
-        return EMBED_ERROR_TOKEN;
     }
 }
 
