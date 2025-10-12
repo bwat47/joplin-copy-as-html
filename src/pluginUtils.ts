@@ -13,9 +13,6 @@
  * This module automatically detects and handles these CommonJS patterns, with special
  * logic for complex plugins like markdown-it-emoji that export multiple variants.
  *
- * Originally developed to solve plugin loading conflicts between HTML and plain text
- * renderers, now shared to eliminate code duplication and ensure consistency.
- *
  * @author bwat47
  * @since 1.1.0
  */
