@@ -77,6 +77,10 @@ The plugin will adhere to Joplin's settings for whether or not to render:
 > [!note]
 > Mermaid/Math are not supported, they will render as plain text (code).
 
+### Freehand Drawing/Excalidraw
+
+These embed the drawings as joplin image resources (svg), and the plugin will embed them as base64 as it does other images. SVG images may have compatibility issues with certain editors (conversion to bitmap images is not currently supported).
+
 #### Github Alerts
 
 Github Alert syntax, (e.g. `>[!NOTE]`) is supported via the markdown-it-github-alerts plugin. In order for github alerts to be rendered nicely, you must be using the Full document mode with CSS styling targeting the .markdown-alert classes. The default [stylesheet](https://github.com/bwat47/joplin-copy-as-html/blob/main/src/defaultStylesheet.ts) contains styling for github alerts, example:
