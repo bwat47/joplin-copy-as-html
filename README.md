@@ -7,6 +7,8 @@ This plugin allows you to copy selected text in the markdown editor as either HT
 
 The primary use case is copying text from Joplin and pasting formatted text into other apps that support HTML formatting (e.g. pasting text into an Outlook email). A plain text fallback is provided for scenarios where you need to paste text into an application that supports neither HTML formatting nor markdown.
 
+![copy-as-html-gif](https://github.com/user-attachments/assets/a46ef4fe-b54a-485d-81ca-62700fecf022)
+
 ## Copy as HTML
 
 "Copy selection as HTML" is provided as a right click context menu option and as a keyboard shortcut (ctrl + shift + c by default).
