@@ -23,4 +23,7 @@ module.exports = {
     moduleNameMapper: {
         '^api$': '<rootDir>/api',
     },
+
+    // Setup file to run before all tests (centralizes API mocks)
+    setupFilesAfterEnv: ['<rootDir>/src/jestSetup.ts'],
 };

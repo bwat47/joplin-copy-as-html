@@ -1,6 +1,9 @@
 import joplin from 'api';
 import { SETTINGS } from './constants'; // Uses real keys so mocks stay in sync
 
+// NOTE: The joplin API mock (jest.mock('api', ...)) is centralized in src/jestSetup.ts
+// and automatically applied to all test files via Jest's setupFilesAfterEnv configuration.
+
 // Helper to reset all mocked Joplin APIs.
 export function resetAllJoplinMocks(): void {
     (joplin.data.get as jest.Mock).mockReset();

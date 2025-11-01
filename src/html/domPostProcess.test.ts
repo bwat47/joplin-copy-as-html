@@ -1,12 +1,3 @@
-// Hoist Joplin API mock
-jest.mock('api', () => ({
-    __esModule: true,
-    default: {
-        data: { get: jest.fn() },
-        settings: { value: jest.fn(), globalValue: jest.fn() },
-    },
-}));
-
 import { postProcessHtml } from './domPostProcess';
 import { resetAllJoplinMocks, mockGlobalPlugins } from '../testHelpers';
 

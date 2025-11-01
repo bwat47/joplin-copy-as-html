@@ -1,14 +1,4 @@
 // src/utils.test.ts
-jest.mock('api', () => ({
-    settings: {
-        value: jest.fn(),
-        globalValue: jest.fn(),
-    },
-    data: {
-        get: jest.fn(),
-    },
-}));
-
 import { validateBooleanSetting, validateHtmlSettings, validatePlainTextSettings } from './utils';
 
 describe('validateBooleanSetting', () => {

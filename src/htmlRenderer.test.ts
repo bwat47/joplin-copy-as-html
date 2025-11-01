@@ -1,18 +1,3 @@
-// This mock will be hoisted to the top by Jest, applying to all tests in this file.
-jest.mock('api', () => ({
-    __esModule: true, // This property helps Jest handle default exports correctly.
-    default: {
-        data: {
-            get: jest.fn(),
-        },
-        settings: {
-            value: jest.fn(),
-            globalValue: jest.fn(),
-        },
-        // Mock other Joplin namespaces as needed
-    },
-}));
-
 import { processHtmlConversion } from './htmlRenderer';
 import {
     resetAllJoplinMocks,

@@ -1,12 +1,3 @@
-// Hoist Joplin API mock
-jest.mock('api', () => ({
-    __esModule: true,
-    default: {
-        data: { get: jest.fn() },
-        settings: { value: jest.fn(), globalValue: jest.fn() },
-    },
-}));
-
 import joplin from 'api';
 import { buildImageEmbedMap } from './assetProcessor';
 import { genResourceId, resetAllJoplinMocks, mockGlobalPlugins } from '../testHelpers';
