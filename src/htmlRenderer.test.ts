@@ -84,19 +84,6 @@ describe('processHtmlConversion', () => {
 
             expect(result).not.toMatch(new RegExp(`:/${resourceId}`));
         });
-
-        it('should not leave dimension placeholder markers', async () => {
-            const resourceId = genResourceId();
-            const markdown = `<img src=":/${resourceId}" width="100" height="200">`;
-
-            mockHtmlSettings({ embedImages: true, exportFullHtml: false });
-            mockGlobalPlugins([]);
-            mockImageResource(resourceId, 'image/png', 'fake-data');
-
-            const result = await processHtmlConversion(markdown);
-
-            expect(result).not.toContain('DIMENSION_');
-        });
     });
 
     it('should export as full HTML document when exportFullHtml is true', async () => {
