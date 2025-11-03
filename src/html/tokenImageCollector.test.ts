@@ -1,11 +1,6 @@
 import { collectImageUrls } from './tokenImageCollector';
 import { createMarkdownItInstance } from './markdownSetup';
-import { resetAllJoplinMocks, mockGlobalPlugins, genResourceId } from '../testHelpers';
-
-beforeEach(() => {
-    resetAllJoplinMocks();
-    mockGlobalPlugins([]);
-});
+import { genResourceId } from '../testHelpers';
 
 describe('tokenImageCollector', () => {
     it('collects URLs from markdown images', async () => {

@@ -1,10 +1,8 @@
 import joplin from 'api';
 import { buildImageEmbedMap } from './assetProcessor';
-import { genResourceId, resetAllJoplinMocks, mockGlobalPlugins } from '../testHelpers';
+import { genResourceId } from '../testHelpers';
 
 beforeEach(() => {
-    resetAllJoplinMocks();
-    mockGlobalPlugins([]);
     jest.restoreAllMocks();
 });
 

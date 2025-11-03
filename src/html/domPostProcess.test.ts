@@ -1,10 +1,4 @@
 import { postProcessHtml } from './domPostProcess';
-import { resetAllJoplinMocks, mockGlobalPlugins } from '../testHelpers';
-
-beforeEach(() => {
-    resetAllJoplinMocks();
-    mockGlobalPlugins([]);
-});
 
 describe('domPostProcess', () => {
     it('rewrites raw HTML <img> src from map', () => {

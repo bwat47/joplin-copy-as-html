@@ -1,17 +1,5 @@
 import { processHtmlConversion } from './htmlRenderer';
-import {
-    resetAllJoplinMocks,
-    mockHtmlSettings,
-    mockGlobalPlugins,
-    enableOnlyPlugin,
-    mockImageResource,
-    genResourceId,
-} from './testHelpers';
-
-// Clear mocks before each test to ensure a clean slate
-beforeEach(() => {
-    resetAllJoplinMocks();
-});
+import { mockHtmlSettings, mockGlobalPlugins, enableOnlyPlugin, mockImageResource, genResourceId } from './testHelpers';
 
 // HTML conversion tests
 
