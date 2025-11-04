@@ -185,7 +185,8 @@ export async function downloadRemoteImageAsBase64(url: string): Promise<string |
         }
 
         const contentType = response.headers.get('content-type');
-        if (!contentType?.startsWith('image/')) {
+        const normalizedContentType = contentType?.toLowerCase();
+        if (!normalizedContentType?.startsWith('image/')) {
             logger.warn(`Remote content is not an image ${url} (Content-Type: ${contentType})`);
             return EMBED_ERROR_TOKEN;
         }
