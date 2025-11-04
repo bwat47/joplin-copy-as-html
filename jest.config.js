@@ -22,6 +22,7 @@ module.exports = {
     // Map joplin api alias
     moduleNameMapper: {
         '^api$': '<rootDir>/api',
+        '^api/types$': '<rootDir>/api/types',
     },
 
     // Setup file to run before all tests (centralizes API mocks)

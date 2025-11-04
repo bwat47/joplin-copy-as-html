@@ -12,10 +12,8 @@
  * @since 1.0.16
  */
 
-import joplin from 'api';
-import { SETTINGS } from './constants';
 import { HtmlOptions } from './types';
-import { validateHtmlSettings } from './utils';
+import { loadHtmlSettings } from './settings';
 import { createMarkdownItInstance } from './html/markdownSetup';
 import { getUserStylesheet, buildImageEmbedMap } from './html/assetProcessor';
 import { collectImageUrls } from './html/tokenImageCollector';
@@ -32,15 +30,7 @@ import { postProcessHtml } from './html/domPostProcess';
 export async function processHtmlConversion(selection: string, options?: HtmlOptions): Promise<string> {
     // 1. Get settings if not provided
     if (!options) {
-        const embedImages = await joplin.settings.value(SETTINGS.EMBED_IMAGES);
-        const exportFullHtml = await joplin.settings.value(SETTINGS.EXPORT_FULL_HTML);
-        const downloadRemoteImages = await joplin.settings.value(SETTINGS.DOWNLOAD_REMOTE_IMAGES);
-
-        options = validateHtmlSettings({
-            embedImages,
-            exportFullHtml,
-            downloadRemoteImages,
-        });
+        options = await loadHtmlSettings();
     }
     const htmlOptions = options;
 
