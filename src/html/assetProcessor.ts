@@ -163,21 +163,23 @@ export async function convertResourceToBase64(id: string): Promise<string | null
  */
 export async function downloadRemoteImageAsBase64(url: string): Promise<string | null> {
     const controller = new AbortController();
+    const AbortSignalWithTimeout = AbortSignal as typeof AbortSignal & { timeout(ms: number): AbortSignal };
+    const timeoutSignal = AbortSignalWithTimeout.timeout(CONSTANTS.REMOTE_TIMEOUT_MS);
+    const abortOnTimeout = () => controller.abort();
+    timeoutSignal.addEventListener('abort', abortOnTimeout, { once: true });
     try {
-        const response = await withTimeout(
-            fetch(url, {
-                // Avoid leaking cookies/referrer in Electron/Hybrid environments
-                credentials: 'omit',
-                referrerPolicy: 'no-referrer',
-                headers: {
-                    'User-Agent': CONSTANTS.REMOTE_IMAGE_USER_AGENT,
-                    Accept: 'image/*',
-                },
-                signal: controller.signal,
-            }),
-            CONSTANTS.REMOTE_TIMEOUT_MS,
-            'Remote image download timeout'
-        );
+        const fetchPromise = fetch(url, {
+            // Avoid leaking cookies/referrer in Electron/Hybrid environments
+            credentials: 'omit',
+            referrerPolicy: 'no-referrer',
+            headers: {
+                'User-Agent': CONSTANTS.REMOTE_IMAGE_USER_AGENT,
+                Accept: 'image/*',
+            },
+            signal: controller.signal,
+        });
+
+        const response = await fetchPromise;
 
         if (!response.ok) {
             logger.warn(`Remote image download failed ${url}: ${response.status} ${response.statusText}`);
@@ -267,6 +269,7 @@ export async function downloadRemoteImageAsBase64(url: string): Promise<string |
         logger.error('Failed to download remote image:', url, err);
         return EMBED_ERROR_TOKEN;
     } finally {
+        timeoutSignal.removeEventListener('abort', abortOnTimeout);
         if (!controller.signal.aborted) {
             controller.abort();
         }
