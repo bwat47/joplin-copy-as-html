@@ -203,96 +203,62 @@ export async function downloadRemoteImageAsBase64(url: string): Promise<string |
             }
         }
 
-        const stream = response.body;
-        if (!stream) {
-            logger.warn(`Remote image had no readable body: ${url}`);
-            return EMBED_ERROR_TOKEN;
-        }
+        const reader = response.body?.getReader();
+        let buffer: Buffer;
 
-        const chunks: Buffer[] = [];
-        let totalSize = 0;
-        const abortForSize = () => {
-            if (!controller.signal.aborted) {
-                controller.abort();
-            }
-        };
+        if (reader) {
+            // Streaming path for Chromium/Electron environments
+            const chunks: Buffer[] = [];
+            let totalSize = 0;
 
-        const handleChunk = (chunk: Buffer | Uint8Array): boolean => {
-            const bufferChunk = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
-            if (totalSize + bufferChunk.length > CONSTANTS.MAX_IMAGE_SIZE_BYTES) {
-                chunks.length = 0;
-                abortForSize();
-                return false;
-            }
-            totalSize += bufferChunk.length;
-            chunks.push(bufferChunk);
-            return true;
-        };
-
-        const webStream = stream as
-            | {
-                  getReader?: () => {
-                      read: () => Promise<{ done: boolean; value?: Uint8Array }>;
-                      cancel: () => Promise<void>;
-                      releaseLock?: () => void;
-                  };
-              }
-            | undefined;
-        if (typeof webStream?.getReader === 'function') {
-            const reader = webStream.getReader();
             try {
                 while (true) {
                     const { done, value } = await reader.read();
                     if (done) break;
                     if (!value) continue;
-                    if (!handleChunk(value)) {
+
+                    const chunk = Buffer.from(value);
+                    if (totalSize + chunk.length > CONSTANTS.MAX_IMAGE_SIZE_BYTES) {
                         await reader.cancel();
-                        logger.warn(`Remote image exceeded maximum size during download: ${url}`);
+                        logger.warn(
+                            `Remote image exceeded maximum size during download ${url}: ${Math.round((totalSize + chunk.length) / 1024 / 1024)}MB (max ${Math.round(
+                                CONSTANTS.MAX_IMAGE_SIZE_BYTES / 1024 / 1024
+                            )}MB)`
+                        );
                         return EMBED_ERROR_TOKEN;
                     }
+
+                    totalSize += chunk.length;
+                    chunks.push(chunk);
                 }
+
+                if (totalSize > CONSTANTS.MAX_IMAGE_SIZE_WARNING) {
+                    logger.warn(`Large remote image: ${url} is ${Math.round(totalSize / 1024 / 1024)}MB`);
+                }
+
+                buffer = Buffer.concat(chunks);
             } finally {
-                reader.releaseLock?.();
-            }
-        } else if (Symbol.asyncIterator in stream) {
-            const asyncIterable = stream as AsyncIterable<Uint8Array | Buffer> & { destroy?: (error?: Error) => void };
-            try {
-                for await (const chunk of asyncIterable) {
-                    if (!handleChunk(chunk)) {
-                        if (typeof asyncIterable.destroy === 'function') {
-                            asyncIterable.destroy();
-                        }
-                        logger.warn(`Remote image exceeded maximum size during download: ${url}`);
-                        return EMBED_ERROR_TOKEN;
-                    }
-                }
-            } catch (streamErr) {
-                const msg = (streamErr as Error)?.message ?? String(streamErr);
-                logger.warn(`Remote image stream error ${url}: ${msg}`);
-                return EMBED_ERROR_TOKEN;
+                reader.releaseLock();
             }
         } else {
-            // Fallback for environments where fetch responses are not streamable (e.g., unit tests)
+            // Fallback for test environments or when streaming is unavailable
             const arrayBuffer = await response.arrayBuffer();
-            const buffer = Buffer.from(arrayBuffer);
-            chunks.push(buffer);
-            totalSize = buffer.length;
+            buffer = Buffer.from(arrayBuffer);
+
+            if (buffer.length > CONSTANTS.MAX_IMAGE_SIZE_BYTES) {
+                logger.warn(
+                    `Remote image too large ${url}: ${Math.round(buffer.length / 1024 / 1024)}MB (max ${Math.round(
+                        CONSTANTS.MAX_IMAGE_SIZE_BYTES / 1024 / 1024
+                    )}MB)`
+                );
+                return EMBED_ERROR_TOKEN;
+            }
+
+            if (buffer.length > CONSTANTS.MAX_IMAGE_SIZE_WARNING) {
+                logger.warn(`Large remote image: ${url} is ${Math.round(buffer.length / 1024 / 1024)}MB`);
+            }
         }
 
-        if (totalSize > CONSTANTS.MAX_IMAGE_SIZE_BYTES) {
-            logger.warn(
-                `Remote image too large after download ${url}: ${Math.round(totalSize / 1024 / 1024)}MB (max ${Math.round(
-                    CONSTANTS.MAX_IMAGE_SIZE_BYTES / 1024 / 1024
-                )}MB)`
-            );
-            return EMBED_ERROR_TOKEN;
-        }
-
-        if (totalSize > CONSTANTS.MAX_IMAGE_SIZE_WARNING) {
-            logger.warn(`Large remote image: ${url} is ${Math.round(totalSize / 1024 / 1024)}MB`);
-        }
-
-        const buffer = chunks.length === 1 ? chunks[0] : Buffer.concat(chunks);
         const base64 = buffer.toString('base64');
         return `data:${contentType};base64,${base64}`;
     } catch (err) {
