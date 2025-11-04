@@ -13,7 +13,9 @@
 
 ## Repository Layout (selected)
 
-- `src/index.ts` – plugin entry point: registers settings/commands, clipboard flow, context menu filtering.
+- `src/index.ts` – plugin entry point: registers commands, clipboard flow, context menu filtering.
+- `src/settings.ts` – centralizes plugin settings registration and loading with validation helpers.
+- `src/logger.ts` – centralized logging utility with debug toggle support.
 - `src/constants.ts` / `src/types.ts` – shared configuration, string constants, and TypeScript contracts.
 - `src/utils.ts` – validation helpers, error formatting, timeout wrappers.
 - `src/pluginUtils.ts` – resilient CommonJS markdown-it plugin loader utilities; shared by both renderers.
@@ -26,10 +28,11 @@
 
 ### Shared Flow
 
-1. Obtain settings and current Markdown via Joplin API.
-2. Build a markdown-it instance configured by `pluginUtils.ts` and `esmPluginLoader.ts` to reflect Joplin's plugin settings.
-3. Run either the HTML or plain text pipeline.
-4. Copy the result to the clipboard and show toast feedback. Errors surface as notifications and console logs.
+1. Load settings via `settings.ts` helpers and configure debug logging via `logger.ts`.
+2. Obtain current Markdown selection via Joplin API.
+3. Build a markdown-it instance configured by `pluginUtils.ts` and `esmPluginLoader.ts` to reflect Joplin's plugin settings.
+4. Run either the HTML or plain text pipeline.
+5. Copy the result to the clipboard and show toast feedback. Errors surface as notifications and structured logs via `logger.ts`.
 
 ### HTML Pipeline (`htmlRenderer.ts`)
 
@@ -45,13 +48,17 @@
 
 ### Notable Modules
 
-- `pluginUtils.ts` – Resolves CommonJS export patterns, wraps `md.use`, and provides consistent logging for plugin failures.
-- `esmPluginLoader.ts` – Dynamically imports ESM plugins with caching, falling back to runtime `import()` when needed and surfacing load failures.
+- `settings.ts` – Centralizes all plugin settings registration and provides `loadHtmlSettings()`, `loadPlainTextSettings()`, and `loadDebugSetting()` helpers that fetch and validate settings from Joplin.
+- `logger.ts` – Centralized logging utility with `[copy-as-html]` prefix. Provides `debug()`, `info()`, `warn()`, and `error()` methods. Debug logging is conditionally enabled via `setDebug()` based on user settings.
+- `pluginUtils.ts` – Resolves CommonJS export patterns, wraps `md.use`, and logs plugin failures via `logger`.
+- `esmPluginLoader.ts` – Dynamically imports ESM plugins with caching, falling back to runtime `import()` when needed and surfacing load failures via `logger`.
 - `utils.ts` – Houses `withTimeout`, resource ID parsing, and option validation shared across pipelines.
 - `defaultStylesheet.ts` – Injected when `exportFullHtml` is enabled to produce a complete HTML document.
 - `testHelpers.ts` – Fixtures and mocks for renderer tests.
 
 ## Settings
+
+All settings are registered in `settings.ts` via `registerPluginSettings()`. Settings are loaded and validated through dedicated helper functions.
 
 ### HTML
 
@@ -64,22 +71,26 @@
 All default to `false` unless noted.
 
 - Preservation toggles: `preserveSuperscript`, `preserveSubscript`, `preserveEmphasis`, `preserveBold`, `preserveHeading`, `preserveStrikethrough`, `preserveHorizontalRule`, `preserveMark`, `preserveInsert`.
-- `displayEmojis`: convert `:emoji:` syntax to Unicode.
+- `displayEmojis` (default `true`): convert `:emoji:` syntax to Unicode.
 - `hyperlinkBehavior`: emit external links as `title`, `url`, or `markdown`.
 - `indentType`: choose list indentation via spaces or tabs.
+
+### Debug
+
+- `debug` (default `false`): enable verbose logging for plugin loading, context menu detection, and other diagnostic information via `logger.ts`.
 
 ## Design Rationale
 
 - **markdown-it** is used instead of `@joplin/renderer` for full control over plugin selection, consistent behavior between HTML and plain text, and future extensibility.
 - **DOM-based post-processing** provides reliable sanitization, nested HTML handling, and portability for embedded images.
-- **Separation of concerns** keeps orchestrators thin and the heavy lifting in small, testable modules.
+- **Separation of concerns** keeps orchestrators thin and the heavy lifting in small, testable modules. Settings registration is isolated in `settings.ts`, logging is centralized in `logger.ts`.
 - **Conservative defaults** favor clean output; advanced preservation is opt-in.
-- **Error reporting**: failed operations display errors in the toast UI, with console logs for debugging while continuing where possible.
+- **Error reporting**: failed operations display errors in the toast UI, with structured logging via `logger.ts` for debugging while continuing where possible.
 
 ## Extension Points
 
-1. Add an output format: create `src/<format>/` with its own `markdownSetup.ts`, renderer, and formatter; reuse `pluginUtils.ts` and utilities.
-2. Introduce new settings: extend `types.ts`, register defaults in `index.ts`, validate in `utils.ts`, and propagate through orchestrators.
+1. Add an output format: create `src/<format>/` with its own `markdownSetup.ts`, renderer, and formatter; reuse `pluginUtils.ts`, `logger.ts`, and utilities.
+2. Introduce new settings: add to `SETTINGS` constants, register in `settings.ts`, extend `types.ts`, validate in `utils.ts`, and create/update loader functions in `settings.ts`.
 3. Support additional resource schemes: augment `assetProcessor.ts` (no changes required in pure renderers).
 4. Enhance plain text rules: adjust `plainText/plainTextCollector.ts` (and supporting helpers in `tokenRenderers.ts`) and update corresponding tests.
 

@@ -45,13 +45,7 @@ export async function processHtmlConversion(selection: string, options?: HtmlOpt
     const htmlOptions = options;
 
     // 2. Create and configure markdown-it instance
-    let debug = false;
-    try {
-        debug = await joplin.settings.value(SETTINGS.DEBUG);
-    } catch {
-        // ignore if setting unavailable (tests)
-    }
-    const md = await createMarkdownItInstance({ debug });
+    const md = await createMarkdownItInstance();
 
     // 3. Token pre-scan to collect image URLs (markdown images + raw HTML <img>)
     const urls = collectImageUrls(md, selection);

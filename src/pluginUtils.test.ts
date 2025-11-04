@@ -1,6 +1,7 @@
 // src/pluginUtils.test.ts
 import { safePluginUse, loadPluginsConditionally, PluginConfig } from './pluginUtils';
 import MarkdownIt from 'markdown-it';
+import { logger } from './logger';
 
 // Mock markdown-it instance
 const createMockMd = () => {
@@ -36,8 +37,9 @@ describe('safePluginUse', () => {
 
     beforeEach(() => {
         md = createMockMd();
-        jest.spyOn(console, 'warn').mockImplementation(() => {});
-        jest.spyOn(console, 'error').mockImplementation(() => {});
+        jest.spyOn(logger, 'warn').mockImplementation(() => {});
+        jest.spyOn(logger, 'error').mockImplementation(() => {});
+        jest.spyOn(logger, 'debug').mockImplementation(() => {});
     });
 
     afterEach(() => {
@@ -108,7 +110,7 @@ describe('safePluginUse', () => {
         const result = safePluginUse(md, errorPlugin);
         expect(result).toBe(false);
         expect(md.use).toHaveBeenCalledWith(errorPlugin, undefined);
-        expect(console.error).toHaveBeenCalledWith(
+        expect(logger.error).toHaveBeenCalledWith(
             expect.stringContaining('Error loading markdown-it plugin'),
             expect.any(Error)
         );

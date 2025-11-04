@@ -18,6 +18,7 @@ import { JoplinFileData, JoplinResource } from '../types';
 import * as fs from 'fs/promises';
 import * as path from 'path';
 import { defaultStylesheet } from '../defaultStylesheet';
+import { logger } from '../logger';
 
 // Note: User-facing error messages are handled during DOM post-processing.
 // Any return value that is not a data URI (doesn't begin with "data:image/") is treated as a failure
@@ -95,7 +96,7 @@ function isMinimalJoplinResource(obj: unknown): obj is Pick<JoplinResource, 'id'
  */
 export async function convertResourceToBase64(id: string): Promise<string | null> {
     if (!validateResourceId(id)) {
-        console.warn(`[copy-as-html] Invalid Joplin resource ID: :/${id}`);
+        logger.warn(`Invalid Joplin resource ID: :/${id}`);
         return EMBED_ERROR_TOKEN;
     }
     try {
@@ -103,18 +104,18 @@ export async function convertResourceToBase64(id: string): Promise<string | null
 
         // Not found: preserve existing combined not-found/not-image messaging
         if (!rawResource) {
-            console.warn(`[copy-as-html] Resource not found or not an image: :/${id}`);
+            logger.warn(`Resource not found or not an image: :/${id}`);
             return EMBED_ERROR_TOKEN;
         }
 
         // Validate shape before casting to avoid runtime crashes on unexpected data
         if (!isMinimalJoplinResource(rawResource)) {
-            console.warn(`[copy-as-html] Resource metadata invalid for :/${id}`);
+            logger.warn(`Resource metadata invalid for :/${id}`);
             return EMBED_ERROR_TOKEN;
         }
 
         if (!rawResource.mime.toLowerCase().startsWith('image/')) {
-            console.warn(`[copy-as-html] Resource is not an image: :/${id} (${rawResource.mime})`);
+            logger.warn(`Resource is not an image: :/${id} (${rawResource.mime})`);
             return EMBED_ERROR_TOKEN;
         }
 
@@ -130,26 +131,26 @@ export async function convertResourceToBase64(id: string): Promise<string | null
 
             // Check file size limits
             if (fileBuffer.length > CONSTANTS.MAX_IMAGE_SIZE_BYTES) {
-                console.warn(
-                    `[copy-as-html] Resource too large: :/${id} is ${Math.round(fileBuffer.length / 1024 / 1024)}MB (max ${Math.round(
+                logger.warn(
+                    `Resource too large: :/${id} is ${Math.round(fileBuffer.length / 1024 / 1024)}MB (max ${Math.round(
                         CONSTANTS.MAX_IMAGE_SIZE_BYTES / 1024 / 1024
                     )}MB)`
                 );
                 return EMBED_ERROR_TOKEN;
             } else if (fileBuffer.length > CONSTANTS.MAX_IMAGE_SIZE_WARNING) {
-                console.warn(
-                    `[copy-as-html] Large image detected: Resource :/${id} is ${Math.round(fileBuffer.length / 1024 / 1024)}MB`
+                logger.warn(
+                    `Large image detected: Resource :/${id} is ${Math.round(fileBuffer.length / 1024 / 1024)}MB`
                 );
             }
         } catch (err) {
             const msg = err && err.message ? err.message : String(err);
-            console.error(`[copy-as-html] Error retrieving resource file :/${id}: ${msg}`);
+            logger.error(`Error retrieving resource file :/${id}: ${msg}`);
             return EMBED_ERROR_TOKEN;
         }
         const base64 = fileBuffer.toString('base64');
         return `data:${rawResource.mime};base64,${base64}`;
     } catch (err) {
-        console.error(`[copy-as-html] Failed to convert resource :/${id} to base64:`, err);
+        logger.error(`Failed to convert resource :/${id} to base64:`, err);
         return EMBED_ERROR_TOKEN;
     }
 }
@@ -179,15 +180,13 @@ export async function downloadRemoteImageAsBase64(url: string): Promise<string |
         );
 
         if (!response.ok) {
-            console.warn(
-                `[copy-as-html] Remote image download failed ${url}: ${response.status} ${response.statusText}`
-            );
+            logger.warn(`Remote image download failed ${url}: ${response.status} ${response.statusText}`);
             return EMBED_ERROR_TOKEN;
         }
 
         const contentType = response.headers.get('content-type');
         if (!contentType?.startsWith('image/')) {
-            console.warn(`[copy-as-html] Remote content is not an image ${url} (Content-Type: ${contentType})`);
+            logger.warn(`Remote content is not an image ${url} (Content-Type: ${contentType})`);
             return EMBED_ERROR_TOKEN;
         }
 
@@ -195,8 +194,8 @@ export async function downloadRemoteImageAsBase64(url: string): Promise<string |
         if (contentLengthHeader) {
             const declaredSize = Number(contentLengthHeader);
             if (!Number.isNaN(declaredSize) && declaredSize > CONSTANTS.MAX_IMAGE_SIZE_BYTES) {
-                console.warn(
-                    `[copy-as-html] Remote image too large ${url}: ${Math.round(declaredSize / 1024 / 1024)}MB (max ${Math.round(
+                logger.warn(
+                    `Remote image too large ${url}: ${Math.round(declaredSize / 1024 / 1024)}MB (max ${Math.round(
                         CONSTANTS.MAX_IMAGE_SIZE_BYTES / 1024 / 1024
                     )}MB)`
                 );
@@ -206,7 +205,7 @@ export async function downloadRemoteImageAsBase64(url: string): Promise<string |
 
         const stream = response.body;
         if (!stream) {
-            console.warn(`[copy-as-html] Remote image had no readable body: ${url}`);
+            logger.warn(`Remote image had no readable body: ${url}`);
             return EMBED_ERROR_TOKEN;
         }
 
@@ -248,7 +247,7 @@ export async function downloadRemoteImageAsBase64(url: string): Promise<string |
                     if (!value) continue;
                     if (!handleChunk(value)) {
                         await reader.cancel();
-                        console.warn(`[copy-as-html] Remote image exceeded maximum size during download: ${url}`);
+                        logger.warn(`Remote image exceeded maximum size during download: ${url}`);
                         return EMBED_ERROR_TOKEN;
                     }
                 }
@@ -263,13 +262,13 @@ export async function downloadRemoteImageAsBase64(url: string): Promise<string |
                         if (typeof asyncIterable.destroy === 'function') {
                             asyncIterable.destroy();
                         }
-                        console.warn(`[copy-as-html] Remote image exceeded maximum size during download: ${url}`);
+                        logger.warn(`Remote image exceeded maximum size during download: ${url}`);
                         return EMBED_ERROR_TOKEN;
                     }
                 }
             } catch (streamErr) {
                 const msg = (streamErr as Error)?.message ?? String(streamErr);
-                console.warn(`[copy-as-html] Remote image stream error ${url}: ${msg}`);
+                logger.warn(`Remote image stream error ${url}: ${msg}`);
                 return EMBED_ERROR_TOKEN;
             }
         } else {
@@ -281,8 +280,8 @@ export async function downloadRemoteImageAsBase64(url: string): Promise<string |
         }
 
         if (totalSize > CONSTANTS.MAX_IMAGE_SIZE_BYTES) {
-            console.warn(
-                `[copy-as-html] Remote image too large after download ${url}: ${Math.round(totalSize / 1024 / 1024)}MB (max ${Math.round(
+            logger.warn(
+                `Remote image too large after download ${url}: ${Math.round(totalSize / 1024 / 1024)}MB (max ${Math.round(
                     CONSTANTS.MAX_IMAGE_SIZE_BYTES / 1024 / 1024
                 )}MB)`
             );
@@ -290,7 +289,7 @@ export async function downloadRemoteImageAsBase64(url: string): Promise<string |
         }
 
         if (totalSize > CONSTANTS.MAX_IMAGE_SIZE_WARNING) {
-            console.warn(`[copy-as-html] Large remote image: ${url} is ${Math.round(totalSize / 1024 / 1024)}MB`);
+            logger.warn(`Large remote image: ${url} is ${Math.round(totalSize / 1024 / 1024)}MB`);
         }
 
         const buffer = chunks.length === 1 ? chunks[0] : Buffer.concat(chunks);
@@ -298,7 +297,7 @@ export async function downloadRemoteImageAsBase64(url: string): Promise<string |
         return `data:${contentType};base64,${base64}`;
     } catch (err) {
         controller.abort();
-        console.error('[copy-as-html] Failed to download remote image:', url, err);
+        logger.error('Failed to download remote image:', url, err);
         return EMBED_ERROR_TOKEN;
     } finally {
         if (!controller.signal.aborted) {
