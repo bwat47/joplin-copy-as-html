@@ -19,6 +19,8 @@ import { SETTINGS } from './constants';
 import { processHtmlConversion } from './htmlRenderer';
 import { convertMarkdownToPlainText } from './plainTextRenderer';
 import { validatePlainTextSettings, validateHtmlSettings } from './utils';
+import { logger } from './logger';
+import type { PlainTextOptions } from './types';
 
 async function getMarkdownSelection(commandLabel: string): Promise<string | null> {
     const showToast = async (message: string, type: ToastType = ToastType.Info) => {
@@ -42,7 +44,7 @@ async function getMarkdownSelection(commandLabel: string): Promise<string | null
     }
 }
 
-async function resolvePlainTextRenderingConfig() {
+async function resolvePlainTextRenderingConfig(): Promise<PlainTextOptions> {
     const plainTextSettings = {
         preserveSuperscript: await joplin.settings.value(SETTINGS.PRESERVE_SUPERSCRIPT),
         preserveSubscript: await joplin.settings.value(SETTINGS.PRESERVE_SUBSCRIPT),
@@ -59,14 +61,7 @@ async function resolvePlainTextRenderingConfig() {
     };
     const plainTextOptions = validatePlainTextSettings(plainTextSettings);
 
-    let debug = false;
-    try {
-        debug = await joplin.settings.value(SETTINGS.DEBUG);
-    } catch {
-        // ignore - use default false
-    }
-
-    return { plainTextOptions, debug };
+    return plainTextOptions;
 }
 
 joplin.plugins.register({
@@ -81,6 +76,14 @@ joplin.plugins.register({
                     const selection = await getMarkdownSelection('Copy as HTML');
                     if (!selection) return;
 
+                    let debugEnabled = false;
+                    try {
+                        debugEnabled = await joplin.settings.value(SETTINGS.DEBUG);
+                    } catch {
+                        // ignore - use default false
+                    }
+                    logger.setDebug(!!debugEnabled);
+
                     // Gather and validate HTML settings
                     const htmlSettings = {
                         embedImages: await joplin.settings.value(SETTINGS.EMBED_IMAGES),
@@ -93,8 +96,8 @@ joplin.plugins.register({
 
                     if (typeof joplin.clipboard.write === 'function') {
                         try {
-                            const { plainTextOptions, debug } = await resolvePlainTextRenderingConfig();
-                            const plainText = convertMarkdownToPlainText(selection, plainTextOptions, debug);
+                            const plainTextOptions = await resolvePlainTextRenderingConfig();
+                            const plainText = convertMarkdownToPlainText(selection, plainTextOptions);
                             await joplin.clipboard.write({ html, text: plainText });
                             await joplin.views.dialogs.showToast({
                                 message: 'Copied selection as HTML (with plain text fallback)!',
@@ -102,7 +105,7 @@ joplin.plugins.register({
                             });
                             return;
                         } catch (multiFormatError) {
-                            console.warn('[copy-as-html] clipboard.write failed, falling back:', multiFormatError);
+                            logger.warn('clipboard.write failed, falling back:', multiFormatError);
                         }
                     }
 
@@ -112,7 +115,7 @@ joplin.plugins.register({
                         type: ToastType.Success,
                     });
                 } catch (err) {
-                    console.error('[copy-as-html] Error:', err);
+                    logger.error('Error:', err);
                     await joplin.views.dialogs.showToast({
                         message: 'Failed to copy as HTML: ' + (err?.message || err),
                         type: ToastType.Error,
@@ -131,15 +134,23 @@ joplin.plugins.register({
                     const selection = await getMarkdownSelection('Copy as Plain Text');
                     if (!selection) return;
 
-                    const { plainTextOptions, debug } = await resolvePlainTextRenderingConfig();
-                    const plainText = convertMarkdownToPlainText(selection, plainTextOptions, debug);
+                    let debugEnabled = false;
+                    try {
+                        debugEnabled = await joplin.settings.value(SETTINGS.DEBUG);
+                    } catch {
+                        // ignore - use default false
+                    }
+                    logger.setDebug(!!debugEnabled);
+
+                    const plainTextOptions = await resolvePlainTextRenderingConfig();
+                    const plainText = convertMarkdownToPlainText(selection, plainTextOptions);
                     await joplin.clipboard.writeText(plainText);
                     await joplin.views.dialogs.showToast({
                         message: 'Copied selection as Plain Text!',
                         type: ToastType.Success,
                     });
                 } catch (err) {
-                    console.error('[copy-as-html] Error:', err);
+                    logger.error('Error:', err);
                     await joplin.views.dialogs.showToast({
                         message: 'Failed to copy as Plain Text: ' + (err?.message || err),
                         type: ToastType.Error,
@@ -324,20 +335,18 @@ joplin.plugins.register({
 
         // Filter context menu to dynamically add our commands only in markdown editor
         joplin.workspace.filterEditorContextMenu(async (contextMenu) => {
-            let debug = false;
+            let debugEnabled = false;
             try {
-                debug = await joplin.settings.value(SETTINGS.DEBUG);
+                debugEnabled = await joplin.settings.value(SETTINGS.DEBUG);
             } catch {
                 // ignore
             }
+            logger.setDebug(!!debugEnabled);
 
-            if (debug) {
-                // Debug: log what we see in the context menu
-                console.log(
-                    '[copy-as-html] Context menu items:',
-                    contextMenu.items.map((item) => item.commandName)
-                );
-            }
+            logger.debug(
+                'Context menu items:',
+                contextMenu.items.map((item) => item.commandName)
+            );
 
             // Simple approach: try to execute a markdown-specific command
             // If it succeeds, we're in the markdown editor
@@ -348,11 +357,11 @@ joplin.plugins.register({
                     name: 'getCursor',
                 });
                 isMarkdownEditor = true;
-                if (debug) console.log('[copy-as-html] Detected markdown editor - adding context menu items');
+                logger.debug('Detected markdown editor - adding context menu items');
             } catch {
                 // If getCursor fails, we're likely in rich text editor
                 isMarkdownEditor = false;
-                if (debug) console.log('[copy-as-html] Detected rich text editor - not adding context menu items');
+                logger.debug('Detected rich text editor - not adding context menu items');
             }
 
             // Only add our commands to the context menu if we're in markdown editor
@@ -377,7 +386,7 @@ joplin.plugins.register({
                     });
                 }
 
-                if (debug) console.log('[copy-as-html] Added context menu items, total:', contextMenu.items.length);
+                logger.debug('Added context menu items, total:', contextMenu.items.length);
             }
 
             return contextMenu;

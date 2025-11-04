@@ -13,26 +13,25 @@ import MarkdownIt from 'markdown-it';
 import { safePluginUse, safeRequire } from '../pluginUtils';
 
 // Use safe imports to prevent conflicts
-const markdownItMark = safeRequire(() => require('markdown-it-mark'), 'markdown-it-mark', '[copy-as-plain-text]');
-const markdownItIns = safeRequire(() => require('markdown-it-ins'), 'markdown-it-ins', '[copy-as-plain-text]');
-const markdownItEmoji = safeRequire(() => require('markdown-it-emoji'), 'markdown-it-emoji', '[copy-as-plain-text]');
-const markdownItSub = safeRequire(() => require('markdown-it-sub'), 'markdown-it-sub', '[copy-as-plain-text]');
-const markdownItSup = safeRequire(() => require('markdown-it-sup'), 'markdown-it-sup', '[copy-as-plain-text]');
+const markdownItMark = safeRequire(() => require('markdown-it-mark'), 'markdown-it-mark');
+const markdownItIns = safeRequire(() => require('markdown-it-ins'), 'markdown-it-ins');
+const markdownItEmoji = safeRequire(() => require('markdown-it-emoji'), 'markdown-it-emoji');
+const markdownItSub = safeRequire(() => require('markdown-it-sub'), 'markdown-it-sub');
+const markdownItSup = safeRequire(() => require('markdown-it-sup'), 'markdown-it-sup');
 
 /**
  * Creates and configures a markdown-it instance for plain text rendering.
- * @param debug - Enable debug logging for plugin loading
  * @returns A configured markdown-it instance.
  */
-export function createMarkdownItInstance(debug: boolean = false): MarkdownIt {
+export function createMarkdownItInstance(): MarkdownIt {
     const md = new MarkdownIt();
 
     // Use safe plugin loading to prevent conflicts
-    if (markdownItMark) safePluginUse(md, markdownItMark, undefined, 'markdown-it-mark', debug);
-    if (markdownItIns) safePluginUse(md, markdownItIns, undefined, 'markdown-it-ins', debug);
-    if (markdownItEmoji) safePluginUse(md, markdownItEmoji, undefined, 'markdown-it-emoji', debug);
-    if (markdownItSub) safePluginUse(md, markdownItSub, undefined, 'markdown-it-sub', debug);
-    if (markdownItSup) safePluginUse(md, markdownItSup, undefined, 'markdown-it-sup', debug);
+    if (markdownItMark) safePluginUse(md, markdownItMark, undefined, 'markdown-it-mark');
+    if (markdownItIns) safePluginUse(md, markdownItIns, undefined, 'markdown-it-ins');
+    if (markdownItEmoji) safePluginUse(md, markdownItEmoji, undefined, 'markdown-it-emoji');
+    if (markdownItSub) safePluginUse(md, markdownItSub, undefined, 'markdown-it-sub');
+    if (markdownItSup) safePluginUse(md, markdownItSup, undefined, 'markdown-it-sup');
 
     return md;
 }

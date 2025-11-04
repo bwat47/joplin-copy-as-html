@@ -1,4 +1,5 @@
 import type MarkdownIt from 'markdown-it';
+import { logger } from './logger';
 
 // ESM Plugin Cache and Loaders
 type ESMPlugin = (md: MarkdownIt, options?: unknown) => void;
@@ -23,7 +24,7 @@ async function tryDynamicImportFallback(packageName: string): Promise<Record<str
         ) => Promise<unknown>;
         return (await dynamicImport(packageName)) as Record<string, unknown>;
     } catch (fallbackError) {
-        console.warn(`[copy-as-html] Dynamic import fallback failed for ${packageName}:`, fallbackError);
+        logger.warn(`Dynamic import fallback failed for ${packageName}:`, fallbackError);
         return null;
     }
 }
@@ -37,7 +38,7 @@ export async function loadESMPlugin(packageName: string, exportName: string = 'd
 
     const importer = esmImporters[packageName];
     if (!importer) {
-        console.warn(`[copy-as-html] No importer registered for ESM plugin ${packageName}`);
+        logger.warn(`No importer registered for ESM plugin ${packageName}`);
         return null;
     }
 
@@ -47,7 +48,7 @@ export async function loadESMPlugin(packageName: string, exportName: string = 'd
             moduleNamespace = (await importer()) as Record<string, unknown>;
         } catch (error) {
             if ((error as { code?: string })?.code !== 'ERR_REQUIRE_ESM') {
-                console.warn(`[copy-as-html] Failed to load ESM plugin ${packageName}:`, error);
+                logger.warn(`Failed to load ESM plugin ${packageName}:`, error);
                 return null;
             }
             const fallbackModule = await tryDynamicImportFallback(packageName);
@@ -60,7 +61,7 @@ export async function loadESMPlugin(packageName: string, exportName: string = 'd
         const exportCandidate = moduleNamespace[exportName] ?? moduleNamespace.default ?? moduleNamespace;
 
         if (typeof exportCandidate !== 'function') {
-            console.warn(`[copy-as-html] ESM plugin ${packageName}.${exportName} is not a function`);
+            logger.warn(`ESM plugin ${packageName}.${exportName} is not a function`);
             return null;
         }
 

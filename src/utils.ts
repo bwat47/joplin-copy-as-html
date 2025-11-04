@@ -18,6 +18,7 @@
 
 import joplin from 'api';
 import { PlainTextOptions, HtmlOptions } from './types';
+import { logger } from './logger';
 
 export function validatePlainTextSettings(settings: unknown): PlainTextOptions {
     const s = (settings || {}) as Partial<PlainTextOptions>;
@@ -69,7 +70,7 @@ export async function safeGetGlobalSetting(key: string, defaultValue: boolean = 
         const value = await joplin.settings.globalValue(key);
         return !!value;
     } catch {
-        console.warn(`[copy-as-html] Global setting '${key}' not found, using default:`, defaultValue);
+        logger.warn(`Global setting '${key}' not found, using default:`, defaultValue);
         return defaultValue;
     }
 }

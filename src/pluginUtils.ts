@@ -15,6 +15,7 @@
  */
 
 import MarkdownIt = require('markdown-it');
+import { logger } from './logger';
 
 type MarkdownItPlugin = (md: MarkdownIt, options?: unknown) => void;
 
@@ -40,7 +41,7 @@ function selectPreferredFunction(
     return [plugin[fallbackKey] as MarkdownItPlugin, fallbackKey];
 }
 
-function resolveCommonJsPlugin(plugin: unknown, pluginName: string, debug: boolean): MarkdownItPlugin | undefined {
+function resolveCommonJsPlugin(plugin: unknown, pluginName: string): MarkdownItPlugin | undefined {
     if (typeof plugin === 'function') {
         return plugin as MarkdownItPlugin;
     }
@@ -56,18 +57,14 @@ function resolveCommonJsPlugin(plugin: unknown, pluginName: string, debug: boole
 
     if (funcKeys.length === 1) {
         const key = funcKeys[0];
-        if (debug) {
-            console.log(`[copy-as-html] Plugin ${pluginName} using export: ${key}`);
-        }
+        logger.debug(`Plugin ${pluginName} using export: ${key}`);
         return plugin[key] as MarkdownItPlugin;
     }
 
-    if (debug) {
-        console.log(`[copy-as-html] Plugin ${pluginName} has multiple function exports:`, funcKeys);
-    }
+    logger.debug(`Plugin ${pluginName} has multiple function exports:`, funcKeys);
     const [selected, key] = selectPreferredFunction(plugin, funcKeys);
-    if (debug && key) {
-        console.log(`[copy-as-html] Plugin ${pluginName} preferred function export: ${key}`);
+    if (key) {
+        logger.debug(`Plugin ${pluginName} preferred function export: ${key}`);
     }
     return selected;
 }
@@ -75,11 +72,11 @@ function resolveCommonJsPlugin(plugin: unknown, pluginName: string, debug: boole
 /**
  * Safely require a module and emit a consistent warning when it cannot be loaded.
  */
-export function safeRequire<T>(factory: () => T, moduleId: string, logPrefix: string): T | undefined {
+export function safeRequire<T>(factory: () => T, moduleId: string): T | undefined {
     try {
         return factory();
     } catch (error) {
-        console.warn(`${logPrefix} ${moduleId} not available:`, error);
+        logger.warn(`Module ${moduleId} not available:`, error);
         return undefined;
     }
 }
@@ -91,43 +88,37 @@ export function safePluginUse(
     md: MarkdownIt,
     plugin: unknown,
     options?: unknown,
-    pluginName: string = 'unknown',
-    debug: boolean = false
+    pluginName: string = 'unknown'
 ): boolean {
     if (!plugin) {
-        console.warn(`[copy-as-html] Plugin ${pluginName} is null or undefined`);
+        logger.warn(`Plugin ${pluginName} is null or undefined`);
         return false;
     }
 
     try {
-        const pluginFunc = resolveCommonJsPlugin(plugin, pluginName, debug);
+        const pluginFunc = resolveCommonJsPlugin(plugin, pluginName);
         if (!pluginFunc) {
             if (isObject(plugin)) {
                 const availableKeys = Object.keys(plugin);
                 if (availableKeys.length) {
-                    console.warn(
-                        `[copy-as-html] Plugin ${pluginName} object found but no callable function. Available keys:`,
+                    logger.warn(
+                        `Plugin ${pluginName} object found but no callable function. Available keys:`,
                         availableKeys
                     );
                 }
-                console.warn(`[copy-as-html] Plugin ${pluginName} object:`, plugin);
+                logger.warn(`Plugin ${pluginName} object:`, plugin);
             } else {
-                console.warn(
-                    `[copy-as-html] Could not find callable plugin function for ${pluginName}. Received:`,
-                    plugin
-                );
+                logger.warn(`Could not find callable plugin function for ${pluginName}. Received:`, plugin);
             }
             return false;
         }
 
         md.use(pluginFunc, options);
-        if (debug) {
-            console.log(`[copy-as-html] Successfully loaded plugin: ${pluginName}`);
-        }
+        logger.debug(`Successfully loaded plugin: ${pluginName}`);
         return true;
     } catch (err) {
-        console.error(`[copy-as-html] Error loading markdown-it plugin ${pluginName}:`, err);
-        console.error(`[copy-as-html] Plugin ${pluginName} object:`, plugin);
+        logger.error(`Error loading markdown-it plugin ${pluginName}:`, err);
+        logger.error(`Plugin ${pluginName} object:`, plugin);
         return false;
     }
 }
@@ -145,16 +136,14 @@ export interface PluginConfig {
 /**
  * Loads plugins conditionally based on configuration
  */
-export function loadPluginsConditionally(md: MarkdownIt, plugins: PluginConfig[], debug: boolean = false) {
+export function loadPluginsConditionally(md: MarkdownIt, plugins: PluginConfig[]) {
     plugins.forEach(({ enabled, plugin, name, options }) => {
         if (enabled && plugin) {
-            safePluginUse(md, plugin, options, name, debug);
+            safePluginUse(md, plugin, options, name);
         } else if (enabled && !plugin) {
-            if (debug) {
-                console.log(`[copy-as-html] Plugin ${name} is enabled but not available (skipped)`);
-            }
-        } else if (debug) {
-            console.log(`[copy-as-html] Plugin ${name} is disabled (skipped)`);
+            logger.debug(`Plugin ${name} is enabled but not available (skipped)`);
+        } else {
+            logger.debug(`Plugin ${name} is disabled (skipped)`);
         }
     });
 }
