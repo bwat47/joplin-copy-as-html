@@ -53,31 +53,6 @@ function validateResourceId(id: string): boolean {
     return typeof id === 'string' && id.length === 32 && RESOURCE_ID_REGEX.test(id);
 }
 
-/**
- * Simple timeout wrapper that ensures cleanup
- */
-async function withTimeout<T>(
-    promise: Promise<T>,
-    timeoutMs: number,
-    errorMessage: string = 'Operation timed out'
-): Promise<T> {
-    let timeoutId: NodeJS.Timeout | undefined;
-
-    const timeoutPromise = new Promise<never>((_, reject) => {
-        timeoutId = setTimeout(() => {
-            reject(new Error(errorMessage));
-        }, timeoutMs);
-    });
-
-    try {
-        return await Promise.race([promise, timeoutPromise]);
-    } finally {
-        if (timeoutId !== undefined) {
-            clearTimeout(timeoutId);
-        }
-    }
-}
-
 // Narrow unknown resource objects returned by the Joplin API (runtime validation)
 function isMinimalJoplinResource(obj: unknown): obj is Pick<JoplinResource, 'id' | 'mime'> {
     return (
@@ -119,12 +94,12 @@ export async function convertResourceToBase64(id: string): Promise<string | null
             return EMBED_ERROR_TOKEN;
         }
 
-        // Use timeout wrapper to ensure cleanup
-        const fileObj = (await withTimeout(
-            joplin.data.get(['resources', id, 'file']),
-            CONSTANTS.BASE64_TIMEOUT_MS,
-            'Timeout retrieving resource file'
-        )) as JoplinFileData;
+        // Fetch resource file with timeout
+        const filePromise = joplin.data.get(['resources', id, 'file']);
+        const timeoutPromise = new Promise<never>((_, reject) => {
+            setTimeout(() => reject(new Error('Timeout retrieving resource file')), CONSTANTS.BASE64_TIMEOUT_MS);
+        });
+        const fileObj = (await Promise.race([filePromise, timeoutPromise])) as JoplinFileData;
         let fileBuffer: Buffer;
         try {
             fileBuffer = extractFileBuffer(fileObj);
@@ -163,12 +138,15 @@ export async function convertResourceToBase64(id: string): Promise<string | null
  */
 export async function downloadRemoteImageAsBase64(url: string): Promise<string | null> {
     const controller = new AbortController();
-    const AbortSignalWithTimeout = AbortSignal as typeof AbortSignal & { timeout(ms: number): AbortSignal };
+    const AbortSignalWithTimeout = AbortSignal as typeof AbortSignal & {
+        timeout(ms: number): AbortSignal;
+        any(signals: AbortSignal[]): AbortSignal;
+    };
     const timeoutSignal = AbortSignalWithTimeout.timeout(CONSTANTS.REMOTE_TIMEOUT_MS);
-    const abortOnTimeout = () => controller.abort();
-    timeoutSignal.addEventListener('abort', abortOnTimeout, { once: true });
+    const combinedSignal = AbortSignalWithTimeout.any([controller.signal, timeoutSignal]);
+
     try {
-        const fetchPromise = fetch(url, {
+        const response = await fetch(url, {
             // Avoid leaking cookies/referrer in Electron/Hybrid environments
             credentials: 'omit',
             referrerPolicy: 'no-referrer',
@@ -176,10 +154,8 @@ export async function downloadRemoteImageAsBase64(url: string): Promise<string |
                 'User-Agent': CONSTANTS.REMOTE_IMAGE_USER_AGENT,
                 Accept: 'image/*',
             },
-            signal: controller.signal,
+            signal: combinedSignal,
         });
-
-        const response = await fetchPromise;
 
         if (!response.ok) {
             logger.warn(`Remote image download failed ${url}: ${response.status} ${response.statusText}`);
@@ -265,11 +241,9 @@ export async function downloadRemoteImageAsBase64(url: string): Promise<string |
         const base64 = buffer.toString('base64');
         return `data:${contentType};base64,${base64}`;
     } catch (err) {
-        controller.abort();
         logger.error('Failed to download remote image:', url, err);
         return EMBED_ERROR_TOKEN;
     } finally {
-        timeoutSignal.removeEventListener('abort', abortOnTimeout);
         if (!controller.signal.aborted) {
             controller.abort();
         }
