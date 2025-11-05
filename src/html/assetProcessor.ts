@@ -224,6 +224,7 @@ export async function downloadRemoteImageAsBase64(url: string): Promise<string |
             buffer = Buffer.from(arrayBuffer);
 
             if (buffer.length > CONSTANTS.MAX_IMAGE_SIZE_BYTES) {
+                controller.abort();
                 logger.warn(
                     `Remote image too large ${url}: ${Math.round(buffer.length / 1024 / 1024)}MB (max ${Math.round(
                         CONSTANTS.MAX_IMAGE_SIZE_BYTES / 1024 / 1024
