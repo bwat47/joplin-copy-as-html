@@ -77,9 +77,8 @@ export async function convertResourceToBase64(id: string): Promise<string | null
     try {
         const rawResource = await joplin.data.get(['resources', id], { fields: ['id', 'mime'] });
 
-        // Not found: preserve existing combined not-found/not-image messaging
         if (!rawResource) {
-            logger.warn(`Resource not found or not an image: :/${id}`);
+            logger.warn(`Resource not found: :/${id}`);
             return EMBED_ERROR_TOKEN;
         }
 
