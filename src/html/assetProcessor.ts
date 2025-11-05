@@ -104,10 +104,23 @@ export async function convertResourceToBase64(id: string): Promise<string | null
 
         // Fetch resource file with timeout
         const filePromise = joplin.data.get(['resources', id, 'file']);
+        let timeoutId: NodeJS.Timeout;
         const timeoutPromise = new Promise<never>((_, reject) => {
-            setTimeout(() => reject(new Error('Timeout retrieving resource file')), CONSTANTS.BASE64_TIMEOUT_MS);
+            timeoutId = setTimeout(
+                () => reject(new Error('Timeout retrieving resource file')),
+                CONSTANTS.BASE64_TIMEOUT_MS
+            );
         });
-        const fileObj = (await Promise.race([filePromise, timeoutPromise])) as JoplinFileData;
+
+        let fileObj: JoplinFileData;
+        try {
+            fileObj = (await Promise.race([filePromise, timeoutPromise])) as JoplinFileData;
+            clearTimeout(timeoutId);
+        } catch (err) {
+            clearTimeout(timeoutId);
+            throw err;
+        }
+
         let fileBuffer: Buffer;
         try {
             fileBuffer = extractFileBuffer(fileObj);
@@ -226,7 +239,6 @@ export async function downloadRemoteImageAsBase64(url: string): Promise<string |
             buffer = Buffer.from(arrayBuffer);
 
             if (buffer.length > CONSTANTS.MAX_IMAGE_SIZE_BYTES) {
-                controller.abort();
                 logger.warn(
                     `Remote image too large ${url}: ${formatMB(buffer.length)} (max ${formatMB(CONSTANTS.MAX_IMAGE_SIZE_BYTES)})`
                 );
