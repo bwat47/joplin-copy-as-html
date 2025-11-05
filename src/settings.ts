@@ -53,11 +53,11 @@ export async function registerPluginSettings(): Promise<void> {
                 'If enabled (along with "Embed images as base64"), remote HTTP/HTTPS images will be downloaded and embedded as base64. If un-checked, the resulting document may contain links to external resources.',
         },
         [SETTINGS.EMBED_SVG_AS_PNG]: {
-            value: false,
+            value: true,
             type: SettingItemType.Bool,
             section: SECTION_ID,
             public: true,
-            advanced: true,
+            advanced: false,
             label: 'Convert SVG images to PNG',
             description:
                 'If enabled, embedded SVG images will be rasterized as PNG to improve compatibility with applications that cannot display inline SVG.',

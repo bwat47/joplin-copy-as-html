@@ -60,13 +60,13 @@ describe('validateHtmlSettings', () => {
             embedImages: true,
             exportFullHtml: false,
             downloadRemoteImages: false,
-            embedSvgAsPng: false,
+            embedSvgAsPng: true,
         });
         expect(validateHtmlSettings(null)).toEqual({
             embedImages: true,
             exportFullHtml: false,
             downloadRemoteImages: false,
-            embedSvgAsPng: false,
+            embedSvgAsPng: true,
         });
     });
 
@@ -96,7 +96,7 @@ describe('validateHtmlSettings', () => {
             embedImages: true,
             exportFullHtml: false,
             downloadRemoteImages: false,
-            embedSvgAsPng: false,
+            embedSvgAsPng: true,
         });
     });
 
@@ -108,7 +108,7 @@ describe('validateHtmlSettings', () => {
             embedImages: false,
             exportFullHtml: false,
             downloadRemoteImages: false,
-            embedSvgAsPng: false,
+            embedSvgAsPng: true,
         });
 
         const settings2 = {
@@ -118,7 +118,7 @@ describe('validateHtmlSettings', () => {
             embedImages: true,
             exportFullHtml: true,
             downloadRemoteImages: false,
-            embedSvgAsPng: false,
+            embedSvgAsPng: true,
         });
     });
 });

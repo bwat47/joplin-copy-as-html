@@ -50,7 +50,7 @@
             "type": "bool",
             "label": "Convert SVG images to PNG",
             "description": "If enabled, embedded SVG images will be rasterized as PNG to improve compatibility with applications that cannot display inline SVG.",
-            "value": false
+            "value": true
         },
         "preserveSuperscript": {
             "type": "bool",
