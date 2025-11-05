@@ -255,6 +255,16 @@ async function convertSvgImageElement(img: HTMLImageElement, src: string): Promi
     img.setAttribute('src', png);
 }
 
+/**
+ * Rasterizes an SVG data URI to a PNG data URI using the Canvas API.
+ *
+ * @param svgDataUri - SVG image encoded as a data URI
+ * @returns PNG data URI on success, null on failure or if Canvas API unavailable
+ *
+ * @remarks
+ * Requires browser environment with Canvas API (Chromium 116+).
+ * Returns null in Node.js/SSR environments or if rasterization fails.
+ */
 async function rasterizeSvgDataUriToPng(svgDataUri: string): Promise<string | null> {
     if (
         typeof Image === 'undefined' ||
