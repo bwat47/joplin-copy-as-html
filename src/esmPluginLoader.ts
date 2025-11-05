@@ -19,6 +19,7 @@ export function registerESMPlugin(packageName: string, importer: ESMImporter): v
 
 async function tryDynamicImportFallback(packageName: string): Promise<Record<string, unknown> | null> {
     try {
+        // Avoid giving Webpack a statically analyzable specifier so it doesn’t try to bundle every possible module.
         const dynamicImport = new Function('specifier', 'return import(specifier);') as (
             specifier: string
         ) => Promise<unknown>;
