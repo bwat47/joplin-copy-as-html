@@ -53,6 +53,15 @@ function validateResourceId(id: string): boolean {
     return typeof id === 'string' && id.length === 32 && RESOURCE_ID_REGEX.test(id);
 }
 
+/**
+ * Formats a byte size as megabytes for logging.
+ * @param bytes The size in bytes.
+ * @returns Formatted string like "15MB".
+ */
+function formatMB(bytes: number): string {
+    return `${Math.round(bytes / 1024 / 1024)}MB`;
+}
+
 // Narrow unknown resource objects returned by the Joplin API (runtime validation)
 function isMinimalJoplinResource(obj: unknown): obj is Pick<JoplinResource, 'id' | 'mime'> {
     return (
@@ -106,15 +115,11 @@ export async function convertResourceToBase64(id: string): Promise<string | null
             // Check file size limits
             if (fileBuffer.length > CONSTANTS.MAX_IMAGE_SIZE_BYTES) {
                 logger.warn(
-                    `Resource too large: :/${id} is ${Math.round(fileBuffer.length / 1024 / 1024)}MB (max ${Math.round(
-                        CONSTANTS.MAX_IMAGE_SIZE_BYTES / 1024 / 1024
-                    )}MB)`
+                    `Resource too large: :/${id} is ${formatMB(fileBuffer.length)} (max ${formatMB(CONSTANTS.MAX_IMAGE_SIZE_BYTES)})`
                 );
                 return EMBED_ERROR_TOKEN;
             } else if (fileBuffer.length > CONSTANTS.MAX_IMAGE_SIZE_WARNING) {
-                logger.warn(
-                    `Large image detected: Resource :/${id} is ${Math.round(fileBuffer.length / 1024 / 1024)}MB`
-                );
+                logger.warn(`Large image detected: Resource :/${id} is ${formatMB(fileBuffer.length)}`);
             }
         } catch (err) {
             const msg = err && err.message ? err.message : String(err);
@@ -173,9 +178,7 @@ export async function downloadRemoteImageAsBase64(url: string): Promise<string |
             const declaredSize = Number(contentLengthHeader);
             if (!Number.isNaN(declaredSize) && declaredSize > CONSTANTS.MAX_IMAGE_SIZE_BYTES) {
                 logger.warn(
-                    `Remote image too large ${url}: ${Math.round(declaredSize / 1024 / 1024)}MB (max ${Math.round(
-                        CONSTANTS.MAX_IMAGE_SIZE_BYTES / 1024 / 1024
-                    )}MB)`
+                    `Remote image too large ${url}: ${formatMB(declaredSize)} (max ${formatMB(CONSTANTS.MAX_IMAGE_SIZE_BYTES)})`
                 );
                 return EMBED_ERROR_TOKEN;
             }
@@ -199,9 +202,7 @@ export async function downloadRemoteImageAsBase64(url: string): Promise<string |
                     if (totalSize + chunk.length > CONSTANTS.MAX_IMAGE_SIZE_BYTES) {
                         await reader.cancel();
                         logger.warn(
-                            `Remote image exceeded maximum size during download ${url}: ${Math.round((totalSize + chunk.length) / 1024 / 1024)}MB (max ${Math.round(
-                                CONSTANTS.MAX_IMAGE_SIZE_BYTES / 1024 / 1024
-                            )}MB)`
+                            `Remote image exceeded maximum size during download ${url}: ${formatMB(totalSize + chunk.length)} (max ${formatMB(CONSTANTS.MAX_IMAGE_SIZE_BYTES)})`
                         );
                         return EMBED_ERROR_TOKEN;
                     }
@@ -211,7 +212,7 @@ export async function downloadRemoteImageAsBase64(url: string): Promise<string |
                 }
 
                 if (totalSize > CONSTANTS.MAX_IMAGE_SIZE_WARNING) {
-                    logger.warn(`Large remote image: ${url} is ${Math.round(totalSize / 1024 / 1024)}MB`);
+                    logger.warn(`Large remote image: ${url} is ${formatMB(totalSize)}`);
                 }
 
                 buffer = Buffer.concat(chunks);
@@ -226,15 +227,13 @@ export async function downloadRemoteImageAsBase64(url: string): Promise<string |
             if (buffer.length > CONSTANTS.MAX_IMAGE_SIZE_BYTES) {
                 controller.abort();
                 logger.warn(
-                    `Remote image too large ${url}: ${Math.round(buffer.length / 1024 / 1024)}MB (max ${Math.round(
-                        CONSTANTS.MAX_IMAGE_SIZE_BYTES / 1024 / 1024
-                    )}MB)`
+                    `Remote image too large ${url}: ${formatMB(buffer.length)} (max ${formatMB(CONSTANTS.MAX_IMAGE_SIZE_BYTES)})`
                 );
                 return EMBED_ERROR_TOKEN;
             }
 
             if (buffer.length > CONSTANTS.MAX_IMAGE_SIZE_WARNING) {
-                logger.warn(`Large remote image: ${url} is ${Math.round(buffer.length / 1024 / 1024)}MB`);
+                logger.warn(`Large remote image: ${url} is ${formatMB(buffer.length)}`);
             }
         }
 
