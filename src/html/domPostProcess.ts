@@ -301,7 +301,7 @@ async function rasterizeSvgDataUriToPng(svgDataUri: string): Promise<string | nu
                     try {
                         resolve(canvas.toDataURL('image/png'));
                     } catch (dataUrlError) {
-                        logger.debug('canvas.toDataURL failed', dataUrlError);
+                        logger.debug('SVG to PNG conversion failed in canvas.toDataURL', dataUrlError);
                         resolve(null);
                     }
                 } finally {
