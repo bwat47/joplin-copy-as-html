@@ -142,6 +142,7 @@ export async function convertResourceToBase64(id: string): Promise<string | null
  */
 export async function downloadRemoteImageAsBase64(url: string): Promise<string | null> {
     const controller = new AbortController();
+    // Requires Electron with Chromium 116+ (AbortSignal.timeout/any support)
     const AbortSignalWithTimeout = AbortSignal as typeof AbortSignal & {
         timeout(ms: number): AbortSignal;
         any(signals: AbortSignal[]): AbortSignal;
