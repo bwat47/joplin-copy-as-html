@@ -13,7 +13,9 @@ export function resetAllJoplinMocks(): void {
 
 // Mock plugin settings queried via joplin.settings.value(), key-based (order independent).
 // Uses SETTINGS.EMBED_IMAGES / SETTINGS.EXPORT_FULL_HTML so renaming constants won’t break tests.
-export function mockHtmlSettings(opts: { embedImages?: boolean; exportFullHtml?: boolean; embedSvgAsPng?: boolean } = {}): void {
+export function mockHtmlSettings(
+    opts: { embedImages?: boolean; exportFullHtml?: boolean; embedSvgAsPng?: boolean } = {}
+): void {
     const { embedImages = false, exportFullHtml = false, embedSvgAsPng = true } = opts;
     const embedKey = SETTINGS.EMBED_IMAGES;
     const fullKey = SETTINGS.EXPORT_FULL_HTML;

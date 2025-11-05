@@ -6,6 +6,7 @@
  * - Sanitizing HTML
  * - Cleaning up Joplin-specific resource links
  * - Image embedding
+ * - SVG rasterization
  *
  * @author bwat47
  * @since 1.1.8

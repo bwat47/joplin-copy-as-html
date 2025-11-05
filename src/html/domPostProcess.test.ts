@@ -78,23 +78,25 @@ describe('domPostProcess', () => {
         (globalThis as unknown as { Image: typeof Image }).Image = FakeImage as unknown as typeof Image;
 
         const originalCreateElement = document.createElement.bind(document);
-        const createElementSpy = jest
-            .spyOn(document, 'createElement')
-            .mockImplementation(function (this: Document, tagName: string, options?: ElementCreationOptions) {
-                const element = originalCreateElement(tagName, options) as HTMLElement;
-                if (tagName.toLowerCase() === 'canvas') {
-                    const canvas = element as unknown as HTMLCanvasElement;
-                    (canvas as unknown as { getContext: () => unknown }).getContext = jest.fn().mockReturnValue({
-                        clearRect: jest.fn(),
-                        drawImage: jest.fn(),
-                    });
-                    (canvas as unknown as { toDataURL: () => string }).toDataURL = jest
-                        .fn()
-                        .mockReturnValue('data:image/png;base64,TESTPNG');
-                    return canvas as unknown as HTMLElement;
-                }
-                return element;
-            });
+        const createElementSpy = jest.spyOn(document, 'createElement').mockImplementation(function (
+            this: Document,
+            tagName: string,
+            options?: ElementCreationOptions
+        ) {
+            const element = originalCreateElement(tagName, options) as HTMLElement;
+            if (tagName.toLowerCase() === 'canvas') {
+                const canvas = element as unknown as HTMLCanvasElement;
+                (canvas as unknown as { getContext: () => unknown }).getContext = jest.fn().mockReturnValue({
+                    clearRect: jest.fn(),
+                    drawImage: jest.fn(),
+                });
+                (canvas as unknown as { toDataURL: () => string }).toDataURL = jest
+                    .fn()
+                    .mockReturnValue('data:image/png;base64,TESTPNG');
+                return canvas as unknown as HTMLElement;
+            }
+            return element;
+        });
 
         const svgMarkup = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"></svg>';
         const svgBase64 = Buffer.from(svgMarkup, 'utf8').toString('base64');
