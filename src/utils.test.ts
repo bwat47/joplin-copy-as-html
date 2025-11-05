@@ -60,11 +60,13 @@ describe('validateHtmlSettings', () => {
             embedImages: true,
             exportFullHtml: false,
             downloadRemoteImages: false,
+            embedSvgAsPng: false,
         });
         expect(validateHtmlSettings(null)).toEqual({
             embedImages: true,
             exportFullHtml: false,
             downloadRemoteImages: false,
+            embedSvgAsPng: false,
         });
     });
 
@@ -73,11 +75,13 @@ describe('validateHtmlSettings', () => {
             embedImages: false,
             exportFullHtml: true,
             downloadRemoteImages: true,
+            embedSvgAsPng: true,
         };
         expect(validateHtmlSettings(settings)).toEqual({
             embedImages: false,
             exportFullHtml: true,
             downloadRemoteImages: true,
+            embedSvgAsPng: true,
         });
     });
 
@@ -86,11 +90,13 @@ describe('validateHtmlSettings', () => {
             embedImages: 'true',
             exportFullHtml: 1,
             downloadRemoteImages: 'yes',
+            embedSvgAsPng: 'y',
         };
         expect(validateHtmlSettings(settings)).toEqual({
             embedImages: true,
             exportFullHtml: false,
             downloadRemoteImages: false,
+            embedSvgAsPng: false,
         });
     });
 
@@ -102,6 +108,7 @@ describe('validateHtmlSettings', () => {
             embedImages: false,
             exportFullHtml: false,
             downloadRemoteImages: false,
+            embedSvgAsPng: false,
         });
 
         const settings2 = {
@@ -111,6 +118,7 @@ describe('validateHtmlSettings', () => {
             embedImages: true,
             exportFullHtml: true,
             downloadRemoteImages: false,
+            embedSvgAsPng: false,
         });
     });
 });

@@ -64,6 +64,7 @@ All settings are registered in `settings.ts` via `registerPluginSettings()`. Set
 
 - `embedImages` (default `true`): replace Joplin resources with base64 data URIs; disable to strip Joplin images only.
 - `downloadRemoteImages` (default `false`): with `embedImages` enabled, fetch remote HTTP(S) images and embed them.
+- `embedSvgAsPng` (default `false`): rasterize embedded SVGs to PNG to improve compatibility with SVG-averse applications.
 - `exportFullHtml` (default `false`): wrap output in a minimal HTML document with bundled (or user supplied) CSS.
 
 ### Plain Text

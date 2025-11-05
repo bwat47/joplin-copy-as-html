@@ -50,7 +50,11 @@ export async function processHtmlConversion(selection: string, options?: HtmlOpt
     let html = md.render(selection);
 
     // 6. DOM pass: sanitize, normalize, and handle all <img> via imageSrcMap
-    html = postProcessHtml(html, { imageSrcMap, stripJoplinImages: !htmlOptions.embedImages });
+    html = await postProcessHtml(html, {
+        imageSrcMap,
+        stripJoplinImages: !htmlOptions.embedImages,
+        convertSvgToPng: htmlOptions.embedSvgAsPng,
+    });
 
     let fragment = html.trim();
 

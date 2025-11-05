@@ -26,6 +26,7 @@ export interface HtmlOptions {
     embedImages: boolean;
     exportFullHtml: boolean;
     downloadRemoteImages: boolean;
+    embedSvgAsPng: boolean;
 }
 
 export interface PlainTextOptions {

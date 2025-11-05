@@ -19,6 +19,7 @@
  */
 import DOMPurify from 'dompurify';
 import { HTML_CONSTANTS } from '../constants';
+import { logger } from '../logger';
 
 // Initialize DOMPurify instance (jsdom provides window in tests; Electron provides window at runtime)
 const purifyInstance = DOMPurify;
@@ -37,10 +38,14 @@ function ensurePurifyHooks(): void {
     purifyHooksInstalled = true;
 }
 
-export function postProcessHtml(
+export async function postProcessHtml(
     html: string,
-    opts?: { imageSrcMap?: Map<string, string | null>; stripJoplinImages?: boolean }
-): string {
+    opts?: {
+        imageSrcMap?: Map<string, string | null>;
+        stripJoplinImages?: boolean;
+        convertSvgToPng?: boolean;
+    }
+): Promise<string> {
     ensurePurifyHooks();
     const sanitizedHtml = purifyInstance.sanitize(html, {
         // Keep it permissive for rich content but remove dangerous elements
@@ -152,8 +157,10 @@ export function postProcessHtml(
     const hasAnyImg = /<img\b/i.test(sanitizedHtml);
     const needImageRewrite = !!opts?.imageSrcMap && hasAnyImg;
     const needStripJoplinImages = !!opts?.stripJoplinImages && hasAnyImg;
-    const needTopLevelWrap = hasAnyImg; // safe to parse DOM and only wrap direct children
-    if (!hasJoplinLinks && !needImageRewrite && !needStripJoplinImages && !needTopLevelWrap) {
+    const needSvgProcessing =
+        !!opts?.convertSvgToPng && (/<svg\b/i.test(sanitizedHtml) || /image\/svg\+xml/i.test(sanitizedHtml));
+    const needTopLevelWrap = hasAnyImg || (!!opts?.convertSvgToPng && /<svg\b/i.test(sanitizedHtml));
+    if (!hasJoplinLinks && !needImageRewrite && !needStripJoplinImages && !needTopLevelWrap && !needSvgProcessing) {
         return sanitizedHtml;
     }
 
@@ -201,6 +208,30 @@ export function postProcessHtml(
         });
     }
 
+    const conversionPromises: Promise<void>[] = [];
+    if (opts?.convertSvgToPng) {
+        const inlineSvgs = Array.from(doc.querySelectorAll('svg'));
+        inlineSvgs.forEach((svg) => {
+            if (shouldSkipRasterization(svg)) return;
+            conversionPromises.push(convertInlineSvgElement(svg).catch((error) => logger.debug('SVG rasterization failed', error)));
+        });
+
+        const svgImages = Array.from(doc.querySelectorAll('img'));
+        svgImages.forEach((img) => {
+            if (shouldSkipRasterization(img)) return;
+            if (!(img instanceof HTMLImageElement)) return;
+            const src = img.getAttribute('src');
+            if (!isSvgDataSource(src)) return;
+            conversionPromises.push(
+                convertSvgImageElement(img, src).catch((error) => logger.debug('SVG rasterization failed', error))
+            );
+        });
+    }
+
+    if (conversionPromises.length) {
+        await Promise.all(conversionPromises);
+    }
+
     // Normalize top-level raw HTML images to behave like markdown images visually:
     // wrap each direct child <img> of <body> in its own <p> block.
     // This keeps each image on its own line consistently.
@@ -212,4 +243,167 @@ export function postProcessHtml(
     }
 
     return doc.body.innerHTML;
+}
+
+function shouldSkipRasterization(node: Element): boolean {
+    return !!node.closest('pre, code');
+}
+
+function isSvgDataSource(src: string | null): boolean {
+    if (!src) return false;
+    return /^data:image\/svg\+xml/i.test(src.trim());
+}
+
+function encodeSvgMarkupToDataUri(svgMarkup: string): string | null {
+    try {
+        if (typeof window !== 'undefined' && typeof window.btoa === 'function') {
+            const encoded = window.btoa(unescape(encodeURIComponent(svgMarkup)));
+            return `data:image/svg+xml;base64,${encoded}`;
+        }
+    } catch (err) {
+        logger.debug('Failed to encode SVG via window.btoa', err);
+    }
+
+    try {
+        if (typeof Buffer !== 'undefined') {
+            const encoded = Buffer.from(svgMarkup, 'utf8').toString('base64');
+            return `data:image/svg+xml;base64,${encoded}`;
+        }
+    } catch (err) {
+        logger.debug('Failed to encode SVG via Buffer', err);
+    }
+
+    return null;
+}
+
+function parseDimension(value: string | null): number | undefined {
+    if (!value) return undefined;
+    const match = /^([\d.]+)/.exec(value.trim());
+    if (!match) return undefined;
+    const parsed = Number(match[1]);
+    return Number.isFinite(parsed) && parsed > 0 ? parsed : undefined;
+}
+
+async function convertInlineSvgElement(svg: Element): Promise<void> {
+    if (!(svg instanceof SVGSVGElement)) {
+        return;
+    }
+
+    const ownerDoc = svg.ownerDocument;
+    if (!ownerDoc) return;
+
+    const serialized = new XMLSerializer().serializeToString(svg);
+    const svgDataUri = encodeSvgMarkupToDataUri(serialized);
+    if (!svgDataUri) return;
+
+    const widthAttr = svg.getAttribute('width');
+    const heightAttr = svg.getAttribute('height');
+    let fallbackWidth = parseDimension(widthAttr);
+    let fallbackHeight = parseDimension(heightAttr);
+
+    if ((!fallbackWidth || !fallbackHeight) && svg.hasAttribute('viewBox')) {
+        const parts = svg
+            .getAttribute('viewBox')
+            ?.split(/[\s,]+/)
+            .map((part) => Number(part))
+            .filter((num) => Number.isFinite(num));
+        if (parts && parts.length === 4) {
+            fallbackWidth = fallbackWidth || parts[2];
+            fallbackHeight = fallbackHeight || parts[3];
+        }
+    }
+
+    const pngDataUri = await rasterizeSvgDataUriToPng(svgDataUri, fallbackWidth, fallbackHeight);
+    if (!pngDataUri || !svg.isConnected) return;
+
+    const img = ownerDoc.createElement('img');
+    copyAttributes(svg, img, ['class', 'style', 'id']);
+    if (widthAttr) img.setAttribute('width', widthAttr);
+    if (heightAttr) img.setAttribute('height', heightAttr);
+    const label = svg.getAttribute('aria-label') || svg.getAttribute('title');
+    img.setAttribute('alt', label || '');
+    img.setAttribute('src', pngDataUri);
+    svg.parentNode?.replaceChild(img, svg);
+}
+
+async function convertSvgImageElement(img: HTMLImageElement, src: string): Promise<void> {
+    const png = await rasterizeSvgDataUriToPng(src);
+    if (!png || !img.isConnected) return;
+    img.setAttribute('src', png);
+}
+
+async function rasterizeSvgDataUriToPng(
+    svgDataUri: string,
+    fallbackWidth?: number,
+    fallbackHeight?: number
+): Promise<string | null> {
+    if (typeof Image === 'undefined' || typeof document === 'undefined' || typeof document.createElement !== 'function') {
+        return null;
+    }
+
+    return new Promise((resolve) => {
+        try {
+            const img = new Image();
+            img.onload = () => {
+                try {
+                    const sourceWidth = img.naturalWidth || fallbackWidth || 0;
+                    const sourceHeight = img.naturalHeight || fallbackHeight || 0;
+
+                    if (!sourceWidth || !sourceHeight) {
+                        resolve(null);
+                        return;
+                    }
+
+                    const width = Math.max(1, Math.round(sourceWidth));
+                    const height = Math.max(1, Math.round(sourceHeight));
+
+                    const canvas = document.createElement('canvas') as HTMLCanvasElement;
+                    if (!canvas) {
+                        resolve(null);
+                        return;
+                    }
+
+                    canvas.width = width;
+                    canvas.height = height;
+
+                    const ctx = canvas.getContext('2d');
+                    if (!ctx) {
+                        resolve(null);
+                        return;
+                    }
+
+                    ctx.clearRect(0, 0, width, height);
+                    ctx.drawImage(img, 0, 0, width, height);
+
+                    try {
+                        resolve(canvas.toDataURL('image/png'));
+                    } catch (dataUrlError) {
+                        logger.debug('canvas.toDataURL failed', dataUrlError);
+                        resolve(null);
+                    }
+                } finally {
+                    img.onload = null;
+                    img.onerror = null;
+                }
+            };
+            img.onerror = () => {
+                img.onload = null;
+                img.onerror = null;
+                resolve(null);
+            };
+            img.src = svgDataUri;
+        } catch (error) {
+            logger.debug('Failed to rasterize SVG data URI', error);
+            resolve(null);
+        }
+    });
+}
+
+function copyAttributes(source: Element, target: Element, attributeNames: string[]): void {
+    attributeNames.forEach((name) => {
+        const value = source.getAttribute(name);
+        if (value) {
+            target.setAttribute(name, value);
+        }
+    });
 }

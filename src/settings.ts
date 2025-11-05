@@ -52,6 +52,16 @@ export async function registerPluginSettings(): Promise<void> {
             description:
                 'If enabled (along with "Embed images as base64"), remote HTTP/HTTPS images will be downloaded and embedded as base64. If un-checked, the resulting document may contain links to external resources.',
         },
+        [SETTINGS.EMBED_SVG_AS_PNG]: {
+            value: false,
+            type: SettingItemType.Bool,
+            section: SECTION_ID,
+            public: true,
+            advanced: true,
+            label: 'Convert SVG images to PNG',
+            description:
+                'If enabled, embedded SVG images will be rasterized as PNG to improve compatibility with applications that cannot display inline SVG.',
+        },
         [SETTINGS.PRESERVE_SUPERSCRIPT]: {
             value: false,
             type: SettingItemType.Bool,
@@ -190,6 +200,7 @@ export async function loadHtmlSettings(): Promise<HtmlOptions> {
         embedImages: await joplin.settings.value(SETTINGS.EMBED_IMAGES),
         exportFullHtml: await joplin.settings.value(SETTINGS.EXPORT_FULL_HTML),
         downloadRemoteImages: await joplin.settings.value(SETTINGS.DOWNLOAD_REMOTE_IMAGES),
+        embedSvgAsPng: await joplin.settings.value(SETTINGS.EMBED_SVG_AS_PNG),
     };
     return validateHtmlSettings(htmlSettings);
 }
