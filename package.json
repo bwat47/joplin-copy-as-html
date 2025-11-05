@@ -19,21 +19,21 @@
         "publish"
     ],
     "devDependencies": {
-        "@babel/core": "^7.28.4",
-        "@babel/preset-env": "^7.28.3",
+        "@babel/core": "^7.28.5",
+        "@babel/preset-env": "^7.28.5",
         "@eslint/eslintrc": "^3.3.1",
-        "@eslint/js": "^9.37.0",
+        "@eslint/js": "^9.39.1",
         "@types/dompurify": "^3.0.5",
         "@types/jest": "^30.0.0",
         "@types/jsdom": "^27.0.0",
         "@types/markdown-it": "^14.1.2",
-        "@types/node": "^24.7.2",
-        "@typescript-eslint/eslint-plugin": "^8.46.1",
-        "@typescript-eslint/parser": "^8.46.1",
+        "@types/node": "^24.10.0",
+        "@typescript-eslint/eslint-plugin": "^8.46.3",
+        "@typescript-eslint/parser": "^8.46.3",
         "babel-jest": "^30.2.0",
         "chalk": "^4.1.0",
         "copy-webpack-plugin": "^13.0.1",
-        "eslint": "^9.37.0",
+        "eslint": "^9.39.1",
         "eslint-config-prettier": "^10.1.8",
         "eslint-plugin-import": "^2.32.0",
         "eslint-plugin-prettier": "^5.5.4",
@@ -41,7 +41,7 @@
         "glob": "^8.0.3",
         "jest": "^30.2.0",
         "jest-environment-jsdom": "^30.2.0",
-        "jsdom": "^27.0.0",
+        "jsdom": "^27.1.0",
         "prettier": "^3.6.2",
         "tar": "^6.1.11",
         "ts-jest": "^29.4.5",
@@ -65,7 +65,10 @@
         "markdown-it-sub": "^2.0.0",
         "markdown-it-sup": "^2.0.0",
         "markdown-it-table-of-contents": "^1.1.0",
-        "@mdit/plugin-tasklist": "^0.22.1",
+        "@mdit/plugin-tasklist": "^0.22.2",
         "string-width": "^8.1.0"
+    },
+    "overrides": {
+        "parse5": "^7.3.0"
     }
 }
