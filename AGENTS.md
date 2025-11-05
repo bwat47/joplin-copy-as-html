@@ -44,7 +44,7 @@ Use Node LTS (18+) and npm 9+ for consistency.
 - Avoid `any`; prefer `unknown` then narrow. Use unions/generics where helpful.
 - Use explicit return types for exported functions; let inference handle locals.
 - Fail fast with clear errors; don’t swallow exceptions.
-- Log with a consistent prefix, e.g., `[copy-as-html]`.
+- Log using shared `src/logger.ts`.
 
 ## Settings & Constants
 
