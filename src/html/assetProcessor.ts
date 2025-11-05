@@ -115,10 +115,8 @@ export async function convertResourceToBase64(id: string): Promise<string | null
         let fileObj: JoplinFileData;
         try {
             fileObj = (await Promise.race([filePromise, timeoutPromise])) as JoplinFileData;
+        } finally {
             clearTimeout(timeoutId);
-        } catch (err) {
-            clearTimeout(timeoutId);
-            throw err;
         }
 
         let fileBuffer: Buffer;
