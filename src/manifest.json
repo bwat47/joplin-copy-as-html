@@ -46,6 +46,12 @@
             "description": "If enabled (along with Embed images as base64), remote HTTP/HTTPS images will be downloaded and embedded as base64. If un-checked, the resulting document may contain links to external resources.",
             "value": false
         },
+        "embedSvgAsPng": {
+            "type": "bool",
+            "label": "Convert SVG images to PNG",
+            "description": "If enabled, embedded SVG images will be rasterized as PNG to improve compatibility with applications that cannot display inline SVG.",
+            "value": true
+        },
         "preserveSuperscript": {
             "type": "bool",
             "label": "Preserve superscript characters (^TEST^)",

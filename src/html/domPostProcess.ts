@@ -6,6 +6,7 @@
  * - Sanitizing HTML
  * - Cleaning up Joplin-specific resource links
  * - Image embedding
+ * - SVG rasterization
  *
  * @author bwat47
  * @since 1.1.8
@@ -19,6 +20,7 @@
  */
 import DOMPurify from 'dompurify';
 import { HTML_CONSTANTS } from '../constants';
+import { logger } from '../logger';
 
 // Initialize DOMPurify instance (jsdom provides window in tests; Electron provides window at runtime)
 const purifyInstance = DOMPurify;
@@ -37,10 +39,14 @@ function ensurePurifyHooks(): void {
     purifyHooksInstalled = true;
 }
 
-export function postProcessHtml(
+export async function postProcessHtml(
     html: string,
-    opts?: { imageSrcMap?: Map<string, string | null>; stripJoplinImages?: boolean }
-): string {
+    opts?: {
+        imageSrcMap?: Map<string, string | null>;
+        stripJoplinImages?: boolean;
+        convertSvgToPng?: boolean;
+    }
+): Promise<string> {
     ensurePurifyHooks();
     const sanitizedHtml = purifyInstance.sanitize(html, {
         // Keep it permissive for rich content but remove dangerous elements
@@ -152,8 +158,9 @@ export function postProcessHtml(
     const hasAnyImg = /<img\b/i.test(sanitizedHtml);
     const needImageRewrite = !!opts?.imageSrcMap && hasAnyImg;
     const needStripJoplinImages = !!opts?.stripJoplinImages && hasAnyImg;
-    const needTopLevelWrap = hasAnyImg; // safe to parse DOM and only wrap direct children
-    if (!hasJoplinLinks && !needImageRewrite && !needStripJoplinImages && !needTopLevelWrap) {
+    const needSvgProcessing = !!opts?.convertSvgToPng && /image\/svg\+xml/i.test(sanitizedHtml);
+    const needTopLevelWrap = hasAnyImg;
+    if (!hasJoplinLinks && !needImageRewrite && !needStripJoplinImages && !needTopLevelWrap && !needSvgProcessing) {
         return sanitizedHtml;
     }
 
@@ -201,6 +208,26 @@ export function postProcessHtml(
         });
     }
 
+    // Convert SVG images to PNG for better compatibility
+    if (opts?.convertSvgToPng) {
+        const svgImages = Array.from(doc.querySelectorAll('img'));
+        const conversionPromises: Promise<void>[] = [];
+
+        svgImages.forEach((img) => {
+            if (shouldSkipRasterization(img)) return;
+            if (!(img instanceof HTMLImageElement)) return;
+            const src = img.getAttribute('src');
+            if (!isSvgDataSource(src)) return;
+            conversionPromises.push(
+                convertSvgImageElement(img, src).catch((error) => logger.debug('SVG rasterization failed', error))
+            );
+        });
+
+        if (conversionPromises.length) {
+            await Promise.all(conversionPromises);
+        }
+    }
+
     // Normalize top-level raw HTML images to behave like markdown images visually:
     // wrap each direct child <img> of <body> in its own <p> block.
     // This keeps each image on its own line consistently.
@@ -212,4 +239,96 @@ export function postProcessHtml(
     }
 
     return doc.body.innerHTML;
+}
+
+function shouldSkipRasterization(node: Element): boolean {
+    return !!node.closest('pre, code');
+}
+
+function isSvgDataSource(src: string | null): boolean {
+    if (!src) return false;
+    return /^data:image\/svg\+xml/i.test(src.trim());
+}
+
+async function convertSvgImageElement(img: HTMLImageElement, src: string): Promise<void> {
+    const png = await rasterizeSvgDataUriToPng(src);
+    if (!png || !img.isConnected) return;
+    img.setAttribute('src', png);
+}
+
+/**
+ * Rasterizes an SVG data URI to a PNG data URI using the Canvas API.
+ *
+ * @param svgDataUri - SVG image encoded as a data URI
+ * @returns PNG data URI on success, null on failure or if Canvas API unavailable
+ *
+ * @remarks
+ * Requires browser environment with Canvas API (Chromium 116+).
+ * Returns null in Node.js/SSR environments or if rasterization fails.
+ */
+async function rasterizeSvgDataUriToPng(svgDataUri: string): Promise<string | null> {
+    if (
+        typeof Image === 'undefined' ||
+        typeof document === 'undefined' ||
+        typeof document.createElement !== 'function'
+    ) {
+        return null;
+    }
+
+    return new Promise((resolve) => {
+        try {
+            const img = new Image();
+            img.onload = () => {
+                try {
+                    const sourceWidth = img.naturalWidth;
+                    const sourceHeight = img.naturalHeight;
+
+                    if (!sourceWidth || !sourceHeight) {
+                        resolve(null);
+                        return;
+                    }
+
+                    const width = Math.max(1, Math.round(sourceWidth));
+                    const height = Math.max(1, Math.round(sourceHeight));
+
+                    const canvas = document.createElement('canvas') as HTMLCanvasElement;
+                    if (!canvas) {
+                        resolve(null);
+                        return;
+                    }
+
+                    canvas.width = width;
+                    canvas.height = height;
+
+                    const ctx = canvas.getContext('2d');
+                    if (!ctx) {
+                        resolve(null);
+                        return;
+                    }
+
+                    ctx.clearRect(0, 0, width, height);
+                    ctx.drawImage(img, 0, 0, width, height);
+
+                    try {
+                        resolve(canvas.toDataURL('image/png'));
+                    } catch (dataUrlError) {
+                        logger.debug('SVG to PNG conversion failed in canvas.toDataURL', dataUrlError);
+                        resolve(null);
+                    }
+                } finally {
+                    img.onload = null;
+                    img.onerror = null;
+                }
+            };
+            img.onerror = () => {
+                img.onload = null;
+                img.onerror = null;
+                resolve(null);
+            };
+            img.src = svgDataUri;
+        } catch (error) {
+            logger.debug('Failed to rasterize SVG data URI', error);
+            resolve(null);
+        }
+    });
 }
