@@ -274,6 +274,29 @@ export function collectPlainTextBlocksFromTokens(
                 break;
             }
 
+            case 'softbreak':
+            case 'hardbreak':
+            case 'link_open':
+            case 'link_close':
+            case 'emoji':
+            case 'code_inline':
+            case 'em_open':
+            case 'em_close':
+            case 'strong_open':
+            case 'strong_close':
+            case 'mark_open':
+            case 'mark_close':
+            case 'ins_open':
+            case 'ins_close':
+            case 's_open':
+            case 's_close':
+            case 'sub_open':
+            case 'sub_close':
+            case 'sup_open':
+            case 'sup_close':
+                processInline([t]);
+                break;
+
             default:
                 break;
         }

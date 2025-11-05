@@ -135,6 +135,19 @@ describe('Emoji Handling', () => {
         const result = convertMarkdownToPlainText(markdown, options);
         expect(result.trim()).toBe('Joplin is great');
     });
+
+    it('should render emojis contained within table cells', () => {
+        const markdown = `
+| Feature | Status | Notes |
+| --- | --- | --- |
+| Bug Fixes | :white_check_mark: | All major bugs resolved. |
+| Celebration | :tada: | Release time! |
+`;
+        const result = convertMarkdownToPlainText(markdown, defaultOptions);
+        const trimmed = result.trim();
+        expect(trimmed).toContain('✅');
+        expect(trimmed).toContain('🎉');
+    });
 });
 
 // Complex Structures and Edge Cases
