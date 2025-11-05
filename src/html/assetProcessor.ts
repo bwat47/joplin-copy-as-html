@@ -54,28 +54,12 @@ function validateResourceId(id: string): boolean {
 }
 
 /**
- * Simple timeout wrapper that ensures cleanup
+ * Formats a byte size as megabytes for logging.
+ * @param bytes The size in bytes.
+ * @returns Formatted string like "15MB".
  */
-async function withTimeout<T>(
-    promise: Promise<T>,
-    timeoutMs: number,
-    errorMessage: string = 'Operation timed out'
-): Promise<T> {
-    let timeoutId: NodeJS.Timeout | undefined;
-
-    const timeoutPromise = new Promise<never>((_, reject) => {
-        timeoutId = setTimeout(() => {
-            reject(new Error(errorMessage));
-        }, timeoutMs);
-    });
-
-    try {
-        return await Promise.race([promise, timeoutPromise]);
-    } finally {
-        if (timeoutId !== undefined) {
-            clearTimeout(timeoutId);
-        }
-    }
+function formatMB(bytes: number): string {
+    return `${Math.round(bytes / 1024 / 1024)}MB`;
 }
 
 // Narrow unknown resource objects returned by the Joplin API (runtime validation)
@@ -102,9 +86,8 @@ export async function convertResourceToBase64(id: string): Promise<string | null
     try {
         const rawResource = await joplin.data.get(['resources', id], { fields: ['id', 'mime'] });
 
-        // Not found: preserve existing combined not-found/not-image messaging
         if (!rawResource) {
-            logger.warn(`Resource not found or not an image: :/${id}`);
+            logger.warn(`Resource not found: :/${id}`);
             return EMBED_ERROR_TOKEN;
         }
 
@@ -119,12 +102,23 @@ export async function convertResourceToBase64(id: string): Promise<string | null
             return EMBED_ERROR_TOKEN;
         }
 
-        // Use timeout wrapper to ensure cleanup
-        const fileObj = (await withTimeout(
-            joplin.data.get(['resources', id, 'file']),
-            CONSTANTS.BASE64_TIMEOUT_MS,
-            'Timeout retrieving resource file'
-        )) as JoplinFileData;
+        // Fetch resource file with timeout
+        const filePromise = joplin.data.get(['resources', id, 'file']);
+        let timeoutId: NodeJS.Timeout;
+        const timeoutPromise = new Promise<never>((_, reject) => {
+            timeoutId = setTimeout(
+                () => reject(new Error('Timeout retrieving resource file')),
+                CONSTANTS.BASE64_TIMEOUT_MS
+            );
+        });
+
+        let fileObj: JoplinFileData;
+        try {
+            fileObj = (await Promise.race([filePromise, timeoutPromise])) as JoplinFileData;
+        } finally {
+            clearTimeout(timeoutId);
+        }
+
         let fileBuffer: Buffer;
         try {
             fileBuffer = extractFileBuffer(fileObj);
@@ -132,15 +126,11 @@ export async function convertResourceToBase64(id: string): Promise<string | null
             // Check file size limits
             if (fileBuffer.length > CONSTANTS.MAX_IMAGE_SIZE_BYTES) {
                 logger.warn(
-                    `Resource too large: :/${id} is ${Math.round(fileBuffer.length / 1024 / 1024)}MB (max ${Math.round(
-                        CONSTANTS.MAX_IMAGE_SIZE_BYTES / 1024 / 1024
-                    )}MB)`
+                    `Resource too large: :/${id} is ${formatMB(fileBuffer.length)} (max ${formatMB(CONSTANTS.MAX_IMAGE_SIZE_BYTES)})`
                 );
                 return EMBED_ERROR_TOKEN;
             } else if (fileBuffer.length > CONSTANTS.MAX_IMAGE_SIZE_WARNING) {
-                logger.warn(
-                    `Large image detected: Resource :/${id} is ${Math.round(fileBuffer.length / 1024 / 1024)}MB`
-                );
+                logger.warn(`Large image detected: Resource :/${id} is ${formatMB(fileBuffer.length)}`);
             }
         } catch (err) {
             const msg = err && err.message ? err.message : String(err);
@@ -163,12 +153,16 @@ export async function convertResourceToBase64(id: string): Promise<string | null
  */
 export async function downloadRemoteImageAsBase64(url: string): Promise<string | null> {
     const controller = new AbortController();
-    const AbortSignalWithTimeout = AbortSignal as typeof AbortSignal & { timeout(ms: number): AbortSignal };
+    // Requires Electron with Chromium 116+ (AbortSignal.timeout/any support)
+    const AbortSignalWithTimeout = AbortSignal as typeof AbortSignal & {
+        timeout(ms: number): AbortSignal;
+        any(signals: AbortSignal[]): AbortSignal;
+    };
     const timeoutSignal = AbortSignalWithTimeout.timeout(CONSTANTS.REMOTE_TIMEOUT_MS);
-    const abortOnTimeout = () => controller.abort();
-    timeoutSignal.addEventListener('abort', abortOnTimeout, { once: true });
+    const combinedSignal = AbortSignalWithTimeout.any([controller.signal, timeoutSignal]);
+
     try {
-        const fetchPromise = fetch(url, {
+        const response = await fetch(url, {
             // Avoid leaking cookies/referrer in Electron/Hybrid environments
             credentials: 'omit',
             referrerPolicy: 'no-referrer',
@@ -176,10 +170,8 @@ export async function downloadRemoteImageAsBase64(url: string): Promise<string |
                 'User-Agent': CONSTANTS.REMOTE_IMAGE_USER_AGENT,
                 Accept: 'image/*',
             },
-            signal: controller.signal,
+            signal: combinedSignal,
         });
-
-        const response = await fetchPromise;
 
         if (!response.ok) {
             logger.warn(`Remote image download failed ${url}: ${response.status} ${response.statusText}`);
@@ -198,9 +190,7 @@ export async function downloadRemoteImageAsBase64(url: string): Promise<string |
             const declaredSize = Number(contentLengthHeader);
             if (!Number.isNaN(declaredSize) && declaredSize > CONSTANTS.MAX_IMAGE_SIZE_BYTES) {
                 logger.warn(
-                    `Remote image too large ${url}: ${Math.round(declaredSize / 1024 / 1024)}MB (max ${Math.round(
-                        CONSTANTS.MAX_IMAGE_SIZE_BYTES / 1024 / 1024
-                    )}MB)`
+                    `Remote image too large ${url}: ${formatMB(declaredSize)} (max ${formatMB(CONSTANTS.MAX_IMAGE_SIZE_BYTES)})`
                 );
                 return EMBED_ERROR_TOKEN;
             }
@@ -224,9 +214,7 @@ export async function downloadRemoteImageAsBase64(url: string): Promise<string |
                     if (totalSize + chunk.length > CONSTANTS.MAX_IMAGE_SIZE_BYTES) {
                         await reader.cancel();
                         logger.warn(
-                            `Remote image exceeded maximum size during download ${url}: ${Math.round((totalSize + chunk.length) / 1024 / 1024)}MB (max ${Math.round(
-                                CONSTANTS.MAX_IMAGE_SIZE_BYTES / 1024 / 1024
-                            )}MB)`
+                            `Remote image exceeded maximum size during download ${url}: ${formatMB(totalSize + chunk.length)} (max ${formatMB(CONSTANTS.MAX_IMAGE_SIZE_BYTES)})`
                         );
                         return EMBED_ERROR_TOKEN;
                     }
@@ -236,7 +224,7 @@ export async function downloadRemoteImageAsBase64(url: string): Promise<string |
                 }
 
                 if (totalSize > CONSTANTS.MAX_IMAGE_SIZE_WARNING) {
-                    logger.warn(`Large remote image: ${url} is ${Math.round(totalSize / 1024 / 1024)}MB`);
+                    logger.warn(`Large remote image: ${url} is ${formatMB(totalSize)}`);
                 }
 
                 buffer = Buffer.concat(chunks);
@@ -250,26 +238,22 @@ export async function downloadRemoteImageAsBase64(url: string): Promise<string |
 
             if (buffer.length > CONSTANTS.MAX_IMAGE_SIZE_BYTES) {
                 logger.warn(
-                    `Remote image too large ${url}: ${Math.round(buffer.length / 1024 / 1024)}MB (max ${Math.round(
-                        CONSTANTS.MAX_IMAGE_SIZE_BYTES / 1024 / 1024
-                    )}MB)`
+                    `Remote image too large ${url}: ${formatMB(buffer.length)} (max ${formatMB(CONSTANTS.MAX_IMAGE_SIZE_BYTES)})`
                 );
                 return EMBED_ERROR_TOKEN;
             }
 
             if (buffer.length > CONSTANTS.MAX_IMAGE_SIZE_WARNING) {
-                logger.warn(`Large remote image: ${url} is ${Math.round(buffer.length / 1024 / 1024)}MB`);
+                logger.warn(`Large remote image: ${url} is ${formatMB(buffer.length)}`);
             }
         }
 
         const base64 = buffer.toString('base64');
         return `data:${contentType};base64,${base64}`;
     } catch (err) {
-        controller.abort();
         logger.error('Failed to download remote image:', url, err);
         return EMBED_ERROR_TOKEN;
     } finally {
-        timeoutSignal.removeEventListener('abort', abortOnTimeout);
         if (!controller.signal.aborted) {
             controller.abort();
         }
