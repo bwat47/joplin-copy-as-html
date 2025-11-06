@@ -2,7 +2,7 @@
 
 ## Overview
 
-- Provides two commands: copy the current Markdown selection as sanitized HTML or as formatted plain text.
+- Provides two commands: copy the current Markdown selection as portable HTML or as formatted plain text.
 - Built for reliable pasting into editors, email clients, and other applications; embeds resources as needed while keeping output predictable.
 
 ## Build & Tooling
@@ -52,8 +52,8 @@
 - `logger.ts` – Centralized logging utility with `[copy-as-html]` prefix. Provides `debug()`, `info()`, `warn()`, and `error()` methods. Debug logging is conditionally enabled via `setDebug()` based on user settings.
 - `pluginUtils.ts` – Resolves CommonJS export patterns, wraps `md.use`, and logs plugin failures via `logger`.
 - `esmPluginLoader.ts` – Dynamically imports ESM plugins with caching, falling back to runtime `import()` when needed and surfacing load failures via `logger`.
-- `utils.ts` – Houses `withTimeout`, resource ID parsing, and option validation shared across pipelines.
-- `defaultStylesheet.ts` – Injected when `exportFullHtml` is enabled to produce a complete HTML document.
+- `utils.ts` – Houses option validation shared across pipelines.
+- `defaultStylesheet.ts` – Injected when `exportFullHtml` is enabled to produce a complete HTML document with minimal css styling.
 - `testHelpers.ts` – Fixtures and mocks for renderer tests.
 
 ## Settings
