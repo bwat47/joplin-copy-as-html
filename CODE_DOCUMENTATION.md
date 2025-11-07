@@ -19,7 +19,7 @@
 - `src/constants.ts` / `src/types.ts` – shared configuration, string constants, and TypeScript contracts.
 - `src/utils.ts` – validation helpers, error formatting, timeout wrappers.
 - `src/pluginUtils.ts` – resilient CommonJS markdown-it plugin loader utilities; shared by both renderers.
-- `src/esmPluginLoader.ts` – async loader and cache for bundling-friendly ESM markdown-it plugins.
+- `src/esmPluginLoader.ts` – Wrappers to handle dynamic import of ESM-only packages.
 - `src/html/` – HTML renderer pipeline (`htmlRenderer.ts`, `assetProcessor.ts`, `domPostProcess.ts`, `markdownSetup.ts`).
 - `src/plainText/` – plain text pipeline (`plainTextCollector.ts`, `plainTextFormatter.ts`, `tokenRenderers.ts`, `markdownSetup.ts`).
 - Tests live beside source (`*.test.ts`). `tests/` directory is unused.
@@ -51,7 +51,7 @@
 - `settings.ts` – Centralizes all plugin settings registration and provides `loadHtmlSettings()`, `loadPlainTextSettings()`, and `loadDebugSetting()` helpers that fetch and validate settings from Joplin.
 - `logger.ts` – Centralized logging utility with `[copy-as-html]` prefix. Provides `debug()`, `info()`, `warn()`, and `error()` methods. Debug logging is conditionally enabled via `setDebug()` based on user settings.
 - `pluginUtils.ts` – Resolves CommonJS export patterns, wraps `md.use`, and logs plugin failures via `logger`.
-- `esmPluginLoader.ts` – Dynamically imports ESM plugins with caching, falling back to runtime `import()` when needed and surfacing load failures via `logger`.
+- `esmPluginLoader.ts` – Loads ESM-only markdown-it plugins in a CommonJS environment. Handles dynamic imports and caching for markdown-it-github-alerts and @mdit/plugin-tasklist.
 - `utils.ts` – Houses option validation shared across pipelines.
 - `defaultStylesheet.ts` – Injected when `exportFullHtml` is enabled to produce a complete HTML document with minimal css styling.
 - `testHelpers.ts` – Fixtures and mocks for renderer tests.
