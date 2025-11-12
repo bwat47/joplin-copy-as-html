@@ -4,9 +4,6 @@
  * @fileoverview Markdown-it setup for Plain Text Renderer
  *
  * This module configures a markdown-it instance for plain text conversion.
- *
- * @author bwat47
- * @since 1.1.8
  */
 
 import MarkdownIt from 'markdown-it';

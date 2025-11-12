@@ -7,9 +7,6 @@
  * - Remote image download to base64 (with Content-Type validation)
  * - Filesystem access for user stylesheets
  * - Error handling and utility functions for assets
- *
- * @author bwat47
- * @since 1.1.8
  */
 
 import joplin from 'api';

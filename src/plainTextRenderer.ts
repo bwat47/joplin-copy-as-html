@@ -7,9 +7,6 @@
  * - tokenRenderers.ts: contains the pure helpers for list indentation, table alignment (`string-width` aware), hyperlink handling, and blank-line rules.
  * - plainTextFormatter.ts: assembles the final string, applying spacing and user-selected preservation options.
  * - plainTextCollector.ts: walks the token stream and yields semantic blocks (paragraphs, lists, tables, code, etc.).
- *
- * @author bwat47
- * @since 1.0.16
  */
 
 import { PlainTextOptions } from './types';

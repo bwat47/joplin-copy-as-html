@@ -3,9 +3,6 @@
  *
  * Centralizes all plugin settings definitions and provides helper functions
  * to register settings with Joplin and load validated configuration values.
- *
- * @author bwat47
- * @since 1.4.0
  */
 
 import joplin from 'api';

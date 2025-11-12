@@ -13,9 +13,6 @@
  * (copy-as-html-user.css) is found in the user's profile directory.
  *
  * Users can override this by creating their own copy-as-html-user.css file.
- *
- * @author bwat47
- * @since 1.1.0
  */
 
 export const defaultStylesheet = `

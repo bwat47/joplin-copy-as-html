@@ -9,9 +9,6 @@
  * 1. Direct function export (most plugins)
  * 2. ESM-style { default: fn } (markdown-it-anchor)
  * 3. Multiple named exports (markdown-it-emoji: bare/full/light)
- *
- * @author bwat47
- * @since 1.1.0
  */
 
 import MarkdownIt = require('markdown-it');

@@ -1,23 +1,3 @@
-/**
- * @fileoverview DOM Post-processor for HTML Renderer
- *
- * This module handles all post-processing of the rendered HTML using DOMParser.
- * This includes:
- * - Sanitizing HTML
- * - Cleaning up Joplin-specific resource links
- * - Image embedding
- * - SVG rasterization
- *
- * @author bwat47
- * @since 1.1.8
- */
-
-/**
- * Sanitizes HTML with DOMPurifier
- * Cleans non-image joplin resource links and Embeds images
- * @param html The HTML string to process.
- * @returns The processed HTML string.
- */
 import DOMPurify from 'dompurify';
 import { HTML_CONSTANTS } from '../constants';
 import { logger } from '../logger';
@@ -39,6 +19,24 @@ function ensurePurifyHooks(): void {
     purifyHooksInstalled = true;
 }
 
+/**
+ * Post-processes rendered HTML with sanitization, resource cleanup, and image processing.
+ *
+ * @param html - Raw HTML string to process
+ * @param opts - Optional processing configuration
+ * @param opts.imageSrcMap - Map of image sources to data URIs or null (for error handling)
+ * @param opts.stripJoplinImages - Remove Joplin resource images (e.g., for plain text fallback)
+ * @param opts.convertSvgToPng - Rasterize SVG images to PNG for better compatibility
+ * @returns Sanitized and processed HTML string
+ *
+ * @remarks
+ * Processing steps:
+ * 1. Sanitize HTML with DOMPurify (removes scripts, dangerous attributes)
+ * 2. Remove non-image Joplin resource links (:/... or joplin://resource/...)
+ * 3. Rewrite or strip image sources based on provided map
+ * 4. Convert SVG data URIs to PNG (requires Canvas API)
+ * 5. Wrap top-level images in paragraph tags for consistent formatting
+ */
 export async function postProcessHtml(
     html: string,
     opts?: {

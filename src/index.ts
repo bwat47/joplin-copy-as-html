@@ -8,9 +8,6 @@
  *
  * The plugin respects Joplin's global markdown settings and provides additional
  * customization options for plain text output formatting.
- *
- * @author bwat47
- * @since 1.0.0
  */
 
 import joplin from 'api';

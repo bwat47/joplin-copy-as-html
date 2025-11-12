@@ -7,9 +7,6 @@
  * - tokenImageCollector: Pre-scans tokens to collect image URLs outside code.
  * - assetProcessor: Builds a URL→dataURI map (with validation) and loads stylesheet.
  * - domPostProcess: Cleans the final HTML using DOMParser and DOMPurify, embeds images.
- *
- * @author bwat47
- * @since 1.0.16
  */
 
 import { HtmlOptions } from './types';

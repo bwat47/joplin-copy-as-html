@@ -10,9 +10,6 @@
  *
  * These types provide compile-time safety and serve as documentation for the
  * expected structure of data flowing through the plugin's processing pipeline.
- *
- * @author bwat47
- * @since 1.0.16
  */
 
 export interface ImageDimensions {
