@@ -175,16 +175,6 @@ export async function registerPluginSettings(): Promise<void> {
             label: 'List indentation type',
             description: 'How nested lists should be indented in plain text output.',
         },
-        [SETTINGS.DEBUG]: {
-            value: false,
-            type: SettingItemType.Bool,
-            section: SECTION_ID,
-            public: true,
-            advanced: true,
-            label: 'Enable debug logging',
-            description:
-                'If enabled, plugin will output additional diagnostic logs (markdown-it plugin loading, context menu detection, etc.).',
-        },
     });
 }
 
@@ -222,18 +212,4 @@ export async function loadPlainTextSettings(): Promise<PlainTextOptions> {
         indentType: await joplin.settings.value(SETTINGS.INDENT_TYPE),
     };
     return validatePlainTextSettings(plainTextSettings);
-}
-
-/**
- * Loads the debug setting value.
- * @returns True if debug logging is enabled, false otherwise.
- */
-export async function loadDebugSetting(): Promise<boolean> {
-    try {
-        const debugEnabled = await joplin.settings.value(SETTINGS.DEBUG);
-        return !!debugEnabled;
-    } catch {
-        // If setting is unavailable (e.g., in tests), default to false
-        return false;
-    }
 }

@@ -15,7 +15,7 @@ import { ToastType, MenuItemLocation } from 'api/types';
 import { processHtmlConversion } from './htmlRenderer';
 import { convertMarkdownToPlainText } from './plainTextRenderer';
 import { logger } from './logger';
-import { registerPluginSettings, loadHtmlSettings, loadPlainTextSettings, loadDebugSetting } from './settings';
+import { registerPluginSettings, loadHtmlSettings, loadPlainTextSettings } from './settings';
 
 async function getMarkdownSelection(commandLabel: string): Promise<string | null> {
     const showToast = async (message: string, type: ToastType = ToastType.Info) => {
@@ -50,9 +50,6 @@ joplin.plugins.register({
                 try {
                     const selection = await getMarkdownSelection('Copy as HTML');
                     if (!selection) return;
-
-                    const debugEnabled = await loadDebugSetting();
-                    logger.setDebug(debugEnabled);
 
                     const htmlOptions = await loadHtmlSettings();
                     const html = await processHtmlConversion(selection, htmlOptions);
@@ -97,9 +94,6 @@ joplin.plugins.register({
                     const selection = await getMarkdownSelection('Copy as Plain Text');
                     if (!selection) return;
 
-                    const debugEnabled = await loadDebugSetting();
-                    logger.setDebug(debugEnabled);
-
                     const plainTextOptions = await loadPlainTextSettings();
                     const plainText = convertMarkdownToPlainText(selection, plainTextOptions);
                     await joplin.clipboard.writeText(plainText);
@@ -135,9 +129,6 @@ joplin.plugins.register({
 
         // Filter context menu to dynamically add our commands only in markdown editor
         joplin.workspace.filterEditorContextMenu(async (contextMenu) => {
-            const debugEnabled = await loadDebugSetting();
-            logger.setDebug(debugEnabled);
-
             logger.debug(
                 'Context menu items:',
                 contextMenu.items.map((item) => item.commandName)
