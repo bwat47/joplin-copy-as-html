@@ -2,10 +2,7 @@
  * @fileoverview Centralized logger with optional debug toggle.
  *
  * Provides consistent prefixing for all plugin logs and exposes a simple
- * `setDebug` method to enable verbose output per operation.
- *
- * Note: Debug state is global. Call setDebug(true/false) at the start
- * of each command handler to ensure correct behavior for that operation.
+ * `setDebug` method to enable verbose output.
  */
 
 const PREFIX = '[copy-as-html]';
