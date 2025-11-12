@@ -57,6 +57,7 @@ export const JOPLIN_SETTINGS = {
 // HTML / rendering related constants
 export const HTML_CONSTANTS = {
     ERROR_COLOR: 'red',
+    IMAGE_LOAD_ERROR: 'Image failed to load',
     TOC_PLACEHOLDER_PATTERN: '\\[\\[toc\\]\\]',
     TOC_CONTAINER_ID: 'toc',
 } as const;
