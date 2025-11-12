@@ -198,7 +198,7 @@ export async function postProcessHtml(
                 } else {
                     // Replace the <img> with a consistent inline error message
                     const fallback = doc.createElement('span');
-                    fallback.textContent = 'Image failed to load';
+                    fallback.textContent = HTML_CONSTANTS.IMAGE_LOAD_ERROR;
                     fallback.style.color = HTML_CONSTANTS.ERROR_COLOR;
                     img.parentNode?.replaceChild(fallback, img);
                 }
