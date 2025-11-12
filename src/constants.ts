@@ -4,8 +4,6 @@
  * Contains all configuration constants, regex patterns, and magic numbers used
  * throughout the plugin.
  *
- * @author bwat47
- * @since 1.0.16
  */
 
 export const SETTINGS = {
