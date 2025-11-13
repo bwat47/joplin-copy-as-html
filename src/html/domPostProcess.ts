@@ -2,51 +2,33 @@ import DOMPurify from 'dompurify';
 import { HTML_CONSTANTS } from '../constants';
 import { logger } from '../logger';
 
-// Initialize DOMPurify instance (jsdom provides window in tests; Electron provides window at runtime)
+// ----------------------
+// Sanitization Configuration
+// ----------------------
+
 const purifyInstance = DOMPurify;
-let purifyHooksInstalled = false;
+let hooksInstalled = false;
 
 function ensurePurifyHooks(): void {
-    if (purifyHooksInstalled) return;
+    if (hooksInstalled) return;
     // Add security hook to only allow checkbox inputs
-    purifyInstance.addHook('afterSanitizeAttributes', function (node) {
+    purifyInstance.addHook('afterSanitizeAttributes', (node) => {
         if (node.tagName === 'INPUT') {
-            if (node.getAttribute('type')?.toLowerCase() !== 'checkbox') {
-                node.remove();
-            }
+            const type = node.getAttribute('type')?.toLowerCase();
+            if (type !== 'checkbox') node.remove();
         }
     });
-    purifyHooksInstalled = true;
+    hooksInstalled = true;
 }
 
 /**
- * Post-processes rendered HTML with sanitization, resource cleanup, and image processing.
- *
- * @param html - Raw HTML string to process
- * @param opts - Optional processing configuration
- * @param opts.imageSrcMap - Map of image sources to data URIs or null (for error handling)
- * @param opts.stripJoplinImages - Remove Joplin resource images (e.g., for plain text fallback)
- * @param opts.convertSvgToPng - Rasterize SVG images to PNG for better compatibility
- * @returns Sanitized and processed HTML string
- *
- * @remarks
- * Processing steps:
- * 1. Sanitize HTML with DOMPurify (removes scripts, dangerous attributes)
- * 2. Remove non-image Joplin resource links (:/... or joplin://resource/...)
- * 3. Rewrite or strip image sources based on provided map
- * 4. Convert SVG data URIs to PNG (requires Canvas API)
- * 5. Wrap top-level images in paragraph tags for consistent formatting
+ * Sanitizes HTML using DOMPurify with our security policy.
+ * @param html - Raw HTML string to sanitize
+ * @returns Sanitized HTML string
  */
-export async function postProcessHtml(
-    html: string,
-    opts?: {
-        imageSrcMap?: Map<string, string | null>;
-        stripJoplinImages?: boolean;
-        convertSvgToPng?: boolean;
-    }
-): Promise<string> {
+function sanitizeHtml(html: string): string {
     ensurePurifyHooks();
-    const sanitizedHtml = purifyInstance.sanitize(html, {
+    return purifyInstance.sanitize(html, {
         // Keep it permissive for rich content but remove dangerous elements
         ALLOWED_TAGS: [
             'h1',
@@ -150,137 +132,151 @@ export async function postProcessHtml(
         FORBID_TAGS: ['script', 'iframe', 'object', 'embed', 'form'],
         FORBID_ATTR: ['onload', 'onerror', 'onclick'], // Remove event handlers
     });
+}
 
-    // Check if we have any Joplin resource links or images to process
-    const hasJoplinLinks = /(?:data-resource-id|href=["']?(?::|joplin:\/\/resource\/))/.test(sanitizedHtml);
-    const hasAnyImg = /<img\b/i.test(sanitizedHtml);
-    const needImageRewrite = !!opts?.imageSrcMap && hasAnyImg;
-    const needStripJoplinImages = !!opts?.stripJoplinImages && hasAnyImg;
-    const needSvgProcessing = !!opts?.convertSvgToPng && /image\/svg\+xml/i.test(sanitizedHtml);
-    const needTopLevelWrap = hasAnyImg;
-    if (!hasJoplinLinks && !needImageRewrite && !needStripJoplinImages && !needTopLevelWrap && !needSvgProcessing) {
-        return sanitizedHtml;
-    }
+// ----------------------
+// DOM Transform Helpers
+// ----------------------
 
-    const parser = new DOMParser();
-    const doc = parser.parseFromString(`<body>${sanitizedHtml}</body>`, 'text/html');
-
-    // Clean up non-image Joplin resource links to be just their text content.
-    // This handles links created by Joplin's rich text editor and markdown links.
+/**
+ * Removes non-image Joplin resource links and replaces them with their text content.
+ * Links containing images are preserved.
+ * @param doc - DOM document to process
+ */
+function stripJoplinLinks(doc: Document): void {
     doc.querySelectorAll('a[data-resource-id], a[href^=":/"], a[href^="joplin://resource/"]').forEach((link) => {
         // Don't modify links that contain images
-        if (link.querySelector('img')) {
-            return;
-        }
-        const textContent = link.textContent?.trim() || 'Resource';
-        const textNode = doc.createTextNode(textContent);
-        link.parentNode?.replaceChild(textNode, link);
+        if (link.querySelector('img')) return;
+
+        const text = link.textContent?.trim() || 'Resource';
+        link.replaceWith(doc.createTextNode(text));
     });
+}
 
-    // Rewrite <img> src using the provided map, and optionally strip Joplin resource images
-    if (needImageRewrite || needStripJoplinImages) {
-        const imgs = doc.querySelectorAll('img');
-        imgs.forEach((img) => {
-            // Skip images inside code/pre blocks
-            if (img.closest('pre, code')) return;
+/**
+ * Removes Joplin resource images from the document.
+ * @param doc - DOM document to process
+ */
+function stripJoplinImages(doc: Document): void {
+    const imgs = Array.from(doc.querySelectorAll('img'));
+    for (const img of imgs) {
+        if (img.closest('pre, code')) continue;
 
-            const src = img.getAttribute('src') || '';
+        const src = img.getAttribute('src') || '';
+        const isJoplinSrc = /^:\//.test(src) || /^joplin:\/\/resource\//i.test(src);
 
-            if (opts?.stripJoplinImages && (/^:\//.test(src) || /^joplin:\/\/resource\//i.test(src))) {
-                img.remove();
-                return;
-            }
-
-            const mapped = opts?.imageSrcMap?.get(src);
-            if (mapped !== undefined) {
-                if (typeof mapped === 'string' && mapped.startsWith('data:image/')) {
-                    img.setAttribute('src', mapped);
-                } else {
-                    // Replace the <img> with a consistent inline error message
-                    const fallback = doc.createElement('span');
-                    fallback.textContent = HTML_CONSTANTS.IMAGE_LOAD_ERROR;
-                    fallback.style.color = HTML_CONSTANTS.ERROR_COLOR;
-                    img.parentNode?.replaceChild(fallback, img);
-                }
-            }
-        });
-    }
-
-    // Convert SVG images to PNG for better compatibility
-    if (opts?.convertSvgToPng) {
-        const svgImages = Array.from(doc.querySelectorAll('img'));
-        const conversionPromises: Promise<void>[] = [];
-
-        svgImages.forEach((img) => {
-            if (shouldSkipRasterization(img)) return;
-            if (!(img instanceof HTMLImageElement)) return;
-            const src = img.getAttribute('src');
-            if (!isSvgDataSource(src)) return;
-            conversionPromises.push(
-                convertSvgImageElement(img, src).catch((error) => logger.debug('SVG rasterization failed', error))
-            );
-        });
-
-        if (conversionPromises.length) {
-            await Promise.all(conversionPromises);
+        if (isJoplinSrc) {
+            img.remove();
         }
-    }
-
-    // Normalize top-level raw HTML images to behave like markdown images visually:
-    // wrap each direct child <img> of <body> in its own <p> block.
-    // This keeps each image on its own line consistently.
-    const topLevelImgs: Element[] = Array.from(doc.body.children).filter((el) => el.tagName === 'IMG');
-    for (const img of topLevelImgs) {
-        const p = doc.createElement('p');
-        img.parentNode?.replaceChild(p, img);
-        p.appendChild(img);
-    }
-
-    return doc.body.innerHTML;
-}
-
-function shouldSkipRasterization(node: Element): boolean {
-    return !!node.closest('pre, code');
-}
-
-function isSvgDataSource(src: string | null): boolean {
-    if (!src) return false;
-    return /^data:image\/svg\+xml/i.test(src.trim());
-}
-
-async function convertSvgImageElement(img: HTMLImageElement, src: string): Promise<void> {
-    // For detached DOM elements, we need to extract dimensions from existing attributes
-    // or from the rasterization process itself
-    const existingWidth = img.getAttribute('width');
-    const existingHeight = img.getAttribute('height');
-
-    const pngResult = await rasterizeSvgDataUriToPng(src);
-    if (!pngResult || !img.isConnected) return;
-
-    img.setAttribute('src', pngResult.dataUrl);
-
-    // Set explicit dimensions to maintain original display size
-    // Prefer existing attributes, otherwise use dimensions from rasterization (unscaled)
-    if (!existingWidth && pngResult.originalWidth) {
-        img.setAttribute('width', String(pngResult.originalWidth));
-    }
-    if (!existingHeight && pngResult.originalHeight) {
-        img.setAttribute('height', String(pngResult.originalHeight));
     }
 }
 
 /**
+ * Applies image source mapping, replacing sources with data URIs or error messages.
+ * @param doc - DOM document to process
+ * @param imageSrcMap - Map of original sources to data URIs or null for errors
+ */
+function applyImageSrcMap(doc: Document, imageSrcMap: Map<string, string | null>): void {
+    const imgs = Array.from(doc.querySelectorAll('img'));
+    for (const img of imgs) {
+        if (img.closest('pre, code')) continue;
+
+        const src = img.getAttribute('src') || '';
+        const mapped = imageSrcMap.get(src);
+        if (mapped === undefined) continue;
+
+        if (typeof mapped === 'string' && mapped.startsWith('data:image/')) {
+            img.setAttribute('src', mapped);
+        } else {
+            // Replace the <img> with a consistent inline error message
+            const fallback = doc.createElement('span');
+            fallback.textContent = HTML_CONSTANTS.IMAGE_LOAD_ERROR;
+            fallback.style.color = HTML_CONSTANTS.ERROR_COLOR;
+            img.replaceWith(fallback);
+        }
+    }
+}
+
+/**
+ * Wraps top-level images in paragraph tags for consistent formatting.
+ * @param doc - DOM document to process
+ */
+function wrapTopLevelImages(doc: Document): void {
+    Array.from(doc.body.children)
+        .filter((el) => el.tagName === 'IMG')
+        .forEach((img) => {
+            const p = doc.createElement('p');
+            img.replaceWith(p);
+            p.appendChild(img);
+        });
+}
+
+/**
+ * Checks if an element should skip rasterization (e.g., inside code blocks).
+ * @param node - Element to check
+ * @returns True if rasterization should be skipped
+ */
+function shouldSkipRasterization(node: Element): boolean {
+    return !!node.closest('pre, code');
+}
+
+/**
+ * Checks if a source is an SVG data URI.
+ * @param src - Image source to check
+ * @returns True if source is an SVG data URI
+ */
+function isSvgDataUri(src: string | null): boolean {
+    return !!src && /^data:image\/svg\+xml/i.test(src.trim());
+}
+
+/**
+ * Converts all SVG images in the document to PNG for better compatibility.
+ * @param doc - DOM document to process
+ */
+async function convertSvgImagesToPng(doc: Document): Promise<void> {
+    const svgImgs = Array.from(doc.querySelectorAll('img')).filter((img) => isSvgDataUri(img.getAttribute('src')));
+
+    const jobs = svgImgs.map(async (img) => {
+        if (shouldSkipRasterization(img) || !(img instanceof HTMLImageElement)) return;
+
+        const src = img.getAttribute('src');
+        if (!src) return;
+
+        try {
+            const existingWidth = img.getAttribute('width');
+            const existingHeight = img.getAttribute('height');
+
+            const png = await rasterizeSvgToPng(src);
+            if (!png || !img.isConnected) return;
+
+            img.setAttribute('src', png.dataUrl);
+
+            // Set explicit dimensions to maintain original display size
+            // Prefer existing attributes, otherwise use dimensions from rasterization (unscaled)
+            if (!existingWidth && png.originalWidth) {
+                img.setAttribute('width', String(png.originalWidth));
+            }
+            if (!existingHeight && png.originalHeight) {
+                img.setAttribute('height', String(png.originalHeight));
+            }
+        } catch (err) {
+            logger.debug('SVG rasterization failed', err);
+        }
+    });
+
+    await Promise.all(jobs);
+}
+
+/**
  * Rasterizes an SVG data URI to a PNG data URI using the Canvas API.
- *
  * @param svgDataUri - SVG image encoded as a data URI
  * @returns Object with PNG data URI and original dimensions, or null on failure
- *
  * @remarks
  * Requires browser environment with Canvas API (Chromium 116+).
  * Returns null in Node.js/SSR environments or if rasterization fails.
  * Renders at 2x scale for sharper output on high-DPI displays.
  */
-async function rasterizeSvgDataUriToPng(
+async function rasterizeSvgToPng(
     svgDataUri: string
 ): Promise<{ dataUrl: string; originalWidth: number; originalHeight: number } | null> {
     if (
@@ -292,66 +288,136 @@ async function rasterizeSvgDataUriToPng(
     }
 
     return new Promise((resolve) => {
-        try {
-            const img = new Image();
-            img.onload = () => {
-                try {
-                    const sourceWidth = img.naturalWidth;
-                    const sourceHeight = img.naturalHeight;
+        const img = new Image();
 
-                    if (!sourceWidth || !sourceHeight) {
-                        resolve(null);
-                        return;
-                    }
+        const cleanup = () => {
+            img.onload = null;
+            img.onerror = null;
+        };
 
-                    // Render at 2x scale for sharper output (especially on high-DPI displays)
-                    const SCALE_FACTOR = 2;
-                    const width = Math.max(1, Math.round(sourceWidth * SCALE_FACTOR));
-                    const height = Math.max(1, Math.round(sourceHeight * SCALE_FACTOR));
+        img.onload = () => {
+            try {
+                const sourceWidth = img.naturalWidth;
+                const sourceHeight = img.naturalHeight;
 
-                    const canvas = document.createElement('canvas') as HTMLCanvasElement;
-                    if (!canvas) {
-                        resolve(null);
-                        return;
-                    }
-
-                    canvas.width = width;
-                    canvas.height = height;
-
-                    const ctx = canvas.getContext('2d');
-                    if (!ctx) {
-                        resolve(null);
-                        return;
-                    }
-
-                    ctx.clearRect(0, 0, width, height);
-                    ctx.drawImage(img, 0, 0, width, height);
-
-                    try {
-                        const dataUrl = canvas.toDataURL('image/png');
-                        resolve({
-                            dataUrl,
-                            originalWidth: sourceWidth,
-                            originalHeight: sourceHeight,
-                        });
-                    } catch (dataUrlError) {
-                        logger.debug('SVG to PNG conversion failed in canvas.toDataURL', dataUrlError);
-                        resolve(null);
-                    }
-                } finally {
-                    img.onload = null;
-                    img.onerror = null;
+                if (!sourceWidth || !sourceHeight) {
+                    resolve(null);
+                    return;
                 }
-            };
-            img.onerror = () => {
-                img.onload = null;
-                img.onerror = null;
+
+                // Render at 2x scale for sharper output (especially on high-DPI displays)
+                const SCALE_FACTOR = 2;
+                const width = Math.max(1, Math.round(sourceWidth * SCALE_FACTOR));
+                const height = Math.max(1, Math.round(sourceHeight * SCALE_FACTOR));
+
+                const canvas = document.createElement('canvas') as HTMLCanvasElement;
+                if (!canvas) {
+                    resolve(null);
+                    return;
+                }
+
+                canvas.width = width;
+                canvas.height = height;
+
+                const ctx = canvas.getContext('2d');
+                if (!ctx) {
+                    resolve(null);
+                    return;
+                }
+
+                ctx.clearRect(0, 0, width, height);
+                ctx.drawImage(img, 0, 0, width, height);
+
+                try {
+                    const dataUrl = canvas.toDataURL('image/png');
+                    resolve({
+                        dataUrl,
+                        originalWidth: sourceWidth,
+                        originalHeight: sourceHeight,
+                    });
+                } catch (dataUrlError) {
+                    logger.debug('Canvas toDataURL failed', dataUrlError);
+                    resolve(null);
+                }
+            } catch (err) {
+                logger.debug('SVG rasterization failed', err);
                 resolve(null);
-            };
-            img.src = svgDataUri;
-        } catch (error) {
-            logger.debug('Failed to rasterize SVG data URI', error);
+            } finally {
+                cleanup();
+            }
+        };
+
+        img.onerror = () => {
+            cleanup();
             resolve(null);
-        }
+        };
+
+        img.src = svgDataUri;
     });
+}
+
+// ----------------------
+// Main Orchestrator
+// ----------------------
+
+/**
+ * Post-processes rendered HTML with sanitization, resource cleanup, and image processing.
+ *
+ * @param html - Raw HTML string to process
+ * @param opts - Optional processing configuration
+ * @param opts.imageSrcMap - Map of image sources to data URIs or null (for error handling)
+ * @param opts.stripJoplinImages - Remove Joplin resource images (e.g., for plain text fallback)
+ * @param opts.convertSvgToPng - Rasterize SVG images to PNG for better compatibility
+ * @returns Sanitized and processed HTML string
+ *
+ * @remarks
+ * Processing pipeline:
+ * 1. Sanitize HTML with DOMPurify (removes scripts, dangerous attributes)
+ * 2. Remove non-image Joplin resource links (:/... or joplin://resource/...)
+ * 3. Strip Joplin images if requested
+ * 4. Rewrite image sources based on provided map
+ * 5. Wrap top-level images in paragraph tags for consistent formatting
+ * 6. Convert SVG data URIs to PNG (requires Canvas API)
+ */
+export async function postProcessHtml(
+    html: string,
+    opts?: {
+        imageSrcMap?: Map<string, string | null>;
+        stripJoplinImages?: boolean;
+        convertSvgToPng?: boolean;
+    }
+): Promise<string> {
+    const sanitized = sanitizeHtml(html);
+
+    // Quick check: if no transformations needed, return early
+    const hasImages = /<img\b/i.test(sanitized);
+    const hasJoplinLinks = /(?:data-resource-id|href=["']?(?::|joplin:\/\/resource\/))/.test(sanitized);
+
+    if (!hasImages && !hasJoplinLinks) {
+        return sanitized;
+    }
+
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(`<body>${sanitized}</body>`, 'text/html');
+
+    // Pipeline of transformations
+    stripJoplinLinks(doc);
+
+    if (opts?.stripJoplinImages) {
+        stripJoplinImages(doc);
+    }
+
+    if (opts?.imageSrcMap) {
+        applyImageSrcMap(doc, opts.imageSrcMap);
+    }
+
+    if (hasImages) {
+        wrapTopLevelImages(doc);
+    }
+
+    if (opts?.convertSvgToPng) {
+        await convertSvgImagesToPng(doc);
+    }
+
+    return doc.body.innerHTML;
 }
