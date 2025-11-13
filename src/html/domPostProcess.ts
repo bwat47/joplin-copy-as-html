@@ -249,22 +249,40 @@ function isSvgDataSource(src: string | null): boolean {
 }
 
 async function convertSvgImageElement(img: HTMLImageElement, src: string): Promise<void> {
-    const png = await rasterizeSvgDataUriToPng(src);
-    if (!png || !img.isConnected) return;
-    img.setAttribute('src', png);
+    // For detached DOM elements, we need to extract dimensions from existing attributes
+    // or from the rasterization process itself
+    const existingWidth = img.getAttribute('width');
+    const existingHeight = img.getAttribute('height');
+
+    const pngResult = await rasterizeSvgDataUriToPng(src);
+    if (!pngResult || !img.isConnected) return;
+
+    img.setAttribute('src', pngResult.dataUrl);
+
+    // Set explicit dimensions to maintain original display size
+    // Prefer existing attributes, otherwise use dimensions from rasterization (unscaled)
+    if (!existingWidth && pngResult.originalWidth) {
+        img.setAttribute('width', String(pngResult.originalWidth));
+    }
+    if (!existingHeight && pngResult.originalHeight) {
+        img.setAttribute('height', String(pngResult.originalHeight));
+    }
 }
 
 /**
  * Rasterizes an SVG data URI to a PNG data URI using the Canvas API.
  *
  * @param svgDataUri - SVG image encoded as a data URI
- * @returns PNG data URI on success, null on failure or if Canvas API unavailable
+ * @returns Object with PNG data URI and original dimensions, or null on failure
  *
  * @remarks
  * Requires browser environment with Canvas API (Chromium 116+).
  * Returns null in Node.js/SSR environments or if rasterization fails.
+ * Renders at 2x scale for sharper output on high-DPI displays.
  */
-async function rasterizeSvgDataUriToPng(svgDataUri: string): Promise<string | null> {
+async function rasterizeSvgDataUriToPng(
+    svgDataUri: string
+): Promise<{ dataUrl: string; originalWidth: number; originalHeight: number } | null> {
     if (
         typeof Image === 'undefined' ||
         typeof document === 'undefined' ||
@@ -286,8 +304,10 @@ async function rasterizeSvgDataUriToPng(svgDataUri: string): Promise<string | nu
                         return;
                     }
 
-                    const width = Math.max(1, Math.round(sourceWidth));
-                    const height = Math.max(1, Math.round(sourceHeight));
+                    // Render at 2x scale for sharper output (especially on high-DPI displays)
+                    const SCALE_FACTOR = 2;
+                    const width = Math.max(1, Math.round(sourceWidth * SCALE_FACTOR));
+                    const height = Math.max(1, Math.round(sourceHeight * SCALE_FACTOR));
 
                     const canvas = document.createElement('canvas') as HTMLCanvasElement;
                     if (!canvas) {
@@ -308,7 +328,12 @@ async function rasterizeSvgDataUriToPng(svgDataUri: string): Promise<string | nu
                     ctx.drawImage(img, 0, 0, width, height);
 
                     try {
-                        resolve(canvas.toDataURL('image/png'));
+                        const dataUrl = canvas.toDataURL('image/png');
+                        resolve({
+                            dataUrl,
+                            originalWidth: sourceWidth,
+                            originalHeight: sourceHeight,
+                        });
                     } catch (dataUrlError) {
                         logger.debug('SVG to PNG conversion failed in canvas.toDataURL', dataUrlError);
                         resolve(null);
