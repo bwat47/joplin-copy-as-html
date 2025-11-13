@@ -12,8 +12,8 @@
 
 import joplin from 'api';
 import { ToastType, MenuItemLocation } from 'api/types';
-import { processHtmlConversion } from './htmlRenderer';
-import { convertMarkdownToPlainText } from './plainTextRenderer';
+import { processHtmlConversion } from './html/htmlRenderer';
+import { convertMarkdownToPlainText } from './plainText/plainTextRenderer';
 import { logger } from './logger';
 import { registerPluginSettings, loadHtmlSettings, loadPlainTextSettings } from './settings';
 

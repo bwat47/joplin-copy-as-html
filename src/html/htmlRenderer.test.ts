@@ -1,5 +1,11 @@
 import { processHtmlConversion } from './htmlRenderer';
-import { mockHtmlSettings, mockGlobalPlugins, enableOnlyPlugin, mockImageResource, genResourceId } from './testHelpers';
+import {
+    mockHtmlSettings,
+    mockGlobalPlugins,
+    enableOnlyPlugin,
+    mockImageResource,
+    genResourceId,
+} from '../testHelpers';
 
 // HTML conversion tests
 

@@ -9,10 +9,10 @@
  * - plainTextCollector.ts: walks the token stream and yields semantic blocks (paragraphs, lists, tables, code, etc.).
  */
 
-import { PlainTextOptions } from './types';
-import { createMarkdownItInstance } from './plainText/markdownSetup';
-import { collectPlainTextBlocks } from './plainText/plainTextCollector';
-import { PlainTextBlockFormatter } from './plainText/plainTextFormatter';
+import { PlainTextOptions } from '../types';
+import { createMarkdownItInstance } from './markdownSetup';
+import { collectPlainTextBlocks } from './plainTextCollector';
+import { PlainTextBlockFormatter } from './plainTextFormatter';
 
 /**
  * Converts markdown to plain text using the provided options.

@@ -9,12 +9,12 @@
  * - domPostProcess: Cleans the final HTML using DOMParser and DOMPurify, embeds images.
  */
 
-import { HtmlOptions } from './types';
-import { loadHtmlSettings } from './settings';
-import { createMarkdownItInstance } from './html/markdownSetup';
-import { getUserStylesheet, buildImageEmbedMap } from './html/assetProcessor';
-import { collectImageUrls } from './html/tokenImageCollector';
-import { postProcessHtml } from './html/domPostProcess';
+import { HtmlOptions } from '../types';
+import { loadHtmlSettings } from '../settings';
+import { createMarkdownItInstance } from './markdownSetup';
+import { getUserStylesheet, buildImageEmbedMap } from './assetProcessor';
+import { collectImageUrls } from './tokenImageCollector';
+import { postProcessHtml } from './domPostProcess';
 
 /**
  * Converts a markdown selection to processed HTML.
