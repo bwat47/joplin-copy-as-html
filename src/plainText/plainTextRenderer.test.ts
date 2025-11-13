@@ -431,7 +431,7 @@ Text referencing [^a] and also [^b].
 
 describe('Integration', () => {
     it('renders the repository README without throwing', () => {
-        const markdown = fs.readFileSync(path.resolve(__dirname, '../README.md'), 'utf8');
+        const markdown = fs.readFileSync(path.resolve(__dirname, '../../README.md'), 'utf8');
         expect(() => convertMarkdownToPlainText(markdown, defaultOptions)).not.toThrow();
     });
 });
