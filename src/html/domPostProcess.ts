@@ -7,10 +7,10 @@ import { logger } from '../logger';
 // ----------------------
 
 const purifyInstance = DOMPurify;
-let hooksInstalled = false;
+let purifyHooksInstalled = false;
 
 function ensurePurifyHooks(): void {
-    if (hooksInstalled) return;
+    if (purifyHooksInstalled) return;
     // Add security hook to only allow checkbox inputs
     purifyInstance.addHook('afterSanitizeAttributes', (node) => {
         if (node.tagName === 'INPUT') {
@@ -18,7 +18,7 @@ function ensurePurifyHooks(): void {
             if (type !== 'checkbox') node.remove();
         }
     });
-    hooksInstalled = true;
+    purifyHooksInstalled = true;
 }
 
 /**
@@ -246,7 +246,7 @@ async function convertSvgImagesToPng(doc: Document): Promise<void> {
             const existingWidth = img.getAttribute('width');
             const existingHeight = img.getAttribute('height');
 
-            const png = await rasterizeSvgToPng(src);
+            const png = await rasterizeSvgDataUriToPng(src);
             if (!png || !img.isConnected) return;
 
             img.setAttribute('src', png.dataUrl);
@@ -276,7 +276,7 @@ async function convertSvgImagesToPng(doc: Document): Promise<void> {
  * Returns null in Node.js/SSR environments or if rasterization fails.
  * Renders at 2x scale for sharper output on high-DPI displays.
  */
-async function rasterizeSvgToPng(
+async function rasterizeSvgDataUriToPng(
     svgDataUri: string
 ): Promise<{ dataUrl: string; originalWidth: number; originalHeight: number } | null> {
     if (
