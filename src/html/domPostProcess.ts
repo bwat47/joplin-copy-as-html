@@ -225,7 +225,7 @@ function shouldSkipRasterization(node: Element): boolean {
  * @param src - Image source to check
  * @returns True if source is an SVG data URI
  */
-function isSvgDataUri(src: string | null): src is string {
+function isSvgDataUri(src: string | null): boolean {
     return !!src && /^data:image\/svg\+xml/i.test(src.trim());
 }
 
@@ -236,17 +236,24 @@ function isSvgDataUri(src: string | null): src is string {
 async function convertSvgImagesToPng(doc: Document): Promise<void> {
     const svgImgs = Array.from(doc.querySelectorAll('img'))
         .map((img) => ({ img, src: img.getAttribute('src') }))
-        .filter(({ src }) => isSvgDataUri(src));
+        .filter((item): item is { img: HTMLImageElement; src: string } => {
+            return item.src !== null && isSvgDataUri(item.src);
+        });
 
     const jobs = svgImgs.map(async ({ img, src }) => {
-        if (shouldSkipRasterization(img) || !(img instanceof HTMLImageElement)) return;
+        if (shouldSkipRasterization(img)) return;
 
         try {
             const existingWidth = img.getAttribute('width');
             const existingHeight = img.getAttribute('height');
 
             const png = await rasterizeSvgDataUriToPng(src);
-            if (!png || !img.isConnected) return;
+            if (!png) return;
+
+            if (!img.isConnected) {
+                logger.debug('SVG image became disconnected during rasterization, skipping');
+                return;
+            }
 
             img.setAttribute('src', png.dataUrl);
 
