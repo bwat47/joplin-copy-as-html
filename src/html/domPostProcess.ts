@@ -225,7 +225,7 @@ function shouldSkipRasterization(node: Element): boolean {
  * @param src - Image source to check
  * @returns True if source is an SVG data URI
  */
-function isSvgDataUri(src: string | null): boolean {
+function isSvgDataUri(src: string | null): src is string {
     return !!src && /^data:image\/svg\+xml/i.test(src.trim());
 }
 
@@ -234,13 +234,12 @@ function isSvgDataUri(src: string | null): boolean {
  * @param doc - DOM document to process
  */
 async function convertSvgImagesToPng(doc: Document): Promise<void> {
-    const svgImgs = Array.from(doc.querySelectorAll('img')).filter((img) => isSvgDataUri(img.getAttribute('src')));
+    const svgImgs = Array.from(doc.querySelectorAll('img'))
+        .map((img) => ({ img, src: img.getAttribute('src') }))
+        .filter(({ src }) => isSvgDataUri(src));
 
-    const jobs = svgImgs.map(async (img) => {
+    const jobs = svgImgs.map(async ({ img, src }) => {
         if (shouldSkipRasterization(img) || !(img instanceof HTMLImageElement)) return;
-
-        const src = img.getAttribute('src');
-        if (!src) return;
 
         try {
             const existingWidth = img.getAttribute('width');
