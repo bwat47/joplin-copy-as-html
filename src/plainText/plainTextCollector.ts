@@ -26,12 +26,16 @@ import {
     collapseExtraBlankLines,
 } from './tokenRenderers';
 import { PLAIN_TEXT_CONSTANTS, PLAIN_TEXT_REGEX } from '../constants';
+import { logger } from '../logger';
 
 const domParser: DOMParser | null = typeof DOMParser !== 'undefined' ? new DOMParser() : null;
 
 function htmlFragmentToPlainText(html: string): string {
     if (!html) return '';
-    if (!domParser) return '';
+    if (!domParser) {
+        logger.warn('DOMParser not available - cannot extract text from HTML');
+        return '';
+    }
 
     const doc = domParser.parseFromString(`<body>${html}</body>`, 'text/html');
     const body = doc.body;
