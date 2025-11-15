@@ -27,6 +27,24 @@ import {
 } from './tokenRenderers';
 import { PLAIN_TEXT_CONSTANTS, PLAIN_TEXT_REGEX } from '../constants';
 
+const domParser: DOMParser | null = typeof DOMParser !== 'undefined' ? new DOMParser() : null;
+
+function htmlFragmentToPlainText(html: string): string {
+    if (!html) return '';
+    if (!domParser) return '';
+
+    const doc = domParser.parseFromString(`<body>${html}</body>`, 'text/html');
+    const body = doc.body;
+    if (!body) return '';
+
+    body.querySelectorAll('br').forEach((br) => {
+        br.replaceWith(doc.createTextNode('\n'));
+    });
+
+    const text = body.textContent ?? '';
+    return text.replace(/\u00A0/g, ' ').replace(/\n[\t ]+/g, '\n');
+}
+
 /**
  * Collects blocks from markdown string via md.parse.
  */
@@ -129,6 +147,11 @@ export function collectPlainTextBlocksFromTokens(
                 case 'code_inline':
                     appendText(c.content);
                     break;
+                case 'html_inline': {
+                    const text = htmlFragmentToPlainText(c.content);
+                    if (text) appendText(text);
+                    break;
+                }
                 case 'em_open':
                 case 'em_close':
                     if (options.preserveEmphasis) appendText(c.markup);
@@ -175,6 +198,17 @@ export function collectPlainTextBlocksFromTokens(
             case 'inline':
                 processInline(t.children);
                 break;
+
+            case 'html_block': {
+                const fragment = htmlFragmentToPlainText(t.content);
+                if (!fragment.trim()) break;
+                flushParagraph();
+                const normalized = collapseExtraBlankLines(fragment).replace(/^\n+/, '').replace(/\n+$/, '');
+                if (!normalized) break;
+                const lines = splitParagraphLines(normalized);
+                if (lines.length) blocks.push({ type: 'paragraph', lines });
+                break;
+            }
 
             case 'paragraph_close':
                 if (currentParagraph !== null) {
@@ -280,6 +314,7 @@ export function collectPlainTextBlocksFromTokens(
             case 'link_close':
             case 'emoji':
             case 'code_inline':
+            case 'html_inline':
             case 'em_open':
             case 'em_close':
             case 'strong_open':
