@@ -21,7 +21,7 @@ const markdownItSup = safeRequire(() => require('markdown-it-sup'), 'markdown-it
  * @returns A configured markdown-it instance.
  */
 export function createMarkdownItInstance(): MarkdownIt {
-    const md = new MarkdownIt();
+    const md = new MarkdownIt({ html: true });
 
     // Use safe plugin loading to prevent conflicts
     if (markdownItMark) safePluginUse(md, markdownItMark, undefined, 'markdown-it-mark');

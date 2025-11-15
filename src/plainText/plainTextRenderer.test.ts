@@ -225,6 +225,35 @@ Final paragraph.`;
     });
 });
 
+describe('HTML Handling', () => {
+    it('should strip inline HTML while preserving text content', () => {
+        const markdown =
+            'This is a\u00A0<span style="color: rgb(186, 55, 42);">test <span style="color: rgb(0, 0, 0);">of colored text</span></span>';
+        const result = convertMarkdownToPlainText(markdown, defaultOptions);
+        expect(result.trim()).toBe('This is a test of colored text');
+    });
+
+    it('should strip block HTML while preserving plain text structure', () => {
+        const markdown = `Intro
+
+<div>
+    <p>First line with <span>inline</span> HTML.</p>
+    <p>Second&nbsp;line<br>with break.</p>
+</div>
+
+Outro`;
+        const result = convertMarkdownToPlainText(markdown, defaultOptions);
+        const expected = `Intro
+
+First line with inline HTML.
+Second line
+with break.
+
+Outro`;
+        expect(result.trim()).toBe(expected.trim());
+    });
+});
+
 // Code Block Handling
 describe('Code Block Handling', () => {
     it('should preserve content of fenced code blocks', () => {

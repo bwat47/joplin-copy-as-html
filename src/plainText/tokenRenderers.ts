@@ -223,6 +223,7 @@ export function handleTextToken(
     } else {
         txt = txt.replace(/<img[^>]*>/gi, '');
         txt = txt.replace(/\n{3,}/g, '\n'.repeat(PLAIN_TEXT_CONSTANTS.MAX_PARAGRAPH_NEWLINES));
+        txt = txt.replace(/\u00A0/g, ' ');
         txt = unescape(txt);
         result += txt;
     }
