@@ -30,6 +30,9 @@ import { logger } from '../logger';
 
 const domParser: DOMParser | null = typeof DOMParser !== 'undefined' ? new DOMParser() : null;
 
+/**
+ * Extracts plain text content from HTML fragment using DOMParser.
+ */
 function htmlFragmentToPlainText(html: string): string {
     if (!html) return '';
     if (!domParser) {
