@@ -38,7 +38,9 @@ class Logger {
     setLevel(level: LogLevel): void {
         // Validate that level is within valid range
         if (typeof level !== 'number' || level < LogLevel.DEBUG || level > LogLevel.NONE) {
-            console.error(`${this.prefix} Invalid log level: ${level}. Valid range is ${LogLevel.DEBUG}-${LogLevel.NONE}`);
+            console.error(
+                `${this.prefix} Invalid log level: ${level}. Valid range is ${LogLevel.DEBUG}-${LogLevel.NONE}`
+            );
             return;
         }
         this.level = level;
