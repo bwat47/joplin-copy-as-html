@@ -31,14 +31,23 @@ class Logger {
         this.level = initialLevel;
     }
 
+    private getLevelName(level: number): string {
+        return LogLevel[level] ?? 'UNKNOWN';
+    }
+
     setLevel(level: LogLevel): void {
+        // Validate that level is within valid range
+        if (typeof level !== 'number' || level < LogLevel.DEBUG || level > LogLevel.NONE) {
+            console.error(`${this.prefix} Invalid log level: ${level}. Valid range is ${LogLevel.DEBUG}-${LogLevel.NONE}`);
+            return;
+        }
         this.level = level;
-        const levelName = LogLevel[level];
+        const levelName = this.getLevelName(level);
         console.info(`${this.prefix} Log level set to: ${levelName} (${level})`);
     }
 
     getLevel(): LogLevel {
-        const levelName = LogLevel[this.level];
+        const levelName = this.getLevelName(this.level);
         console.info(`${this.prefix} Current log level: ${levelName} (${this.level})`);
         return this.level;
     }
