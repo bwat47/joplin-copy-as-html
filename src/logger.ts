@@ -40,7 +40,7 @@ export class Logger {
 
     constructor(
         private prefix: string,
-        initialLevel: LogLevel = LogLevel.INFO
+        initialLevel: LogLevel
     ) {
         this.level = initialLevel;
     }
