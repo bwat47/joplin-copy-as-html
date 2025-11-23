@@ -17,7 +17,7 @@
 - `src/settings.ts` – centralizes plugin settings registration and loading with validation helpers.
 - `src/logger.ts` – centralized logging utility.
 - `src/constants.ts` / `src/types.ts` – shared configuration, string constants, and TypeScript contracts.
-- `src/utils.ts` – validation helpers, error formatting, timeout wrappers.
+- `src/utils.ts` – validation helpers, toast messaging wrapper.
 - `src/pluginUtils.ts` – resilient CommonJS markdown-it plugin loader utilities; shared by both renderers.
 - `src/esmPluginLoader.ts` – Wrappers to handle dynamic import of ESM-only packages.
 - `src/html/` – HTML renderer pipeline (`htmlRenderer.ts`, `htmlRenderer.test.ts`, `assetProcessor.ts`, `domPostProcess.ts`, `markdownSetup.ts`, `tokenImageCollector.ts`).
