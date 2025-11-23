@@ -16,6 +16,8 @@
 import joplin from 'api';
 import { PlainTextOptions, HtmlOptions } from './types';
 import { logger } from './logger';
+import { ToastType } from 'api/types';
+import { CONSTANTS } from './constants';
 
 export function validatePlainTextSettings(settings: unknown): PlainTextOptions {
     const s = (settings || {}) as Partial<PlainTextOptions>;
@@ -70,5 +72,24 @@ export async function safeGetGlobalSetting(key: string, defaultValue: boolean = 
     } catch {
         logger.warn(`Global setting '${key}' not found, using default:`, defaultValue);
         return defaultValue;
+    }
+}
+
+/**
+ * Displays a toast notification in Joplin.
+ * Wraps the Joplin API to provide error handling and consistent defaults.
+ * @param message The message to display
+ * @param type The type of toast (Info, Success, Error), defaults to Info
+ * @param duration Duration in milliseconds, defaults to constant value
+ */
+export async function showToast(
+    message: string,
+    type: ToastType = ToastType.Info,
+    duration = CONSTANTS.TOAST_DURATION
+) {
+    try {
+        await joplin.views.dialogs.showToast({ message, type, duration });
+    } catch (err) {
+        logger.warn('Failed to show toast', err);
     }
 }

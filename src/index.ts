@@ -16,12 +16,9 @@ import { processHtmlConversion } from './html/htmlRenderer';
 import { convertMarkdownToPlainText } from './plainText/plainTextRenderer';
 import { logger } from './logger';
 import { registerPluginSettings, loadHtmlSettings, loadPlainTextSettings } from './settings';
+import { showToast } from './utils';
 
 async function getMarkdownSelection(commandLabel: string): Promise<string | null> {
-    const showToast = async (message: string, type: ToastType = ToastType.Info) => {
-        await joplin.views.dialogs.showToast({ message, type });
-    };
-
     try {
         const selection = await joplin.commands.execute('editor.execCommand', { name: 'getSelection' });
         if (typeof selection !== 'string') {
@@ -59,10 +56,7 @@ joplin.plugins.register({
                             const plainTextOptions = await loadPlainTextSettings();
                             const plainText = convertMarkdownToPlainText(selection, plainTextOptions);
                             await joplin.clipboard.write({ html, text: plainText });
-                            await joplin.views.dialogs.showToast({
-                                message: 'Copied selection as HTML (with plain text fallback)!',
-                                type: ToastType.Success,
-                            });
+                            await showToast('Copied selection as HTML (with plain text fallback)!', ToastType.Success);
                             return;
                         } catch (multiFormatError) {
                             logger.warn('clipboard.write failed, falling back:', multiFormatError);
@@ -70,16 +64,10 @@ joplin.plugins.register({
                     }
 
                     await joplin.clipboard.writeHtml(html);
-                    await joplin.views.dialogs.showToast({
-                        message: 'Copied selection as HTML!',
-                        type: ToastType.Success,
-                    });
+                    await showToast('Copied selection as HTML!', ToastType.Success);
                 } catch (err) {
                     logger.error('Error:', err);
-                    await joplin.views.dialogs.showToast({
-                        message: 'Failed to copy as HTML: ' + (err?.message || err),
-                        type: ToastType.Error,
-                    });
+                    await showToast('Failed to copy as HTML: ' + (err?.message || err), ToastType.Error);
                 }
             },
         });
@@ -97,16 +85,10 @@ joplin.plugins.register({
                     const plainTextOptions = await loadPlainTextSettings();
                     const plainText = convertMarkdownToPlainText(selection, plainTextOptions);
                     await joplin.clipboard.writeText(plainText);
-                    await joplin.views.dialogs.showToast({
-                        message: 'Copied selection as Plain Text!',
-                        type: ToastType.Success,
-                    });
+                    await showToast('Copied selection as Plain Text!', ToastType.Success);
                 } catch (err) {
                     logger.error('Error:', err);
-                    await joplin.views.dialogs.showToast({
-                        message: 'Failed to copy as Plain Text: ' + (err?.message || err),
-                        type: ToastType.Error,
-                    });
+                    await showToast('Failed to copy as Plain Text: ' + (err?.message || err), ToastType.Error);
                 }
             },
         });

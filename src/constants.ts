@@ -34,6 +34,7 @@ export const CONSTANTS = {
     // Generic User-Agent for remote image fetches to improve compatibility
     // while avoiding detailed browser impersonation.
     REMOTE_IMAGE_USER_AGENT: 'Mozilla/5.0',
+    TOAST_DURATION: 3000,
 };
 
 // Joplin global markdown plugin setting keys
