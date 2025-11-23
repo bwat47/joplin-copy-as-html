@@ -4,6 +4,20 @@
  * Provides consistent prefixing for all plugin logs and exposes runtime
  * controls via the browser console for dynamic log level adjustment.
  *
+ * @usage
+ * import logger from './logger';
+ *
+ * logger.warn('Warning message', { context: 'data' });
+ * logger.error('Error occurred', error);
+ *
+ * // Runtime control via dev console:
+ * console.copyAsHtml.setLogLevel(0) // DEBUG
+ * console.copyAsHtml.setLogLevel(1) // INFO
+ * console.copyAsHtml.setLogLevel(2) // WARN
+ * console.copyAsHtml.setLogLevel(3) // ERROR
+ * console.copyAsHtml.setLogLevel(4) // NONE
+ * console.copyAsHtml.getLogLevel()  // get current log level
+ *
  * modified from: https://github.com/cipherswami/joplin-plugin-quick-note/blob/main/src/logger.ts
  */
 
@@ -31,7 +45,7 @@ class Logger {
         this.level = initialLevel;
     }
 
-    private getLevelName(level: number): string {
+    getLevelName(level: number): string {
         return LogLevel[level] ?? 'UNKNOWN';
     }
 
@@ -49,8 +63,6 @@ class Logger {
     }
 
     getLevel(): LogLevel {
-        const levelName = this.getLevelName(this.level);
-        console.info(`${this.prefix} Current log level: ${levelName} (${this.level})`);
         return this.level;
     }
 
@@ -82,13 +94,22 @@ class Logger {
 function createLogger(prefix: string, initialLevel?: LogLevel): Logger {
     const loggerInstance = new Logger(prefix, initialLevel);
 
-    // Expose logger controls to browser console for runtime debugging
-    if (typeof window !== 'undefined') {
-        (window as unknown as { joplinLogger: unknown }).joplinLogger = {
-            setLevel: (level: LogLevel) => loggerInstance.setLevel(level),
-            getLevel: () => loggerInstance.getLevel(),
-            LogLevel, // Export enum for convenience
-        };
+    // Attach logger controls to console for runtime debugging
+    // Uses console namespace pattern to avoid global pollution
+    if (typeof globalThis !== 'undefined') {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const con = globalThis.console as any;
+        if (!con.copyAsHtml) {
+            con.copyAsHtml = {
+                setLogLevel: (level: LogLevel) => loggerInstance.setLevel(level),
+                getLogLevel: () => {
+                    const level = loggerInstance.getLevel();
+                    const name = loggerInstance.getLevelName(level);
+                    console.info(`${prefix} Current log level: ${name} (${level})`);
+                    return level;
+                },
+            };
+        }
     }
 
     return loggerInstance;

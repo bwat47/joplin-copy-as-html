@@ -49,7 +49,7 @@
 ### Notable Modules
 
 - `settings.ts` – Centralizes all plugin settings registration and provides `loadHtmlSettings()` and `loadPlainTextSettings()` helpers that fetch and validate settings from Joplin.
-- `logger.ts` – Centralized logging utility with `[copy-as-html]` prefix. Provides `debug()`, `info()`, `warn()`, and `error()` methods with configurable log levels (DEBUG, INFO, WARN, ERROR, NONE). Log level can be adjusted at runtime via browser console using `joplinLogger.setLevel(level)` and `joplinLogger.getLevel()`. Defaults to WARN level.
+- `logger.ts` – Centralized logging utility with `[copy-as-html]` prefix. Provides `debug()`, `info()`, `warn()`, and `error()` methods with configurable log levels (DEBUG=0, INFO=1, WARN=2, ERROR=3, NONE=4). Log level can be adjusted at runtime via dev console using `console.copyAsHtml.setLogLevel(level)` and `console.copyAsHtml.getLogLevel()`. Defaults to WARN level.
 - `pluginUtils.ts` – Resolves CommonJS export patterns, wraps `md.use`, and logs plugin failures via `logger`.
 - `esmPluginLoader.ts` – Loads ESM-only markdown-it plugins in a CommonJS environment. Handles dynamic imports and caching for markdown-it-github-alerts and @mdit/plugin-tasklist.
 - `utils.ts` – Houses option validation shared across pipelines.
