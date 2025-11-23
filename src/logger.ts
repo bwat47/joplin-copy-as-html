@@ -35,7 +35,7 @@ export enum LogLevel {
     NONE = 4,
 }
 
-class Logger {
+export class Logger {
     private level: LogLevel;
 
     constructor(
@@ -91,25 +91,34 @@ class Logger {
     }
 }
 
+declare global {
+    interface Console {
+        copyAsHtml?: {
+            setLogLevel: (level: LogLevel) => void;
+            getLogLevel: () => LogLevel;
+        };
+    }
+}
+
 function createLogger(prefix: string, initialLevel?: LogLevel): Logger {
     const loggerInstance = new Logger(prefix, initialLevel);
 
     // Attach logger controls to console for runtime debugging
     // Uses console namespace pattern to avoid global pollution
     if (typeof globalThis !== 'undefined') {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const con = globalThis.console as any;
-        if (!con.copyAsHtml) {
-            con.copyAsHtml = {
-                setLogLevel: (level: LogLevel) => loggerInstance.setLevel(level),
-                getLogLevel: () => {
-                    const level = loggerInstance.getLevel();
-                    const name = loggerInstance.getLevelName(level);
-                    console.info(`${prefix} Current log level: ${name} (${level})`);
-                    return level;
-                },
-            };
-        }
+        const con = globalThis.console;
+
+        // Always overwrite to ensure we control the *active* logger instance
+        // (Fixes issue where reloading plugin leaves stale logger control)
+        con.copyAsHtml = {
+            setLogLevel: (level: LogLevel) => loggerInstance.setLevel(level),
+            getLogLevel: () => {
+                const level = loggerInstance.getLevel();
+                const name = loggerInstance.getLevelName(level);
+                console.info(`${prefix} Current log level: ${name} (${level})`);
+                return level;
+            },
+        };
     }
 
     return loggerInstance;
