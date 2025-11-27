@@ -4,6 +4,8 @@
  * Provides consistent prefixing for all plugin logs and exposes runtime
  * controls via the browser console for dynamic log level adjustment.
  *
+ * modified from: https://github.com/cipherswami/joplin-plugin-quick-note/blob/main/src/logger.ts
+ *
  * @usage
  * import logger from './logger';
  *
@@ -17,8 +19,6 @@
  * console.copyAsHtml.setLogLevel(3) // ERROR
  * console.copyAsHtml.setLogLevel(4) // NONE
  * console.copyAsHtml.getLogLevel()  // get current log level
- *
- * modified from: https://github.com/cipherswami/joplin-plugin-quick-note/blob/main/src/logger.ts
  */
 
 const PREFIX = '[copy-as-html]';
