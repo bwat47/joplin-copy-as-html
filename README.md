@@ -77,9 +77,9 @@ The plugin will adhere to Joplin's settings for whether or not to render:
 - Multimarkdown Table
 
 > [!note]
-> Mermaid/Math are not supported, they will render as plain text (code).
+> Mermaid/Math are not supported, they will render as plain text.
 
-### Freehand Drawing/Excalidraw
+### Freehand Drawing/Excalidraw/Drawio
 
 These plugins embed the drawings as joplin image resources (svg), and the plugin will embed them as base64 as it does other images.
 
@@ -97,7 +97,7 @@ Github Alert syntax, (e.g. `>[!NOTE]`) is supported via the markdown-it-github-a
 
 This will strip markdown formatting characters, backslash escapes, and image embeds from the source markdown and populate it as text/plain in the clipboard, for scenarios where you need to paste into an app that supports neither HTML formatting or markdown.
 
-List leaders and nested list indentation will be maintained (these are normally lost when copying from the markdown viewer or rich text editor).
+List leaders and nested list indentation will be maintained (these are normally lost when copying plain text from the markdown viewer or rich text editor).
 
 ### Customizing plain text output
 
