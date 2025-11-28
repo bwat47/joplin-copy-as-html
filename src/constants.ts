@@ -29,8 +29,8 @@ export const SETTINGS = {
 export const CONSTANTS = {
     BASE64_TIMEOUT_MS: 5000, //5s
     REMOTE_TIMEOUT_MS: 10000, //10s
-    MAX_IMAGE_SIZE_BYTES: 15 * 1024 * 1024, // 15MB limit
-    MAX_IMAGE_SIZE_WARNING: 10 * 1024 * 1024, // 10MB warning threshold
+    MAX_IMAGE_SIZE_BYTES: 25 * 1024 * 1024, // 25MB limit
+    MAX_IMAGE_SIZE_WARNING: 15 * 1024 * 1024, // 15MB warning threshold
     // Generic User-Agent for remote image fetches to improve compatibility
     // while avoiding detailed browser impersonation.
     REMOTE_IMAGE_USER_AGENT: 'Mozilla/5.0',
