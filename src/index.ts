@@ -109,31 +109,31 @@ joplin.plugins.register({
             accelerator: 'Ctrl+Alt+C',
         });
 
-        // Filter context menu to dynamically add our commands only in markdown editor
+        // Filter context menu to dynamically add our commands only when there's a valid text selection
         joplin.workspace.filterEditorContextMenu(async (contextMenu) => {
             logger.debug(
                 'Context menu items:',
                 contextMenu.items.map((item) => item.commandName)
             );
 
-            // Simple approach: try to execute a markdown-specific command
-            // If it succeeds, we're in the markdown editor
-            let isMarkdownEditor = false;
+            // Check if there's a valid text selection in the markdown editor
+            let hasValidSelection = false;
             try {
-                // Try to get the cursor position - this should only work in markdown editor
-                await joplin.commands.execute('editor.execCommand', {
-                    name: 'getCursor',
+                // Try to get the current selection - this should only work in markdown editor
+                const selection = await joplin.commands.execute('editor.execCommand', {
+                    name: 'getSelection',
                 });
-                isMarkdownEditor = true;
-                logger.debug('Detected markdown editor - adding context menu items');
+                // Only show menu items if selection is a non-empty string
+                hasValidSelection = typeof selection === 'string' && selection.length > 0;
+                logger.debug('Has valid selection:', hasValidSelection);
             } catch {
-                // If getCursor fails, we're likely in rich text editor
-                isMarkdownEditor = false;
-                logger.debug('Detected rich text editor - not adding context menu items');
+                // If getSelection fails, we're likely not in markdown editor
+                hasValidSelection = false;
+                logger.debug('No valid selection - not adding context menu items');
             }
 
-            // Only add our commands to the context menu if we're in markdown editor
-            if (isMarkdownEditor) {
+            // Only add our commands to the context menu if there's a valid selection
+            if (hasValidSelection) {
                 // Check if our commands are already in the menu to avoid duplicates
                 const hasHtmlCommand = contextMenu.items.some((item) => item.commandName === 'copyAsHtml');
                 const hasPlainTextCommand = contextMenu.items.some((item) => item.commandName === 'copyAsPlainText');
