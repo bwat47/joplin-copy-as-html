@@ -18,7 +18,6 @@
 - `src/logger.ts` – centralized logging utility.
 - `src/constants.ts` / `src/types.ts` – shared configuration, string constants, and TypeScript contracts.
 - `src/utils.ts` – validation helpers, toast messaging wrapper.
-- `src/pluginUtils.ts` – resilient CommonJS markdown-it plugin loader utilities; shared by both renderers.
 - `src/html/` – HTML renderer pipeline (`htmlRenderer.ts`, `htmlRenderer.test.ts`, `assetProcessor.ts`, `domPostProcess.ts`, `domPostProcess.test.ts`).
 - `src/plainText/` – plain text pipeline (`plainTextRenderer.ts`, `plainTextRenderer.test.ts`, `plainTextCollector.ts`, `plainTextFormatter.ts`, `tokenRenderers.ts`, `markdownSetup.ts`).
 - Tests live beside source (`*.test.ts`). `tests/` directory is unused.
@@ -60,7 +59,6 @@ The Plain Text renderer maintains its own `markdown-it` instance to allow for pr
 
 - `settings.ts` – Centralizes all plugin settings registration and provides `loadHtmlSettings()` and `loadPlainTextSettings()` helpers that fetch and validate settings from Joplin.
 - `logger.ts` – Centralized logging utility with `[copy-as-html]` prefix. Provides `debug()`, `info()`, `warn()`, and `error()` methods with configurable log levels (DEBUG=0, INFO=1, WARN=2, ERROR=3, NONE=4). Log level can be adjusted at runtime via dev console using `console.copyAsHtml.setLogLevel(level)` and `console.copyAsHtml.getLogLevel()`. Defaults to WARN level.
-- `pluginUtils.ts` – Resolves CommonJS export patterns, wraps `md.use`, and logs plugin failures via `logger`.
 - `utils.ts` – Houses option validation shared across pipelines.
 - `defaultStylesheet.ts` – Injected when `exportFullHtml` is enabled to produce a complete HTML document with minimal css styling.
 - `testHelpers.ts` – Fixtures and mocks for renderer tests.
@@ -96,7 +94,7 @@ All default to `false` unless noted.
 
 ## Extension Points
 
-1. Add an output format: create `src/<format>/` with its own `markdownSetup.ts`, renderer, and formatter; reuse `pluginUtils.ts`, `logger.ts`, and utilities.
+1. Add an output format: create `src/<format>/` with its own `markdownSetup.ts`, renderer, and formatter; reuse `logger.ts` and utilities.
 2. Introduce new settings: add to `SETTINGS` constants, register in `settings.ts`, extend `types.ts`, validate in `utils.ts`, and create/update loader functions in `settings.ts`.
 3. Support additional resource schemes: augment `assetProcessor.ts` (no changes required in pure renderers).
 4. Enhance plain text rules: adjust `plainText/plainTextCollector.ts` (and supporting helpers in `tokenRenderers.ts`) and update corresponding tests.
@@ -109,7 +107,6 @@ All default to `false` unless noted.
 - `plainText/plainTextRenderer.test.ts` covers integration scenarios for the plain text pipeline.
 - `plainText/plainTextFormatter.test.ts` tests final text assembly, spacing, and preservation options.
 - `plainText/tokenRenderers.test.ts` focuses on pure helpers (tables, list formatting, blank-line logic).
-- `pluginUtils.test.ts` tests markdown-it plugin loading and error handling.
 - `utils.test.ts` tests validation helpers and utility functions.
 - Common fixtures live in `testHelpers.ts`; tests avoid real I/O via mocks.
 
