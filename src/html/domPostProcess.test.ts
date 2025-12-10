@@ -77,6 +77,19 @@ describe('domPostProcess', () => {
         expect(out).not.toContain(':/123');
     });
 
+    it('removes Joplin resources with data-resource-id even if src does not look like a joplin resource (embedImages=false)', async () => {
+        // simulating renderMarkup output where src might be processed or missing, but data-resource-id is present
+        const html = '<img data-resource-id="ab62d971ef62435ca8e3f9e709ce1255" alt="roadmap" class="jop-noMdConv">';
+        const out = await postProcessHtml(html, {
+            embedImages: false,
+            downloadRemoteImages: false,
+            convertSvgToPng: false,
+        });
+
+        expect(out).not.toContain('<img');
+        expect(out).not.toContain('ab62d971ef62435ca8e3f9e709ce1255');
+    });
+
     it('removes joplin-source elements (duplicate code block content)', async () => {
         const html = `
             <div class="joplin-source">raw code</div>

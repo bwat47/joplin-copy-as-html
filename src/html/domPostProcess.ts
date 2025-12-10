@@ -164,9 +164,10 @@ function stripJoplinImages(doc: Document): void {
         if (img.closest('pre, code')) continue;
 
         const src = img.getAttribute('src') || '';
+        const resourceId = img.getAttribute('data-resource-id');
         const isJoplinSrc = /^:\//.test(src) || /^joplin:\/\/resource\//i.test(src);
 
-        if (isJoplinSrc) {
+        if (isJoplinSrc || resourceId) {
             img.remove();
         }
     }
