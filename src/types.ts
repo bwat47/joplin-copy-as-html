@@ -56,6 +56,4 @@ export interface JoplinResource {
 
 export interface JoplinFileData {
     body?: Buffer | Uint8Array;
-    data?: Buffer | Uint8Array;
-    content?: Buffer | Uint8Array;
 }

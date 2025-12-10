@@ -18,21 +18,16 @@ import { defaultStylesheet } from '../defaultStylesheet';
 import { logger } from '../logger';
 
 /**
- * Safely extracts a Buffer from a Joplin file object returned by the API.
- * Accepts Buffer, Uint8Array, or compatible shapes on the file object.
+ * Extracts a Buffer from a Joplin file object returned by the API.
+ * Desktop Joplin returns { body: Buffer | Uint8Array }.
  */
 function extractFileBuffer(fileObj: JoplinFileData): Buffer {
-    if (!fileObj) {
-        throw new Error('No file object provided');
-    }
+    const data = fileObj?.body ?? fileObj;
 
-    const buffer = fileObj.body || fileObj.data || fileObj.content || fileObj;
+    if (Buffer.isBuffer(data)) return data;
+    if (data instanceof Uint8Array) return Buffer.from(data);
 
-    if (!Buffer.isBuffer(buffer) && !(buffer instanceof Uint8Array)) {
-        throw new Error('Invalid file buffer format');
-    }
-
-    return Buffer.isBuffer(buffer) ? buffer : Buffer.from(buffer);
+    throw new Error('Invalid file buffer format');
 }
 
 /**
