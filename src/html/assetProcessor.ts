@@ -10,35 +10,24 @@
  */
 
 import joplin from 'api';
-import { CONSTANTS, LINK_RESOURCE_MATCHERS, RESOURCE_ID_REGEX } from '../constants';
+import { CONSTANTS, RESOURCE_ID_REGEX } from '../constants';
 import { JoplinFileData, JoplinResource } from '../types';
 import * as fs from 'fs/promises';
 import * as path from 'path';
 import { defaultStylesheet } from '../defaultStylesheet';
 import { logger } from '../logger';
 
-// Note: User-facing error messages are handled during DOM post-processing.
-// Any return value that is not a data URI (doesn't begin with "data:image/") is treated as a failure
-// and replaced with a generic "Image failed to load" text in domPostProcess.ts. We return `null` for
-// errors so the type stays simple and there's no risk of colliding with real URLs.
-export const EMBED_ERROR_TOKEN: null = null;
-
 /**
- * Safely extracts a Buffer from a Joplin file object returned by the API.
- * Accepts Buffer, Uint8Array, or compatible shapes on the file object.
+ * Extracts a Buffer from a Joplin file object returned by the API.
+ * Desktop Joplin returns { body: Buffer | Uint8Array }.
  */
 function extractFileBuffer(fileObj: JoplinFileData): Buffer {
-    if (!fileObj) {
-        throw new Error('No file object provided');
-    }
+    const data = fileObj?.body ?? fileObj;
 
-    const buffer = fileObj.body || fileObj.data || fileObj.content || fileObj;
+    if (Buffer.isBuffer(data)) return data;
+    if (data instanceof Uint8Array) return Buffer.from(data);
 
-    if (!Buffer.isBuffer(buffer) && !(buffer instanceof Uint8Array)) {
-        throw new Error('Invalid file buffer format');
-    }
-
-    return Buffer.isBuffer(buffer) ? buffer : Buffer.from(buffer);
+    throw new Error('Invalid file buffer format');
 }
 
 /**
@@ -77,25 +66,25 @@ function isMinimalJoplinResource(obj: unknown): obj is Pick<JoplinResource, 'id'
 export async function convertResourceToBase64(id: string): Promise<string | null> {
     if (!validateResourceId(id)) {
         logger.warn(`Invalid Joplin resource ID: :/${id}`);
-        return EMBED_ERROR_TOKEN;
+        return null;
     }
     try {
         const rawResource = await joplin.data.get(['resources', id], { fields: ['id', 'mime'] });
 
         if (!rawResource) {
             logger.warn(`Resource not found: :/${id}`);
-            return EMBED_ERROR_TOKEN;
+            return null;
         }
 
         // Validate shape before casting to avoid runtime crashes on unexpected data
         if (!isMinimalJoplinResource(rawResource)) {
             logger.warn(`Resource metadata invalid for :/${id}`);
-            return EMBED_ERROR_TOKEN;
+            return null;
         }
 
         if (!rawResource.mime.toLowerCase().startsWith('image/')) {
             logger.warn(`Resource is not an image: :/${id} (${rawResource.mime})`);
-            return EMBED_ERROR_TOKEN;
+            return null;
         }
 
         // Fetch resource file with timeout
@@ -124,20 +113,20 @@ export async function convertResourceToBase64(id: string): Promise<string | null
                 logger.warn(
                     `Resource too large: :/${id} is ${formatMB(fileBuffer.length)} (max ${formatMB(CONSTANTS.MAX_IMAGE_SIZE_BYTES)})`
                 );
-                return EMBED_ERROR_TOKEN;
+                return null;
             } else if (fileBuffer.length > CONSTANTS.MAX_IMAGE_SIZE_WARNING) {
                 logger.warn(`Large image detected: Resource :/${id} is ${formatMB(fileBuffer.length)}`);
             }
         } catch (err) {
             const msg = err && err.message ? err.message : String(err);
             logger.error(`Error retrieving resource file :/${id}: ${msg}`);
-            return EMBED_ERROR_TOKEN;
+            return null;
         }
         const base64 = fileBuffer.toString('base64');
         return `data:${rawResource.mime};base64,${base64}`;
     } catch (err) {
         logger.error(`Failed to convert resource :/${id} to base64:`, err);
-        return EMBED_ERROR_TOKEN;
+        return null;
     }
 }
 
@@ -171,14 +160,14 @@ export async function downloadRemoteImageAsBase64(url: string): Promise<string |
 
         if (!response.ok) {
             logger.warn(`Remote image download failed ${url}: ${response.status} ${response.statusText}`);
-            return EMBED_ERROR_TOKEN;
+            return null;
         }
 
         const contentType = response.headers.get('content-type');
         const normalizedContentType = contentType?.toLowerCase();
         if (!normalizedContentType?.startsWith('image/')) {
             logger.warn(`Remote content is not an image ${url} (Content-Type: ${contentType})`);
-            return EMBED_ERROR_TOKEN;
+            return null;
         }
 
         const contentLengthHeader = response.headers.get('content-length');
@@ -188,7 +177,7 @@ export async function downloadRemoteImageAsBase64(url: string): Promise<string |
                 logger.warn(
                     `Remote image too large ${url}: ${formatMB(declaredSize)} (max ${formatMB(CONSTANTS.MAX_IMAGE_SIZE_BYTES)})`
                 );
-                return EMBED_ERROR_TOKEN;
+                return null;
             }
         }
 
@@ -212,7 +201,7 @@ export async function downloadRemoteImageAsBase64(url: string): Promise<string |
                         logger.warn(
                             `Remote image exceeded maximum size during download ${url}: ${formatMB(totalSize + chunk.length)} (max ${formatMB(CONSTANTS.MAX_IMAGE_SIZE_BYTES)})`
                         );
-                        return EMBED_ERROR_TOKEN;
+                        return null;
                     }
 
                     totalSize += chunk.length;
@@ -220,7 +209,7 @@ export async function downloadRemoteImageAsBase64(url: string): Promise<string |
                 }
 
                 if (totalSize > CONSTANTS.MAX_IMAGE_SIZE_WARNING) {
-                    logger.warn(`Large remote image: ${url} is ${formatMB(totalSize)}`);
+                    logger.warn(`Large remote image detected: ${url} is ${formatMB(totalSize)}`);
                 }
 
                 buffer = Buffer.concat(chunks);
@@ -236,11 +225,11 @@ export async function downloadRemoteImageAsBase64(url: string): Promise<string |
                 logger.warn(
                     `Remote image too large ${url}: ${formatMB(buffer.length)} (max ${formatMB(CONSTANTS.MAX_IMAGE_SIZE_BYTES)})`
                 );
-                return EMBED_ERROR_TOKEN;
+                return null;
             }
 
             if (buffer.length > CONSTANTS.MAX_IMAGE_SIZE_WARNING) {
-                logger.warn(`Large remote image: ${url} is ${formatMB(buffer.length)}`);
+                logger.warn(`Large remote image detected: ${url} is ${formatMB(buffer.length)}`);
             }
         }
 
@@ -248,7 +237,7 @@ export async function downloadRemoteImageAsBase64(url: string): Promise<string |
         return `data:${contentType};base64,${base64}`;
     } catch (err) {
         logger.error('Failed to download remote image:', url, err);
-        return EMBED_ERROR_TOKEN;
+        return null;
     } finally {
         if (!controller.signal.aborted) {
             controller.abort();
@@ -271,64 +260,4 @@ export async function getUserStylesheet(): Promise<string> {
     } catch {
         return defaultStylesheet;
     }
-}
-
-/**
- * Build a map of original image URL -> embedded value (data URI or null),
- * based on plugin options. Only returns mappings for URLs we intend to embed.
- * - Joplin resources (:/id, joplin://resource/id) are embedded when `embedImages` is true.
- * - Remote http(s) images are embedded when both `embedImages` and `downloadRemoteImages` are true.
- */
-export async function buildImageEmbedMap(
-    urls: Set<string>,
-    opts: { embedImages: boolean; downloadRemoteImages: boolean }
-): Promise<Map<string, string | null>> {
-    const out = new Map<string, string | null>();
-    if (!urls.size || !opts.embedImages) return out;
-
-    // Classify and dedupe
-    const urlToId = new Map<string, string>();
-    const joplinIds = new Set<string>();
-    const remoteUrls = new Set<string>();
-
-    for (const url of urls) {
-        const m = LINK_RESOURCE_MATCHERS.map((rx) => url.match(rx)).find(Boolean) as RegExpMatchArray | undefined;
-        if (m && m[1]) {
-            urlToId.set(url, m[1]);
-            joplinIds.add(m[1]);
-            continue;
-        }
-        if (opts.downloadRemoteImages && /^https?:\/\//i.test(url)) {
-            remoteUrls.add(url);
-        }
-    }
-
-    // Fetch once per unique id/url
-    const idResults = new Map<string, string | null>();
-    const jobs: Array<Promise<void>> = [];
-
-    for (const id of joplinIds) {
-        jobs.push(
-            convertResourceToBase64(id).then((val) => {
-                idResults.set(id, val);
-            })
-        );
-    }
-    for (const url of remoteUrls) {
-        jobs.push(
-            downloadRemoteImageAsBase64(url).then((val) => {
-                out.set(url, val);
-            })
-        );
-    }
-
-    await Promise.all(jobs);
-
-    // Fan out ID results to all URL variants that referenced the same resource
-    for (const [url, id] of urlToId) {
-        const val = idResults.get(id);
-        if (val !== undefined) out.set(url, val);
-    }
-
-    return out;
 }

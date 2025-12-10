@@ -31,6 +31,7 @@
         "@typescript-eslint/eslint-plugin": "^8.46.4",
         "@typescript-eslint/parser": "^8.46.4",
         "babel-jest": "^30.2.0",
+        "baseline-browser-mapping": "^2.9.6",
         "chalk": "^4.1.0",
         "copy-webpack-plugin": "^13.0.1",
         "eslint": "^9.39.1",
@@ -53,19 +54,11 @@
     "dependencies": {
         "dompurify": "^3.3.0",
         "markdown-it": "^14.1.0",
-        "markdown-it-abbr": "^2.0.0",
-        "markdown-it-anchor": "^9.2.0",
-        "markdown-it-deflist": "^3.0.0",
         "markdown-it-emoji": "^3.0.0",
-        "markdown-it-footnote": "^4.0.0",
-        "markdown-it-github-alerts": "^1.0.0",
         "markdown-it-ins": "^4.0.0",
         "markdown-it-mark": "^4.0.0",
-        "markdown-it-multimd-table": "^4.2.3",
         "markdown-it-sub": "^2.0.0",
         "markdown-it-sup": "^2.0.0",
-        "markdown-it-table-of-contents": "^1.1.0",
-        "@mdit/plugin-tasklist": "^0.22.2",
         "string-width": "^8.1.0"
     },
     "overrides": {

@@ -6,18 +6,10 @@
  * - Configuration interfaces (HtmlOptions, PlainTextOptions)
  * - Processing data structures (ImageDimensions, TableData, ListItem)
  * - Joplin API types (JoplinResource, JoplinFileData)
- * - Internal processing types (PluginConfig)
  *
  * These types provide compile-time safety and serve as documentation for the
  * expected structure of data flowing through the plugin's processing pipeline.
  */
-
-export interface ImageDimensions {
-    width?: string;
-    height?: string;
-    resourceId?: string;
-    originalAlt?: string;
-}
 
 export interface HtmlOptions {
     embedImages: boolean;
@@ -64,12 +56,4 @@ export interface JoplinResource {
 
 export interface JoplinFileData {
     body?: Buffer | Uint8Array;
-    data?: Buffer | Uint8Array;
-    content?: Buffer | Uint8Array;
-}
-
-export interface RemoteImageData {
-    originalUrl: string;
-    placeholder: string;
-    dimensions?: ImageDimensions;
 }

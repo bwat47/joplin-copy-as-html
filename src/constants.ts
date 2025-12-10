@@ -37,46 +37,11 @@ export const CONSTANTS = {
     TOAST_DURATION: 3000,
 };
 
-// Joplin global markdown plugin setting keys
-export const JOPLIN_SETTINGS = {
-    SUB: 'markdown.plugin.sub',
-    SUP: 'markdown.plugin.sup',
-    MARK: 'markdown.plugin.mark',
-    INSERT: 'markdown.plugin.insert',
-    SOFT_BREAKS: 'markdown.plugin.softbreaks',
-    TYPOGRAPHER: 'markdown.plugin.typographer',
-    ABBR: 'markdown.plugin.abbr',
-    DEFLIST: 'markdown.plugin.deflist',
-    EMOJI: 'markdown.plugin.emoji',
-    FOOTNOTE: 'markdown.plugin.footnote',
-    MULTITABLE: 'markdown.plugin.multitable',
-    TOC: 'markdown.plugin.toc',
-    LINKIFY: 'markdown.plugin.linkify',
-} as const;
-
 // HTML / rendering related constants
 export const HTML_CONSTANTS = {
     ERROR_COLOR: 'red',
     IMAGE_LOAD_ERROR: 'Image failed to load',
-    TOC_PLACEHOLDER_PATTERN: '\\[\\[toc\\]\\]',
-    TOC_CONTAINER_ID: 'toc',
 } as const;
-
-// Default options for selected markdown-it plugins
-export const PLUGIN_DEFAULTS = {
-    MULTIMD_TABLE: {
-        multiline: true,
-        rowspan: true,
-        headerless: true,
-        multibody: true,
-    },
-} as const;
-
-// Regex matchers for Joplin resource links (used in renderer cleanup)
-export const LINK_RESOURCE_MATCHERS: RegExp[] = [
-    /^:\/([a-f0-9]{32})(?:$|[/?#])/i,
-    /^joplin:\/\/resource\/([a-f0-9]{32})(?:$|[/?#])/i,
-];
 
 export const RESOURCE_ID_REGEX = /^[a-f0-9]{32}$/i;
 

@@ -1,5 +1,3 @@
-/* eslint-disable @typescript-eslint/no-require-imports */
-
 import * as fs from 'fs';
 import * as path from 'path';
 import { convertMarkdownToPlainText } from './plainTextRenderer';
@@ -465,41 +463,12 @@ describe('Integration', () => {
     });
 });
 
-// Safe plugin loading
-describe('Safe Plugin Loading', () => {
-    // Store the original defaultOptions before any tests run
-    const originalDefaultOptions = { ...defaultOptions };
-
-    beforeEach(() => {
-        // This is the key: Reset the module system's cache before each test
-        jest.resetModules();
-    });
-
-    it('should use markdown-it-mark when the plugin is available', () => {
-        // Freshly require the module for this test
-        const { convertMarkdownToPlainText } = require('./plainTextRenderer');
-
+// Markdown-it plugin integration
+describe('Markdown-it Plugin Integration', () => {
+    it('should use markdown-it-mark for highlighted text', () => {
         const markdown = '==highlighted==';
-        const options = { ...originalDefaultOptions, preserveMark: true };
+        const options = { ...defaultOptions, preserveMark: true };
         const result = convertMarkdownToPlainText(markdown, options);
         expect(result.trim()).toBe('==highlighted==');
-    });
-
-    it('should not crash and should treat marks as plain text if markdown-it-mark is not found', () => {
-        // This mock is hoisted by Jest and will apply before the require() call below
-        jest.mock('markdown-it-mark', () => {
-            throw new Error('Module not found');
-        });
-
-        // Freshly require the module AFTER the mock is in place
-        const { convertMarkdownToPlainText } = require('./plainTextRenderer');
-
-        const markdown = '==highlighted==';
-        const options = { ...originalDefaultOptions, preserveMark: true };
-        const result = convertMarkdownToPlainText(markdown, options);
-
-        expect(result.trim()).toBe('==highlighted==');
-
-        // Jest automatically un-hoists the mock after the test, so no cleanup is needed
     });
 });

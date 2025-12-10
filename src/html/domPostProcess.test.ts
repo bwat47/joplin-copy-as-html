@@ -1,38 +1,126 @@
 import { postProcessHtml } from './domPostProcess';
+import * as assetProcessor from './assetProcessor';
+
+// Mock the assetProcessor module
+jest.mock('./assetProcessor');
+
+const mockConvertResource = assetProcessor.convertResourceToBase64 as jest.Mock;
+const mockDownloadRemote = assetProcessor.downloadRemoteImageAsBase64 as jest.Mock;
 
 describe('domPostProcess', () => {
-    it('rewrites raw HTML <img> src from map', async () => {
-        const html = '<p>before <img src="https://x/a.png" alt="a"> after</p>';
-        const map = new Map<string, string | null>([['https://x/a.png', 'data:image/png;base64,QUJD']]);
-        const out = await postProcessHtml(html, { imageSrcMap: map });
-        expect(out).toContain('src="data:image/png;base64,QUJD"');
-        expect(out).not.toContain('https://x/a.png');
+    beforeEach(() => {
+        jest.clearAllMocks();
+        // Default mocks
+        mockConvertResource.mockResolvedValue('data:image/png;base64,LOCAL');
+        mockDownloadRemote.mockResolvedValue('data:image/png;base64,REMOTE');
     });
 
-    it('replaces raw HTML <img> with fallback message when mapping fails', async () => {
-        const html = '<p>before <img src="https://x/b.png" alt="b"> after</p>';
-        const map = new Map<string, string | null>([['https://x/b.png', '<span>ignored</span>']]);
-        const out = await postProcessHtml(html, { imageSrcMap: map });
+    it('embeds local Joplin resources when embedImages is true', async () => {
+        const html = '<img data-resource-id="12345" src=":/12345" alt="local">';
+        const out = await postProcessHtml(html, {
+            embedImages: true,
+            downloadRemoteImages: false,
+            convertSvgToPng: false,
+        });
+
+        expect(mockConvertResource).toHaveBeenCalledWith('12345');
+        expect(out).toContain('src="data:image/png;base64,LOCAL"');
+    });
+
+    it('embeds remote images when downloadRemoteImages is true', async () => {
+        const html = '<img src="https://example.com/img.png" alt="remote">';
+        const out = await postProcessHtml(html, {
+            embedImages: true,
+            downloadRemoteImages: true,
+            convertSvgToPng: false,
+        });
+
+        expect(mockDownloadRemote).toHaveBeenCalledWith('https://example.com/img.png');
+        expect(out).toContain('src="data:image/png;base64,REMOTE"');
+    });
+
+    it('does NOT embed remote images when downloadRemoteImages is false', async () => {
+        const html = '<img src="https://example.com/img.png" alt="remote">';
+        const out = await postProcessHtml(html, {
+            embedImages: true,
+            downloadRemoteImages: false,
+            convertSvgToPng: false,
+        });
+
+        expect(mockDownloadRemote).not.toHaveBeenCalled();
+        expect(out).toContain('src="https://example.com/img.png"');
+    });
+
+    it('replaces failed local images with error message', async () => {
+        mockConvertResource.mockResolvedValue(null);
+        const html = '<img data-resource-id="fail" src=":/fail">';
+
+        const out = await postProcessHtml(html, {
+            embedImages: true,
+            downloadRemoteImages: false,
+            convertSvgToPng: false,
+        });
+
         expect(out).toContain('Image failed to load');
         expect(out).not.toContain('<img');
-        expect(out).not.toContain('https://x/b.png');
     });
 
-    it('replaces raw HTML <img> with fallback when mapping resolves to null', async () => {
-        const html = '<p>before <img src="https://x/s.png" alt="s"> after</p>';
-        const map = new Map<string, string | null>([['https://x/s.png', null]]);
-        const out = await postProcessHtml(html, { imageSrcMap: map });
+    it('removes Joplin resources when embedImages is false', async () => {
+        const html = '<img data-resource-id="123" src=":/123">';
+        const out = await postProcessHtml(html, {
+            embedImages: false,
+            downloadRemoteImages: false,
+            convertSvgToPng: false,
+        });
+
+        expect(out).not.toContain('<img');
+        expect(out).not.toContain(':/123');
+    });
+
+    it('removes Joplin resources by data-resource-id when embedImages is false', async () => {
+        // simulating renderMarkup output where src might be processed or missing, but data-resource-id is present
+        const html = '<img data-resource-id="ab62d971ef62435ca8e3f9e709ce1255" alt="roadmap" class="jop-noMdConv">';
+        const out = await postProcessHtml(html, {
+            embedImages: false,
+            downloadRemoteImages: false,
+            convertSvgToPng: false,
+        });
+
+        expect(out).not.toContain('<img');
+        expect(out).not.toContain('ab62d971ef62435ca8e3f9e709ce1255');
+    });
+
+    it('removes joplin-source elements (duplicate code block content)', async () => {
+        const html = `
+            <div class="joplin-source">raw code</div>
+            <pre><code>highlighted code</code></pre>
+        `;
+        const out = await postProcessHtml(html);
+        expect(out).not.toContain('joplin-source');
+        expect(out).not.toContain('raw code');
+        expect(out).toContain('highlighted code');
+    });
+
+    it('unwraps #rendered-md div content', async () => {
+        const html = '<div id="rendered-md"><p>content</p></div>';
+        const out = await postProcessHtml(html);
+        expect(out).not.toContain('rendered-md');
+        expect(out).toContain('<p>content</p>');
+        // Should not have the div wrapper
+        expect(out).not.toMatch(/<div[^>]*id="rendered-md"[^>]*>/);
+    });
+
+    it('replaces Joplin broken resource spans with error message', async () => {
+        const html = `
+            <span class="not-loaded-resource" data-resource-id="c188011f98504be1b60bb72ccd7c2cea">
+                <img src="data:image/png;base64," width="1700" height="1536">
+            </span>`;
+
+        const out = await postProcessHtml(html);
+
         expect(out).toContain('Image failed to load');
         expect(out).not.toContain('<img');
-        expect(out).not.toContain('https://x/s.png');
-    });
-
-    it('does not touch images inside pre/code', async () => {
-        const html = '<pre><code>&lt;img src="https://x/c.png"&gt;</code></pre>';
-        const map = new Map<string, string>([['https://x/c.png', 'data:image/png;base64,Zm9v']]);
-        const out = await postProcessHtml(html, { imageSrcMap: map });
-        // The raw <img> is inside code, so remains as text; ensure original URL still present
-        expect(out).toContain('https://x/c.png');
+        expect(out).not.toContain('not-loaded-resource');
     });
 
     it('continues to clean Joplin resource anchors', async () => {
@@ -45,12 +133,14 @@ describe('domPostProcess', () => {
 
     it('wraps top-level raw HTML images in separate paragraph blocks', async () => {
         const html = '<img src="https://x/a.png" alt="a">\n\n<img src="https://x/b.png" alt="b">';
-        const out = await postProcessHtml(html);
+        const out = await postProcessHtml(html, {
+            embedImages: false,
+            downloadRemoteImages: false,
+            convertSvgToPng: false,
+        });
         // Should wrap each top-level <img> in its own <p>
         expect(out).toMatch(/<p>\s*<img[^>]*src="https:\/\/x\/a\.png"[^>]*>\s*<\/p>/);
         expect(out).toMatch(/<p>\s*<img[^>]*src="https:\/\/x\/b\.png"[^>]*>\s*<\/p>/);
-        // Should not insert <br> between them since each is in its own paragraph
-        expect(out).not.toMatch(/<br\s*\/>|<br>/i);
     });
 
     it('converts SVG image sources to PNG data URIs when enabled', async () => {
@@ -103,7 +193,11 @@ describe('domPostProcess', () => {
         const html = `<p><img src="data:image/svg+xml;base64,${svgBase64}" alt="icon"></p>`;
 
         try {
-            const out = await postProcessHtml(html, { convertSvgToPng: true });
+            const out = await postProcessHtml(html, {
+                embedImages: true, // Needed to trigger processing loop
+                downloadRemoteImages: false,
+                convertSvgToPng: true,
+            });
             expect(out).toContain('data:image/png;base64,TESTPNG');
             expect(out).not.toContain('image/svg+xml');
         } finally {

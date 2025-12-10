@@ -1,5 +1,3 @@
-/* eslint-disable @typescript-eslint/no-require-imports */
-
 /**
  * @fileoverview Markdown-it setup for Plain Text Renderer
  *
@@ -7,14 +5,11 @@
  */
 
 import MarkdownIt from 'markdown-it';
-import { safePluginUse, safeRequire } from '../pluginUtils';
-
-// Use safe imports to prevent conflicts
-const markdownItMark = safeRequire(() => require('markdown-it-mark'), 'markdown-it-mark');
-const markdownItIns = safeRequire(() => require('markdown-it-ins'), 'markdown-it-ins');
-const markdownItEmoji = safeRequire(() => require('markdown-it-emoji'), 'markdown-it-emoji');
-const markdownItSub = safeRequire(() => require('markdown-it-sub'), 'markdown-it-sub');
-const markdownItSup = safeRequire(() => require('markdown-it-sup'), 'markdown-it-sup');
+import markdownItMark from 'markdown-it-mark';
+import markdownItIns from 'markdown-it-ins';
+import markdownItSub from 'markdown-it-sub';
+import markdownItSup from 'markdown-it-sup';
+import { full as markdownItEmoji } from 'markdown-it-emoji';
 
 /**
  * Creates and configures a markdown-it instance for plain text rendering.
@@ -23,12 +18,11 @@ const markdownItSup = safeRequire(() => require('markdown-it-sup'), 'markdown-it
 export function createMarkdownItInstance(): MarkdownIt {
     const md = new MarkdownIt({ html: true });
 
-    // Use safe plugin loading to prevent conflicts
-    if (markdownItMark) safePluginUse(md, markdownItMark, undefined, 'markdown-it-mark');
-    if (markdownItIns) safePluginUse(md, markdownItIns, undefined, 'markdown-it-ins');
-    if (markdownItEmoji) safePluginUse(md, markdownItEmoji, undefined, 'markdown-it-emoji');
-    if (markdownItSub) safePluginUse(md, markdownItSub, undefined, 'markdown-it-sub');
-    if (markdownItSup) safePluginUse(md, markdownItSup, undefined, 'markdown-it-sup');
+    md.use(markdownItMark);
+    md.use(markdownItIns);
+    md.use(markdownItEmoji);
+    md.use(markdownItSub);
+    md.use(markdownItSup);
 
     return md;
 }

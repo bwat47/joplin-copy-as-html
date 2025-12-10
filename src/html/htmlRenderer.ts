@@ -2,19 +2,22 @@
  * @fileoverview HTML Renderer - Converts markdown to clean, portable HTML
  *
  * This module orchestrates the conversion of Joplin markdown to portable HTML.
- * It uses several sub-modules to handle specific parts of the process:
- * - markdownSetup: Configures markdown-it with Joplin-compatible plugins.
- * - tokenImageCollector: Pre-scans tokens to collect image URLs outside code.
- * - assetProcessor: Builds a URL→dataURI map (with validation) and loads stylesheet.
- * - domPostProcess: Cleans the final HTML using DOMParser and DOMPurify, embeds images.
+ * It uses Joplin's built-in `renderMarkup` command (available in Joplin 3.2+)
+ * and post-processes the result to handle sanitization and image embedding.
  */
 
+import joplin from 'api';
 import { HtmlOptions } from '../types';
 import { loadHtmlSettings } from '../settings';
-import { createMarkdownItInstance } from './markdownSetup';
-import { getUserStylesheet, buildImageEmbedMap } from './assetProcessor';
-import { collectImageUrls } from './tokenImageCollector';
+import { getUserStylesheet } from './assetProcessor';
 import { postProcessHtml } from './domPostProcess';
+import { logger } from '../logger';
+
+// Joplin markup types (matching internal enum)
+const MarkupLanguage = {
+    Markdown: 1,
+    Html: 2,
+};
 
 /**
  * Converts a markdown selection to processed HTML.
@@ -31,31 +34,29 @@ export async function processHtmlConversion(selection: string, options?: HtmlOpt
     }
     const htmlOptions = options;
 
-    // 2. Create and configure markdown-it instance
-    const md = await createMarkdownItInstance();
+    logger.debug('Rendering markup via Joplin command...');
 
-    // 3. Token pre-scan to collect image URLs (markdown images + raw HTML <img>)
-    const urls = collectImageUrls(md, selection);
+    // 2. Use Joplin's built-in renderMarkup command (requires Joplin 3.2+)
+    // Returns an object: { html: string, pluginAssets: [], ... }
+    const rendered = (await joplin.commands.execute('renderMarkup', MarkupLanguage.Markdown, selection)) as {
+        html?: string;
+    };
+    const rawHtml = rendered?.html ?? '';
 
-    // 4. Async fetch/convert up front to build the embed map
-    const imageSrcMap = await buildImageEmbedMap(urls, {
+    if (!rawHtml) {
+        logger.warn('renderMarkup returned empty result');
+    }
+
+    // 3. DOM pass: sanitize, normalize, and handle all processing (images, links, etc.)
+    const html = await postProcessHtml(rawHtml, {
         embedImages: htmlOptions.embedImages,
         downloadRemoteImages: htmlOptions.downloadRemoteImages,
-    });
-
-    // 5. Render synchronously
-    let html = md.render(selection);
-
-    // 6. DOM pass: sanitize, normalize, and handle all <img> via imageSrcMap
-    html = await postProcessHtml(html, {
-        imageSrcMap,
-        stripJoplinImages: !htmlOptions.embedImages,
         convertSvgToPng: htmlOptions.embedSvgAsPng,
     });
 
     let fragment = html.trim();
 
-    // 7. Optionally wrap in a full HTML document
+    // 4. Optionally wrap in a full HTML document
     if (htmlOptions.exportFullHtml) {
         const stylesheet = await getUserStylesheet();
         fragment = `<!DOCTYPE html>
