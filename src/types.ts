@@ -11,13 +11,6 @@
  * expected structure of data flowing through the plugin's processing pipeline.
  */
 
-export interface ImageDimensions {
-    width?: string;
-    height?: string;
-    resourceId?: string;
-    originalAlt?: string;
-}
-
 export interface HtmlOptions {
     embedImages: boolean;
     exportFullHtml: boolean;
@@ -65,10 +58,4 @@ export interface JoplinFileData {
     body?: Buffer | Uint8Array;
     data?: Buffer | Uint8Array;
     content?: Buffer | Uint8Array;
-}
-
-export interface RemoteImageData {
-    originalUrl: string;
-    placeholder: string;
-    dimensions?: ImageDimensions;
 }
