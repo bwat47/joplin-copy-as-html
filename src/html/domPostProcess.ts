@@ -99,6 +99,8 @@ function sanitizeHtml(html: string): string {
             'samp',
             'kbd',
             'div',
+            'details',
+            'summary',
         ],
         ALLOWED_ATTR: [
             'href',
@@ -128,6 +130,7 @@ function sanitizeHtml(html: string): string {
             // Accessibility attributes
             'role',
             'aria-*',
+            'open',
         ],
         FORBID_TAGS: ['script', 'iframe', 'object', 'embed', 'form'],
         FORBID_ATTR: ['onload', 'onerror', 'onclick'], // Remove event handlers
