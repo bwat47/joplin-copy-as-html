@@ -110,6 +110,19 @@ describe('domPostProcess', () => {
         expect(out).not.toMatch(/<div[^>]*id="rendered-md"[^>]*>/);
     });
 
+    it('replaces Joplin broken resource spans with error message', async () => {
+        const html = `
+            <span class="not-loaded-resource" data-resource-id="c188011f98504be1b60bb72ccd7c2cea">
+                <img src="data:image/png;base64," width="1700" height="1536">
+            </span>`;
+
+        const out = await postProcessHtml(html);
+
+        expect(out).toContain('Image failed to load');
+        expect(out).not.toContain('<img');
+        expect(out).not.toContain('not-loaded-resource');
+    });
+
     it('continues to clean Joplin resource anchors', async () => {
         const html = '<p><a href=":/0123456789abcdef0123456789abcdef">Resource</a></p>';
         const out = await postProcessHtml(html);

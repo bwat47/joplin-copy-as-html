@@ -188,6 +188,21 @@ function removeJoplinSourceElements(doc: Document): void {
 }
 
 /**
+ * Replaces Joplin's broken resource placeholders with our custom error message.
+ * Joplin renders broken images as a span with class "not-loaded-resource" containing a large placeholder image.
+ * @param doc - DOM document to process
+ */
+function replaceBrokenResourceSpans(doc: Document): void {
+    const brokenSpans = doc.querySelectorAll('span.not-loaded-resource');
+    brokenSpans.forEach((span) => {
+        const fallback = doc.createElement('span');
+        fallback.textContent = HTML_CONSTANTS.IMAGE_LOAD_ERROR;
+        fallback.style.color = HTML_CONSTANTS.ERROR_COLOR;
+        span.replaceWith(fallback);
+    });
+}
+
+/**
  * Unwraps the content of the #rendered-md div if present.
  * Joplin's renderMarkup wraps everything in <div id="rendered-md">.
  * We want to remove this wrapper to have cleaner HTML output.
@@ -447,11 +462,12 @@ interface PostProcessOptions {
  * 1. Sanitize HTML with DOMPurify (removes scripts, dangerous attributes)
  * 2. Unwrap Joplin's #rendered-md div
  * 3. Remove duplicate joplin-source elements from code blocks
- * 4. Remove non-image Joplin resource links (:/... or joplin://resource/...)
- * 5. Strip Joplin images if embedding is disabled
- * 6. Embed images (local and remote) as base64 if enabled
- * 7. Wrap top-level images in paragraph tags for consistent formatting
- * 8. Convert SVG data URIs to PNG (requires Canvas API)
+ * 4. Replace broken resource placeholders with error messages
+ * 5. Remove non-image Joplin resource links (:/... or joplin://resource/...)
+ * 6. Strip Joplin images if embedding is disabled
+ * 7. Embed images (local and remote) as base64 if enabled
+ * 8. Wrap top-level images in paragraph tags for consistent formatting
+ * 9. Convert SVG data URIs to PNG (requires Canvas API)
  */
 export async function postProcessHtml(
     html: string,
@@ -470,6 +486,7 @@ export async function postProcessHtml(
     // Pipeline of transformations
     unwrapRenderedMd(doc);
     removeJoplinSourceElements(doc);
+    replaceBrokenResourceSpans(doc);
     stripJoplinLinks(doc);
 
     if (!opts.embedImages) {
