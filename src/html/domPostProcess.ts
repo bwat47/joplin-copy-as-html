@@ -98,8 +98,7 @@ function sanitizeHtml(html: string): string {
             'var',
             'samp',
             'kbd',
-            // GitHub alerts
-            'div', // for .markdown-alert classes
+            'div',
         ],
         ALLOWED_ATTR: [
             'href',
