@@ -209,7 +209,7 @@ export async function downloadRemoteImageAsBase64(url: string): Promise<string |
                 }
 
                 if (totalSize > CONSTANTS.MAX_IMAGE_SIZE_WARNING) {
-                    logger.warn(`Large remote image: ${url} is ${formatMB(totalSize)}`);
+                    logger.warn(`Large remote image detected: ${url} is ${formatMB(totalSize)}`);
                 }
 
                 buffer = Buffer.concat(chunks);
@@ -229,7 +229,7 @@ export async function downloadRemoteImageAsBase64(url: string): Promise<string |
             }
 
             if (buffer.length > CONSTANTS.MAX_IMAGE_SIZE_WARNING) {
-                logger.warn(`Large remote image: ${url} is ${formatMB(buffer.length)}`);
+                logger.warn(`Large remote image detected: ${url} is ${formatMB(buffer.length)}`);
             }
         }
 
