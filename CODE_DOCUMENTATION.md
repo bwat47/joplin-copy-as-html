@@ -19,7 +19,6 @@
 - `src/constants.ts` / `src/types.ts` – shared configuration, string constants, and TypeScript contracts.
 - `src/utils.ts` – validation helpers, toast messaging wrapper.
 - `src/pluginUtils.ts` – resilient CommonJS markdown-it plugin loader utilities; shared by both renderers.
-- `src/esmPluginLoader.ts` – Wrappers to handle dynamic import of ESM-only packages.
 - `src/html/` – HTML renderer pipeline (`htmlRenderer.ts`, `htmlRenderer.test.ts`, `assetProcessor.ts`, `domPostProcess.ts`, `domPostProcess.test.ts`).
 - `src/plainText/` – plain text pipeline (`plainTextRenderer.ts`, `plainTextRenderer.test.ts`, `plainTextCollector.ts`, `plainTextFormatter.ts`, `tokenRenderers.ts`, `markdownSetup.ts`).
 - Tests live beside source (`*.test.ts`). `tests/` directory is unused.
@@ -62,7 +61,6 @@ The Plain Text renderer maintains its own `markdown-it` instance to allow for pr
 - `settings.ts` – Centralizes all plugin settings registration and provides `loadHtmlSettings()` and `loadPlainTextSettings()` helpers that fetch and validate settings from Joplin.
 - `logger.ts` – Centralized logging utility with `[copy-as-html]` prefix. Provides `debug()`, `info()`, `warn()`, and `error()` methods with configurable log levels (DEBUG=0, INFO=1, WARN=2, ERROR=3, NONE=4). Log level can be adjusted at runtime via dev console using `console.copyAsHtml.setLogLevel(level)` and `console.copyAsHtml.getLogLevel()`. Defaults to WARN level.
 - `pluginUtils.ts` – Resolves CommonJS export patterns, wraps `md.use`, and logs plugin failures via `logger`.
-- `esmPluginLoader.ts` – Loads ESM-only markdown-it plugins in a CommonJS environment. Handles dynamic imports and caching for markdown-it-github-alerts and @mdit/plugin-tasklist.
 - `utils.ts` – Houses option validation shared across pipelines.
 - `defaultStylesheet.ts` – Injected when `exportFullHtml` is enabled to produce a complete HTML document with minimal css styling.
 - `testHelpers.ts` – Fixtures and mocks for renderer tests.
@@ -117,5 +115,5 @@ All default to `false` unless noted.
 
 ## Dependencies
 
-- Runtime: `markdown-it` plus plugins (`mark`, `ins`, `sup`, `sub`, `abbr`, `deflist`, `emoji`, `footnote`, `multimd-table`, `table-of-contents`, `anchor`, `github-alerts`, `@mdit/plugin-tasklist`); `string-width` for alignment; `dompurify` for sanitization.
+- Runtime: `markdown-it` plus plugins (`mark`, `ins`, `sup`, `sub`, `emoji`); `string-width` for alignment; `dompurify` for sanitization.
 - Dev: TypeScript, Jest/ts-jest, ESLint, Prettier, Webpack, and the Joplin plugin tooling defined in `package.json`.
