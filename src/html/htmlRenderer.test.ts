@@ -32,14 +32,6 @@ describe('processHtmlConversion', () => {
         expect(result).toBe('<p>Mocked Render</p>');
     });
 
-    it('handles renderMarkup returning a string (fallback)', async () => {
-        (joplin.commands.execute as jest.Mock).mockResolvedValue('<p>String Render</p>');
-        mockHtmlSettings();
-
-        const result = await processHtmlConversion('md');
-        expect(result).toBe('<p>String Render</p>');
-    });
-
     it('passes correct options to postProcessHtml', async () => {
         mockHtmlSettings({
             embedImages: true,

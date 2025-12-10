@@ -19,11 +19,6 @@ const MarkupLanguage = {
     Html: 2,
 };
 
-interface RenderResult {
-    html?: string;
-    body?: string;
-}
-
 /**
  * Converts a markdown selection to processed HTML.
  * This includes embedding images as base64, preserving image dimensions,
@@ -41,19 +36,12 @@ export async function processHtmlConversion(selection: string, options?: HtmlOpt
 
     logger.debug('Rendering markup via Joplin command...');
 
-    // 2. Use Joplin's built-in renderMarkup command
-    // This returns an object: { html: string, pluginAssets: [], ... }
-    const rendered = await joplin.commands.execute('renderMarkup', MarkupLanguage.Markdown, selection);
-
-    // Extract HTML from result
-    let rawHtml: string = '';
-    if (typeof rendered === 'string') {
-        rawHtml = rendered;
-    } else if (rendered && typeof rendered === 'object') {
-        const r = rendered as RenderResult;
-        // 'html' is the standard property, 'body' might be a fallback in some contexts
-        rawHtml = r.html || r.body || '';
-    }
+    // 2. Use Joplin's built-in renderMarkup command (requires Joplin 3.2+)
+    // Returns an object: { html: string, pluginAssets: [], ... }
+    const rendered = (await joplin.commands.execute('renderMarkup', MarkupLanguage.Markdown, selection)) as {
+        html?: string;
+    };
+    const rawHtml = rendered?.html ?? '';
 
     if (!rawHtml) {
         logger.warn('renderMarkup returned empty result');
