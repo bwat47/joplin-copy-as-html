@@ -20,7 +20,7 @@
 - `src/utils.ts` – validation helpers, toast messaging wrapper.
 - `src/pluginUtils.ts` – resilient CommonJS markdown-it plugin loader utilities; shared by both renderers.
 - `src/esmPluginLoader.ts` – Wrappers to handle dynamic import of ESM-only packages.
-- `src/html/` – HTML renderer pipeline (`htmlRenderer.ts`, `htmlRenderer.test.ts`, `assetProcessor.ts`, `domPostProcess.ts`, `markdownSetup.ts`, `tokenImageCollector.ts`).
+- `src/html/` – HTML renderer pipeline (`htmlRenderer.ts`, `htmlRenderer.test.ts`, `assetProcessor.ts`, `domPostProcess.ts`, `domPostProcess.test.ts`).
 - `src/plainText/` – plain text pipeline (`plainTextRenderer.ts`, `plainTextRenderer.test.ts`, `plainTextCollector.ts`, `plainTextFormatter.ts`, `tokenRenderers.ts`, `markdownSetup.ts`).
 - Tests live beside source (`*.test.ts`). `tests/` directory is unused.
 
@@ -30,17 +30,28 @@
 
 1. Load settings via `settings.ts` helpers.
 2. Obtain current Markdown selection via Joplin API.
-3. Build a markdown-it instance configured by `pluginUtils.ts` and `esmPluginLoader.ts` to reflect Joplin's plugin settings.
-4. Run either the HTML or plain text pipeline.
-5. Copy the result to the clipboard and show toast feedback. Errors surface as notifications and structured logs via `logger.ts`.
+3. Run either the HTML or plain text pipeline.
+4. Copy the result to the clipboard and show toast feedback. Errors surface as notifications and structured logs via `logger.ts`.
 
 ### HTML Pipeline (`html/htmlRenderer.ts`)
 
-- Pre-scan tokens to find image sources (`html/tokenImageCollector.ts`).
-- Build an embed map in `html/assetProcessor.ts`: resolve Joplin resources, optionally fetch remote images, and convert to base64.
-- Sanitize and normalize the document in `html/domPostProcess.ts` with DOMPurify: patch internal links, wrap lone `<img>` elements, and apply embed map updates for all images (both markdown-rendered and raw HTML).
+The HTML renderer leverages Joplin's native `renderMarkup` command to ensure the output matches the user's Joplin settings, followed by a rigorous DOM-based post-processing step.
+
+1. **Rendering**: Call `joplin.commands.execute('renderMarkup', ...)` to convert Markdown to HTML.
+2. **Post-Processing** (`html/domPostProcess.ts`):
+    - **Sanitization**: Clean HTML using DOMPurify.
+    - **Structure Cleanup**: Unwrap Joplin's `#rendered-md` container and remove duplicate `.joplin-source` elements (used for the Rich Text Editor).
+    - **Resource Handling**: Replace broken resource placeholders with clear error messages.
+    - **Link Cleanup**: Strip internal Joplin resource links (unless they contain images).
+    - **Image Embedding**: Traverse the DOM to find images.
+        - If `embedImages` is on: Convert local Joplin resources and (optionally) remote images to Base64.
+        - If `embedImages` is off: Strip local Joplin images entirely.
+    - **Formatting**: Wrap top-level images in paragraph tags.
+    - **SVG Handling**: Rasterize SVG Data URIs to PNGs for broader compatibility.
 
 ### Plain Text Pipeline (`plainText/plainTextRenderer.ts`)
+
+The Plain Text renderer maintains its own `markdown-it` instance to allow for precise control over token generation and formatting rules, independent of Joplin's rendering settings.
 
 - `plainText/plainTextCollector.ts` walks the markdown-it token stream directly (no renderer hooks) and produces `PlainTextBlock[]` for paragraphs, headings, lists, tables, blockquotes, and code blocks.
 - `plainText/tokenRenderers.ts` provides pure helpers for lists, tables, links, and blank-line rules used by the collector.
@@ -78,7 +89,8 @@ All default to `false` unless noted.
 
 ## Design Rationale
 
-- **markdown-it** is used instead of `@joplin/renderer` for full control over plugin selection, consistent behavior between HTML and plain text, and future extensibility.
+- **RenderMarkup for HTML**: Using Joplin's native renderer (`renderMarkup`) ensures that the copied HTML faithfully represents the user's Joplin settings, reducing the maintenance burden of a separate markdown configuration.
+- **markdown-it for Plain Text**: A dedicated `markdown-it` instance is retained for the plain text pipeline to provide the fine-grained control needed for custom text extraction and formatting rules.
 - **DOM-based post-processing** provides reliable sanitization, nested HTML handling, and portability for embedded images.
 - **Separation of concerns** keeps orchestrators thin and the heavy lifting in small, testable modules. Settings registration is isolated in `settings.ts`, logging is centralized in `logger.ts`.
 - **Conservative defaults** favor clean output; advanced preservation is opt-in.
@@ -95,8 +107,7 @@ All default to `false` unless noted.
 
 - `html/htmlRenderer.test.ts` exercises HTML conversion, DOM sanitization, and image embedding flows.
 - `html/assetProcessor.test.ts` tests resource embedding, remote image downloading, and base64 conversion.
-- `html/domPostProcess.test.ts` tests DOM sanitization, link patching, and image wrapping.
-- `html/tokenImageCollector.test.ts` tests image token extraction from markdown-it token streams.
+- `html/domPostProcess.test.ts` tests DOM sanitization, link patching, image wrapping, and the `unwrapRenderedMd` logic.
 - `plainText/plainTextRenderer.test.ts` covers integration scenarios for the plain text pipeline.
 - `plainText/plainTextFormatter.test.ts` tests final text assembly, spacing, and preservation options.
 - `plainText/tokenRenderers.test.ts` focuses on pure helpers (tables, list formatting, blank-line logic).
