@@ -11,7 +11,7 @@
 - Key scripts: `npm run dist` (build `.jpl`), `npm test` (Jest), `npm run lint`, `npm run format`, `npm run updateVersion`.
 - Bundled with Webpack; tests run through Jest + ts-jest.
 
-## Repository Layout (selected)
+## Repository Layout
 
 - `src/index.ts` – plugin entry point: registers commands, clipboard flow, context menu filtering.
 - `src/settings.ts` – centralizes plugin settings registration and loading with validation helpers.
@@ -33,7 +33,7 @@
 
 ### HTML Pipeline (`html/htmlRenderer.ts`)
 
-The HTML renderer leverages Joplin's native `renderMarkup` command to ensure the output matches the user's Joplin settings, followed by a rigorous DOM-based post-processing step.
+The HTML renderer leverages Joplin's native `renderMarkup` command to ensure the output matches the user's Joplin settings, followed by a DOM-based post-processing step.
 
 1. **Rendering**: Call `joplin.commands.execute('renderMarkup', ...)` to convert Markdown to HTML.
 2. **Post-Processing** (`html/domPostProcess.ts`):
@@ -55,14 +55,6 @@ The Plain Text renderer maintains its own `markdown-it` instance to allow for pr
 - `plainText/tokenRenderers.ts` provides pure helpers for lists, tables, links, and blank-line rules used by the collector.
 - `plainText/plainTextFormatter.ts` assembles the final string from blocks, applying spacing and user-selected preservation options.
 
-### Notable Modules
-
-- `settings.ts` – Centralizes all plugin settings registration and provides `loadHtmlSettings()` and `loadPlainTextSettings()` helpers that fetch and validate settings from Joplin.
-- `logger.ts` – Centralized logging utility with `[copy-as-html]` prefix. Provides `debug()`, `info()`, `warn()`, and `error()` methods with configurable log levels (DEBUG=0, INFO=1, WARN=2, ERROR=3, NONE=4). Log level can be adjusted at runtime via dev console using `console.copyAsHtml.setLogLevel(level)` and `console.copyAsHtml.getLogLevel()`. Defaults to WARN level.
-- `utils.ts` – Houses option validation shared across pipelines.
-- `defaultStylesheet.ts` – Injected when `exportFullHtml` is enabled to produce a complete HTML document with minimal css styling.
-- `testHelpers.ts` – Fixtures and mocks for renderer tests.
-
 ## Settings
 
 All settings are registered in `settings.ts` via `registerPluginSettings()`. Settings are loaded and validated through dedicated helper functions.
@@ -82,22 +74,6 @@ All default to `false` unless noted.
 - `displayEmojis` (default `true`): convert `:emoji:` syntax to Unicode.
 - `hyperlinkBehavior`: emit external links as `title`, `url`, or `markdown`.
 - `indentType`: choose list indentation via spaces or tabs.
-
-## Design Rationale
-
-- **RenderMarkup for HTML**: Using Joplin's native renderer (`renderMarkup`) ensures that the copied HTML faithfully represents the user's Joplin settings, reducing the maintenance burden of a separate markdown configuration.
-- **markdown-it for Plain Text**: A dedicated `markdown-it` instance is retained for the plain text pipeline to provide the fine-grained control needed for custom text extraction and formatting rules.
-- **DOM-based post-processing** provides reliable sanitization, nested HTML handling, and portability for embedded images.
-- **Separation of concerns** keeps orchestrators thin and the heavy lifting in small, testable modules. Settings registration is isolated in `settings.ts`, logging is centralized in `logger.ts`.
-- **Conservative defaults** favor clean output; advanced preservation is opt-in.
-- **Error reporting**: failed operations display errors in the toast UI, with structured logging via `logger.ts` for debugging while continuing where possible.
-
-## Extension Points
-
-1. Add an output format: create `src/<format>/` with its own `markdownSetup.ts`, renderer, and formatter; reuse `logger.ts` and utilities.
-2. Introduce new settings: add to `SETTINGS` constants, register in `settings.ts`, extend `types.ts`, validate in `utils.ts`, and create/update loader functions in `settings.ts`.
-3. Support additional resource schemes: augment `assetProcessor.ts` (no changes required in pure renderers).
-4. Enhance plain text rules: adjust `plainText/plainTextCollector.ts` (and supporting helpers in `tokenRenderers.ts`) and update corresponding tests.
 
 ## Testing Strategy
 
