@@ -9,6 +9,25 @@ export function resetAllJoplinMocks(): void {
     (joplin.data.get as jest.Mock).mockReset();
     (joplin.settings.value as jest.Mock).mockReset();
     (joplin.settings.globalValue as jest.Mock).mockReset();
+
+    // Commands
+    if (joplin.commands) {
+        (joplin.commands.execute as jest.Mock).mockReset();
+        (joplin.commands.register as jest.Mock).mockReset();
+    }
+
+    // Clipboard
+    if (joplin.clipboard) {
+        (joplin.clipboard.writeHtml as jest.Mock).mockReset();
+        (joplin.clipboard.writeText as jest.Mock).mockReset();
+        (joplin.clipboard.write as jest.Mock).mockReset();
+    }
+
+    // Views
+    if (joplin.views) {
+        (joplin.views.menuItems.create as jest.Mock).mockReset();
+        (joplin.views.dialogs.showToast as jest.Mock).mockReset();
+    }
 }
 
 // Mock plugin settings queried via joplin.settings.value(), key-based (order independent).

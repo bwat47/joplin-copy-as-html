@@ -1,6 +1,7 @@
 import DOMPurify from 'dompurify';
 import { HTML_CONSTANTS } from '../constants';
 import { logger } from '../logger';
+import { convertResourceToBase64, downloadRemoteImageAsBase64 } from './assetProcessor';
 
 // ----------------------
 // Sanitization Configuration
@@ -172,29 +173,73 @@ function stripJoplinImages(doc: Document): void {
 }
 
 /**
- * Applies image source mapping, replacing sources with data URIs or error messages.
+ * Removes joplin-source elements that duplicate code block content.
+ * renderMarkup includes both the raw source (for RTE round-tripping) and
+ * the highlighted version - we only want the highlighted one.
  * @param doc - DOM document to process
- * @param imageSrcMap - Map of original sources to data URIs or null for errors
  */
-function applyImageSrcMap(doc: Document, imageSrcMap: Map<string, string | null>): void {
-    const imgs = Array.from(doc.querySelectorAll('img'));
-    for (const img of imgs) {
+function removeJoplinSourceElements(doc: Document): void {
+    const sourceElements = doc.querySelectorAll('.joplin-source');
+    if (sourceElements.length > 0) {
+        logger.debug(`Removing ${sourceElements.length} joplin-source elements`);
+        sourceElements.forEach((el) => el.remove());
+    }
+}
+
+/**
+ * Iterates through images in the DOM and embeds them as base64 data URIs.
+ * Handles both local Joplin resources and remote images based on options.
+ * @param doc - DOM document to process
+ * @param options - Embedding options
+ */
+async function embedImagesInDom(
+    doc: Document,
+    options: { embedImages: boolean; downloadRemoteImages: boolean }
+): Promise<void> {
+    const images = Array.from(doc.querySelectorAll('img'));
+    logger.debug(`Found ${images.length} images to process`);
+
+    const jobs: Promise<void>[] = [];
+
+    for (const img of images) {
+        // Skip images inside code blocks
         if (img.closest('pre, code')) continue;
 
+        const resourceId = img.getAttribute('data-resource-id');
         const src = img.getAttribute('src') || '';
-        const mapped = imageSrcMap.get(src);
-        if (mapped === undefined) continue;
 
-        if (typeof mapped === 'string' && mapped.startsWith('data:image/')) {
-            img.setAttribute('src', mapped);
-        } else {
-            // Replace the <img> with a consistent inline error message
-            const fallback = doc.createElement('span');
-            fallback.textContent = HTML_CONSTANTS.IMAGE_LOAD_ERROR;
-            fallback.style.color = HTML_CONSTANTS.ERROR_COLOR;
-            img.replaceWith(fallback);
+        // Case 1: Joplin Resource (local)
+        if (resourceId && options.embedImages) {
+            jobs.push(
+                convertResourceToBase64(resourceId).then((dataUri) => {
+                    if (dataUri) {
+                        img.setAttribute('src', dataUri);
+                        logger.debug(`Embedded resource: ${resourceId}`);
+                    } else {
+                        // Replace with error placeholder
+                        const span = doc.createElement('span');
+                        span.textContent = HTML_CONSTANTS.IMAGE_LOAD_ERROR;
+                        span.style.color = HTML_CONSTANTS.ERROR_COLOR;
+                        img.replaceWith(span);
+                    }
+                })
+            );
+        }
+        // Case 2: Remote Image
+        else if (/^https?:\/\//i.test(src) && options.embedImages && options.downloadRemoteImages) {
+            jobs.push(
+                downloadRemoteImageAsBase64(src).then((dataUri) => {
+                    if (dataUri) {
+                        img.setAttribute('src', dataUri);
+                        logger.debug(`Embedded remote image: ${src}`);
+                    }
+                    // For remote images, we leave the original URL on failure as it might still be reachable
+                })
+            );
         }
     }
+
+    await Promise.all(jobs);
 }
 
 /**
@@ -366,62 +411,59 @@ async function rasterizeSvgDataUriToPng(
 // Main Orchestrator
 // ----------------------
 
+interface PostProcessOptions {
+    embedImages: boolean;
+    downloadRemoteImages: boolean;
+    convertSvgToPng: boolean;
+}
+
 /**
  * Post-processes rendered HTML with sanitization, resource cleanup, and image processing.
  *
  * @param html - Raw HTML string to process
- * @param opts - Optional processing configuration
- * @param opts.imageSrcMap - Map of image sources to data URIs or null (for error handling)
- * @param opts.stripJoplinImages - Remove Joplin resource images (e.g., for plain text fallback)
- * @param opts.convertSvgToPng - Rasterize SVG images to PNG for better compatibility
+ * @param opts - Processing configuration
  * @returns Sanitized and processed HTML string
  *
  * @remarks
  * Processing pipeline:
  * 1. Sanitize HTML with DOMPurify (removes scripts, dangerous attributes)
- * 2. Remove non-image Joplin resource links (:/... or joplin://resource/...)
- * 3. Strip Joplin images if requested
- * 4. Rewrite image sources based on provided map
- * 5. Wrap top-level images in paragraph tags for consistent formatting
- * 6. Convert SVG data URIs to PNG (requires Canvas API)
+ * 2. Remove duplicate joplin-source elements from code blocks
+ * 3. Remove non-image Joplin resource links (:/... or joplin://resource/...)
+ * 4. Strip Joplin images if embedding is disabled
+ * 5. Embed images (local and remote) as base64 if enabled
+ * 6. Wrap top-level images in paragraph tags for consistent formatting
+ * 7. Convert SVG data URIs to PNG (requires Canvas API)
  */
 export async function postProcessHtml(
     html: string,
-    opts?: {
-        imageSrcMap?: Map<string, string | null>;
-        stripJoplinImages?: boolean;
-        convertSvgToPng?: boolean;
+    opts: PostProcessOptions = {
+        embedImages: true,
+        downloadRemoteImages: false,
+        convertSvgToPng: true,
     }
 ): Promise<string> {
     const sanitized = sanitizeHtml(html);
 
-    // Quick check: if no transformations needed, return early
-    const hasImages = /<img\b/i.test(sanitized);
-    const hasJoplinLinks = /(?:data-resource-id|href=["']?(?::|joplin:\/\/resource\/))/.test(sanitized);
-
-    if (!hasImages && !hasJoplinLinks) {
-        return sanitized;
-    }
-
+    // Parse into DOM
     const parser = new DOMParser();
     const doc = parser.parseFromString(`<body>${sanitized}</body>`, 'text/html');
 
     // Pipeline of transformations
+    removeJoplinSourceElements(doc);
     stripJoplinLinks(doc);
 
-    if (opts?.stripJoplinImages) {
+    if (!opts.embedImages) {
         stripJoplinImages(doc);
+    } else {
+        await embedImagesInDom(doc, {
+            embedImages: opts.embedImages,
+            downloadRemoteImages: opts.downloadRemoteImages,
+        });
     }
 
-    if (opts?.imageSrcMap) {
-        applyImageSrcMap(doc, opts.imageSrcMap);
-    }
+    wrapTopLevelImages(doc);
 
-    if (hasImages) {
-        wrapTopLevelImages(doc);
-    }
-
-    if (opts?.convertSvgToPng) {
+    if (opts.convertSvgToPng) {
         await convertSvgImagesToPng(doc);
     }
 

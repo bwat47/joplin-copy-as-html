@@ -10,7 +10,7 @@
  */
 
 import joplin from 'api';
-import { CONSTANTS, LINK_RESOURCE_MATCHERS, RESOURCE_ID_REGEX } from '../constants';
+import { CONSTANTS, RESOURCE_ID_REGEX } from '../constants';
 import { JoplinFileData, JoplinResource } from '../types';
 import * as fs from 'fs/promises';
 import * as path from 'path';
@@ -271,64 +271,4 @@ export async function getUserStylesheet(): Promise<string> {
     } catch {
         return defaultStylesheet;
     }
-}
-
-/**
- * Build a map of original image URL -> embedded value (data URI or null),
- * based on plugin options. Only returns mappings for URLs we intend to embed.
- * - Joplin resources (:/id, joplin://resource/id) are embedded when `embedImages` is true.
- * - Remote http(s) images are embedded when both `embedImages` and `downloadRemoteImages` are true.
- */
-export async function buildImageEmbedMap(
-    urls: Set<string>,
-    opts: { embedImages: boolean; downloadRemoteImages: boolean }
-): Promise<Map<string, string | null>> {
-    const out = new Map<string, string | null>();
-    if (!urls.size || !opts.embedImages) return out;
-
-    // Classify and dedupe
-    const urlToId = new Map<string, string>();
-    const joplinIds = new Set<string>();
-    const remoteUrls = new Set<string>();
-
-    for (const url of urls) {
-        const m = LINK_RESOURCE_MATCHERS.map((rx) => url.match(rx)).find(Boolean) as RegExpMatchArray | undefined;
-        if (m && m[1]) {
-            urlToId.set(url, m[1]);
-            joplinIds.add(m[1]);
-            continue;
-        }
-        if (opts.downloadRemoteImages && /^https?:\/\//i.test(url)) {
-            remoteUrls.add(url);
-        }
-    }
-
-    // Fetch once per unique id/url
-    const idResults = new Map<string, string | null>();
-    const jobs: Array<Promise<void>> = [];
-
-    for (const id of joplinIds) {
-        jobs.push(
-            convertResourceToBase64(id).then((val) => {
-                idResults.set(id, val);
-            })
-        );
-    }
-    for (const url of remoteUrls) {
-        jobs.push(
-            downloadRemoteImageAsBase64(url).then((val) => {
-                out.set(url, val);
-            })
-        );
-    }
-
-    await Promise.all(jobs);
-
-    // Fan out ID results to all URL variants that referenced the same resource
-    for (const [url, id] of urlToId) {
-        const val = idResults.get(id);
-        if (val !== undefined) out.set(url, val);
-    }
-
-    return out;
 }

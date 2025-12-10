@@ -13,6 +13,26 @@ jest.mock('api', () => ({
             value: jest.fn(),
             globalValue: jest.fn(),
         },
+        commands: {
+            execute: jest.fn(),
+            register: jest.fn(),
+        },
+        clipboard: {
+            writeHtml: jest.fn(),
+            writeText: jest.fn(),
+            write: jest.fn(),
+        },
+        views: {
+            menuItems: {
+                create: jest.fn(),
+            },
+            dialogs: {
+                showToast: jest.fn(),
+            },
+        },
+        workspace: {
+            filterEditorContextMenu: jest.fn(),
+        },
     },
 }));
 
