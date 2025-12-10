@@ -59,23 +59,6 @@ export function validateBooleanSetting(setting: unknown, defaultValue: boolean =
 }
 
 /**
- * Safe function to get global setting value with fallback.
- * Handles cases where Joplin settings might not be available or throw errors.
- * @param key The global setting key to retrieve
- * @param defaultValue The fallback value if setting is not found
- * @returns Promise resolving to the setting value or default
- */
-export async function safeGetGlobalSetting(key: string, defaultValue: boolean = false): Promise<boolean> {
-    try {
-        const value = await joplin.settings.globalValue(key);
-        return !!value;
-    } catch {
-        logger.warn(`Global setting '${key}' not found, using default:`, defaultValue);
-        return defaultValue;
-    }
-}
-
-/**
  * Displays a toast notification in Joplin.
  * Wraps the Joplin API to provide error handling and consistent defaults.
  * @param message The message to display
