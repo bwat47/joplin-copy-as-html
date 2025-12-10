@@ -38,6 +38,8 @@ describe('processHtmlConversion', () => {
             embedSvgAsPng: false, // downloadRemoteImages is usually dependent on settings
         });
 
+        await processHtmlConversion('md');
+
         // This test verifies that processHtmlConversion passes the correct options to postProcessHtml based on the settings provided by mockHtmlSettings.
 
         expect(mockPostProcessHtml).toHaveBeenCalledWith(expect.any(String), {
