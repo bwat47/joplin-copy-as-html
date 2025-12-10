@@ -101,6 +101,15 @@ describe('domPostProcess', () => {
         expect(out).toContain('highlighted code');
     });
 
+    it('unwraps #rendered-md div content', async () => {
+        const html = '<div id="rendered-md"><p>content</p></div>';
+        const out = await postProcessHtml(html);
+        expect(out).not.toContain('rendered-md');
+        expect(out).toContain('<p>content</p>');
+        // Should not have the div wrapper
+        expect(out).not.toMatch(/<div[^>]*id="rendered-md"[^>]*>/);
+    });
+
     it('continues to clean Joplin resource anchors', async () => {
         const html = '<p><a href=":/0123456789abcdef0123456789abcdef">Resource</a></p>';
         const out = await postProcessHtml(html);
