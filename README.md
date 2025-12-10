@@ -85,12 +85,6 @@ These plugins embed the drawings as joplin image resources (svg), and the plugin
 
 SVG images may have compatibility issues with certain editors/email clients, so by default the plugin will convert svg images to png when embedding images, however this can be disabled in the plugin settings.
 
-#### Github Alerts
-
-Github Alert syntax, (e.g. `>[!NOTE]`) is supported via the markdown-it-github-alerts plugin. In order for github alerts to be rendered nicely, you must be using the Full document mode with CSS styling targeting the .markdown-alert classes. The default [stylesheet](https://github.com/bwat47/joplin-copy-as-html/blob/main/src/defaultStylesheet.ts) contains styling for github alerts, example:
-
-<img width="647" height="702" alt="image" src="https://github.com/user-attachments/assets/eb00e25d-5db4-4386-8d84-ec8ffb7f2540" />
-
 ## Copy as Plain Text
 
 "Copy selection as Plain Text" is provided as a right click context menu option and as a keyboard shortcut (ctrl + alt + c by default).
