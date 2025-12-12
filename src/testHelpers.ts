@@ -56,19 +56,3 @@ export function mockGlobalPlugins(enabledKeys: string[] = []): void {
         return Promise.resolve(enabled.has(key));
     });
 }
-
-// Convenience for enabling a single plugin key.
-export function enableOnlyPlugin(key: string): void {
-    mockGlobalPlugins([key]);
-}
-
-// Mock an image resource + file body for convertResourceToBase64()/embedding pipeline.
-export function mockImageResource(resourceId: string, mime: string, body: string | Buffer): void {
-    const buf = Buffer.isBuffer(body) ? body : Buffer.from(body);
-    (joplin.data.get as jest.Mock).mockResolvedValueOnce({ id: resourceId, mime }).mockResolvedValueOnce({ body: buf });
-}
-
-// Generate a pseudo resource id (32 hex chars).
-export function genResourceId(): string {
-    return Array.from({ length: 32 }, () => Math.floor(Math.random() * 16).toString(16)).join('');
-}
