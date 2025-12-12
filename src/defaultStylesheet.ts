@@ -57,10 +57,16 @@ blockquote {
 blockquote > :first-child { margin-top: 0; }
 blockquote > :last-child { margin-bottom: 0; }
 
-/* When a blockquote starts with a list, remove margin from the first paragraph of the first item */
+/* When a blockquote starts with a list, remove top margin from the first paragraph of the first item */
 blockquote > ul:first-child > li:first-child > p:first-child,
 blockquote > ol:first-child > li:first-child > p:first-child {
 	margin-top: 0;
+}
+
+/* When a blockquote ends with a list, remove bottom margin from the last paragraph of the last item */
+blockquote > ul:last-child > li:last-child > p:last-child,
+blockquote > ol:last-child > li:last-child > p:last-child {
+	margin-bottom: 0;
 }
 
 hr {
@@ -97,10 +103,6 @@ ol li>ol {
 	margin-top: 0.5em;
 	margin-bottom: 0.5em;
 }
-
-/* prevent extra margin at bottom of lists inside block quotes */
-ul > li:last-child, ol > li:last-child { margin-bottom: 0; }
-ul li > ul:last-child, ol li > ol:last-child { margin-bottom: 0; }
 
 /* Joplin checkboxes */
 li.md-checkbox,
