@@ -209,4 +209,20 @@ describe('domPostProcess', () => {
             }
         }
     });
+
+    it('disables checkbox inputs (read-only)', async () => {
+        const html = `
+            <ul>
+                <li><input type="checkbox" checked> Task 1</li>
+                <li><input type="checkbox"> Task 2</li>
+            </ul>`;
+        const out = await postProcessHtml(html);
+
+        // Should have added disabled attribute
+        expect(out).toMatch(/<input[^>]*type="checkbox"[^>]*disabled(="disabled")?[^>]*>/);
+        expect(out).toContain('disabled');
+        // Count occurrences
+        const disabledCount = (out.match(/disabled/g) || []).length;
+        expect(disabledCount).toBeGreaterThanOrEqual(2);
+    });
 });

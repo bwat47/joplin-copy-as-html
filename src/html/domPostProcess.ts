@@ -278,6 +278,16 @@ async function embedImagesInDom(
 }
 
 /**
+ * Disables all checkbox inputs to make them read-only in the exported HTML.
+ * @param doc - DOM document to process
+ */
+function disableCheckboxes(doc: Document): void {
+    doc.querySelectorAll('input[type="checkbox"]').forEach((checkbox) => {
+        checkbox.setAttribute('disabled', 'disabled');
+    });
+}
+
+/**
  * Wraps top-level images in paragraph tags for consistent formatting.
  * @param doc - DOM document to process
  */
@@ -490,6 +500,7 @@ export async function postProcessHtml(
     removeJoplinSourceElements(doc);
     replaceBrokenResourceSpans(doc);
     stripJoplinLinks(doc);
+    disableCheckboxes(doc);
 
     if (!opts.embedImages) {
         stripJoplinImages(doc);

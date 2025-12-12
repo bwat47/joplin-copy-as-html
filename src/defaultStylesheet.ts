@@ -119,6 +119,7 @@ li.joplin-checkbox {
 
 .checkbox-wrapper input[type="checkbox"] {
 	margin-right: 0.5em;
+	pointer-events: none;
 }
 
 /* Table wrapper handling */
