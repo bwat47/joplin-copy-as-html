@@ -1,7 +1,7 @@
 // Jest setup file - automatically loaded before all tests
 // Centralizes the Joplin API mock that was previously duplicated across test files
 
-import { resetAllJoplinMocks, mockGlobalPlugins } from './testHelpers';
+import { resetAllJoplinMocks } from './testHelpers';
 
 jest.mock('api', () => ({
     __esModule: true,
@@ -38,5 +38,4 @@ jest.mock('api', () => ({
 
 beforeEach(() => {
     resetAllJoplinMocks();
-    mockGlobalPlugins([]);
 });

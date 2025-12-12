@@ -47,12 +47,3 @@ export function mockHtmlSettings(
         return Promise.resolve(false);
     });
 }
-
-// Mock global markdown plugin enable flags.
-// Pass the exact Joplin setting keys you want “true”.
-export function mockGlobalPlugins(enabledKeys: string[] = []): void {
-    const enabled = new Set(enabledKeys);
-    (joplin.settings.globalValue as jest.Mock).mockImplementation((key: string) => {
-        return Promise.resolve(enabled.has(key));
-    });
-}
