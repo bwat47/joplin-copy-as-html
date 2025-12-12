@@ -57,6 +57,12 @@ blockquote {
 blockquote > :first-child { margin-top: 0; }
 blockquote > :last-child { margin-bottom: 0; }
 
+/* When a blockquote starts with a list, remove margin from the first paragraph of the first item */
+blockquote > ul:first-child > li:first-child > p:first-child,
+blockquote > ol:first-child > li:first-child > p:first-child {
+	margin-top: 0;
+}
+
 hr {
 	border: none;
 	border-top: 1px solid #ccc;
