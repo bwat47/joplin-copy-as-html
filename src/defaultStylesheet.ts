@@ -98,27 +98,26 @@ ul li > ul:last-child, ol li > ol:last-child { margin-bottom: 0; }
 
 /* Joplin checkboxes */
 li.md-checkbox,
-li.task-list-item {
+li.joplin-checkbox {
 	list-style: none;
 	/* remove bullet point. */
 	padding-left: 0;
 	margin-left: 0;
-
 }
 
-/* The checkbox and its label are treated as inline blocks. */
-li.md-checkbox input[type="checkbox"],
-li.md-checkbox label,
-li.task-list-item input[type="checkbox"],
-li.task-list-item label {
-	display: inline-block;
-	vertical-align: middle;
-	/* This is the key for alignment. */
+/* Joplin wraps checkbox inputs in a div */
+.checkbox-wrapper {
+	display: inline-flex;
+	align-items: baseline;
 }
 
-/* Add space to the right of the checkbox. */
-li.md-checkbox input[type="checkbox"],
-li.task-list-item input[type="checkbox"] {
+.checkbox-wrapper input[type="checkbox"] {
 	margin-right: 0.5em;
+}
+
+/* Table wrapper handling */
+.joplin-table-wrapper {
+	overflow-x: auto;
+	margin-bottom: 1em;
 }
 `;
