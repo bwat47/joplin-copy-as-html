@@ -49,24 +49,8 @@ td {
 
 blockquote {
 	border-left: 4px solid #d0d7de;
-	padding: 0.1em 1em;
-	margin: 1em 0;
-}
-
-/* Remove extra top/bottom gap regardless of element type (p, ul, ol, etc.) */
-blockquote > :first-child { margin-top: 0; }
-blockquote > :last-child { margin-bottom: 0; }
-
-/* When a blockquote starts with a list, remove top margin from the first paragraph of the first item */
-blockquote > ul:first-child > li:first-child > p:first-child,
-blockquote > ol:first-child > li:first-child > p:first-child {
-	margin-top: 0;
-}
-
-/* When a blockquote ends with a list, remove bottom margin from the last paragraph of the last item */
-blockquote > ul:last-child > li:last-child > p:last-child,
-blockquote > ol:last-child > li:last-child > p:last-child {
-	margin-bottom: 0;
+	margin: 1.5em 0 1.5em 0.4em;
+	padding-left: 0.5em;
 }
 
 hr {
