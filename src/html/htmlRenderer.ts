@@ -38,7 +38,13 @@ export async function processHtmlConversion(selection: string, options?: HtmlOpt
 
     // 2. Use Joplin's built-in renderMarkup command (requires Joplin 3.2+)
     // Returns an object: { html: string, pluginAssets: [], ... }
-    const rendered = (await joplin.commands.execute('renderMarkup', MarkupLanguage.Markdown, selection)) as {
+    const rendered = (await joplin.commands.execute(
+        'renderMarkup',
+        MarkupLanguage.Markdown,
+        selection,
+        null, // rendererOptions (unused)
+        { bodyOnly: true } // renderOptions
+    )) as {
         html?: string;
     };
     const rawHtml = rendered?.html ?? '';

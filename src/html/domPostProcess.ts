@@ -205,23 +205,6 @@ function replaceBrokenResourceSpans(doc: Document): void {
 }
 
 /**
- * Unwraps the content of the #rendered-md div if present.
- * Joplin's renderMarkup wraps everything in <div id="rendered-md">.
- * We want to remove this wrapper to have cleaner HTML output.
- * @param doc - DOM document to process
- */
-function unwrapRenderedMd(doc: Document): void {
-    const renderedMd = doc.getElementById('rendered-md');
-    if (renderedMd) {
-        // Move all children to the parent (body)
-        while (renderedMd.firstChild) {
-            renderedMd.parentNode?.insertBefore(renderedMd.firstChild, renderedMd);
-        }
-        renderedMd.remove();
-    }
-}
-
-/**
  * Iterates through images in the DOM and embeds them as base64 data URIs.
  * Handles both local Joplin resources and remote images based on options.
  * @param doc - DOM document to process
@@ -472,12 +455,12 @@ interface PostProcessOptions {
  * @remarks
  * Processing pipeline:
  * 1. Sanitize HTML with DOMPurify (removes scripts, dangerous attributes)
- * 2. Unwrap Joplin's #rendered-md div
- * 3. Remove duplicate joplin-source elements from code blocks
- * 4. Replace broken resource placeholders with error messages
- * 5. Remove non-image Joplin resource links (:/... or joplin://resource/...)
- * 6. Strip Joplin images if embedding is disabled
- * 7. Embed images (local and remote) as base64 if enabled
+ * 2. Remove duplicate joplin-source elements from code blocks
+ * 3. Replace broken resource placeholders with error messages
+ * 4. Remove non-image Joplin resource links (:/... or joplin://resource/...)
+ * 5. Strip Joplin images if embedding is disabled
+ * 6. Embed images (local and remote) as base64 if enabled
+ * 7. Disable checkbox inputs
  * 8. Wrap top-level images in paragraph tags for consistent formatting
  * 9. Convert SVG data URIs to PNG (requires Canvas API)
  */
@@ -496,7 +479,6 @@ export async function postProcessHtml(
     const doc = parser.parseFromString(`<body>${sanitized}</body>`, 'text/html');
 
     // Pipeline of transformations
-    unwrapRenderedMd(doc);
     removeJoplinSourceElements(doc);
     replaceBrokenResourceSpans(doc);
     stripJoplinLinks(doc);

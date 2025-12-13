@@ -22,7 +22,7 @@ describe('processHtmlConversion', () => {
         mockHtmlSettings({ embedImages: false });
         const result = await processHtmlConversion('markdown');
 
-        expect(joplin.commands.execute).toHaveBeenCalledWith('renderMarkup', 1, 'markdown');
+        expect(joplin.commands.execute).toHaveBeenCalledWith('renderMarkup', 1, 'markdown', null, { bodyOnly: true });
         expect(mockPostProcessHtml).toHaveBeenCalledWith(
             '<p>Mocked Render</p>',
             expect.objectContaining({
