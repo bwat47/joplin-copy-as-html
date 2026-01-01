@@ -38,7 +38,7 @@ The HTML renderer leverages Joplin's native `renderMarkup` command to ensure the
 1. **Rendering**: Call `joplin.commands.execute('renderMarkup', ...)` to convert Markdown to HTML.
 2. **Post-Processing** (`html/domPostProcess.ts`):
     - **Sanitization**: Clean HTML using DOMPurify.
-    - **Structure Cleanup**: Unwrap Joplin's `#rendered-md` container and remove duplicate `.joplin-source` elements (used for the Rich Text Editor).
+    - **Structure Cleanup**: Remove duplicate `.joplin-source` elements (used for the Rich Text Editor).
     - **Resource Handling**: Replace broken resource placeholders with clear error messages.
     - **Link Cleanup**: Strip internal Joplin resource links (unless they contain images).
     - **Image Embedding**: Traverse the DOM to find images.
