@@ -11,7 +11,7 @@
  */
 
 import joplin from 'api';
-import { ToastType, MenuItemLocation } from 'api/types';
+import { ToastType, MenuItemLocation, MenuItem } from 'api/types';
 import { processHtmlConversion } from './html/htmlRenderer';
 import { convertMarkdownToPlainText } from './plainText/plainTextRenderer';
 import { logger } from './logger';
@@ -139,6 +139,9 @@ joplin.plugins.register({
                 const hasPlainTextCommand = contextMenu.items.some((item) => item.commandName === 'copyAsPlainText');
 
                 if (!hasHtmlCommand) {
+                    // Add separator before our items
+                    const separator: MenuItem = { type: 'separator' };
+                    contextMenu.items.push(separator);
                     contextMenu.items.push({
                         commandName: 'copyAsHtml',
                         label: 'Copy selection as HTML',
