@@ -137,12 +137,10 @@ joplin.plugins.register({
                 // Check if our commands are already in the menu to avoid duplicates
                 const hasHtmlCommand = contextMenu.items.some((item) => item.commandName === 'copyAsHtml');
                 const hasPlainTextCommand = contextMenu.items.some((item) => item.commandName === 'copyAsPlainText');
+                const itemsToAdd: MenuItem[] = [];
 
                 if (!hasHtmlCommand) {
-                    // Add separator before our items
-                    const separator: MenuItem = { type: 'separator' };
-                    contextMenu.items.push(separator);
-                    contextMenu.items.push({
+                    itemsToAdd.push({
                         commandName: 'copyAsHtml',
                         label: 'Copy selection as HTML',
                         accelerator: 'Ctrl+Shift+C',
@@ -150,11 +148,16 @@ joplin.plugins.register({
                 }
 
                 if (!hasPlainTextCommand) {
-                    contextMenu.items.push({
+                    itemsToAdd.push({
                         commandName: 'copyAsPlainText',
                         label: 'Copy selection as Plain Text',
                         accelerator: 'Ctrl+Alt+C',
                     });
+                }
+
+                if (itemsToAdd.length > 0) {
+                    contextMenu.items.push({ type: 'separator' });
+                    contextMenu.items.push(...itemsToAdd);
                 }
 
                 logger.debug('Added context menu items, total:', contextMenu.items.length);
