@@ -11,7 +11,7 @@
  */
 
 import joplin from 'api';
-import { ToastType, MenuItemLocation, MenuItem } from 'api/types';
+import { ToastType, MenuItemLocation, MenuItem, ContextMenuItemType, EditContextMenuFilterObject } from 'api/types';
 import { processHtmlConversion } from './html/htmlRenderer';
 import { convertMarkdownToPlainText } from './plainText/plainTextRenderer';
 import { logger } from './logger';
@@ -110,11 +110,17 @@ joplin.plugins.register({
         });
 
         // Filter context menu to dynamically add our commands only when there's a valid text selection
-        joplin.workspace.filterEditorContextMenu(async (contextMenu) => {
+        joplin.workspace.filterEditorContextMenu(async (contextMenu: EditContextMenuFilterObject) => {
             logger.debug(
                 'Context menu items:',
                 contextMenu.items.map((item) => item.commandName)
             );
+
+            const itemType = contextMenu.context?.itemType;
+            if (itemType && itemType !== ContextMenuItemType.Text) {
+                logger.debug('Skipping non-text context menu:', itemType);
+                return contextMenu;
+            }
 
             // Check if there's a valid text selection in the markdown editor
             let hasValidSelection = false;
@@ -138,10 +144,16 @@ joplin.plugins.register({
                 const hasHtmlCommand = contextMenu.items.some((item) => item.commandName === 'copyAsHtml');
                 const hasPlainTextCommand = contextMenu.items.some((item) => item.commandName === 'copyAsPlainText');
 
-                if (!hasHtmlCommand) {
+                if (!hasHtmlCommand || !hasPlainTextCommand) {
                     // Add separator before our items
-                    const separator: MenuItem = { type: 'separator' };
-                    contextMenu.items.push(separator);
+                    const lastItem = contextMenu.items[contextMenu.items.length - 1];
+                    if (contextMenu.items.length > 0 && lastItem?.type !== 'separator') {
+                        const separator: MenuItem = { type: 'separator' };
+                        contextMenu.items.push(separator);
+                    }
+                }
+
+                if (!hasHtmlCommand) {
                     contextMenu.items.push({
                         commandName: 'copyAsHtml',
                         label: 'Copy selection as HTML',
