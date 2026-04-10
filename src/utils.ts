@@ -59,6 +59,13 @@ export function validateBooleanSetting(setting: unknown, defaultValue: boolean =
 }
 
 /**
+ * Safely extracts a readable message from an unknown error value.
+ */
+export function getErrorMessage(error: unknown): string {
+    return error instanceof Error ? error.message : String(error);
+}
+
+/**
  * Displays a toast notification in Joplin.
  * Wraps the Joplin API to provide error handling and consistent defaults.
  * @param message The message to display

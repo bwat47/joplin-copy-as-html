@@ -16,7 +16,7 @@ import { processHtmlConversion } from './html/htmlRenderer';
 import { convertMarkdownToPlainText } from './plainText/plainTextRenderer';
 import { logger } from './logger';
 import { registerPluginSettings, loadHtmlSettings, loadPlainTextSettings } from './settings';
-import { showToast } from './utils';
+import { getErrorMessage, showToast } from './utils';
 
 async function getMarkdownSelection(commandLabel: string): Promise<string | null> {
     try {
@@ -67,7 +67,7 @@ joplin.plugins.register({
                     await showToast('Copied selection as HTML!', ToastType.Success);
                 } catch (err) {
                     logger.error('Error:', err);
-                    await showToast('Failed to copy as HTML: ' + (err?.message || err), ToastType.Error);
+                    await showToast('Failed to copy as HTML: ' + getErrorMessage(err), ToastType.Error);
                 }
             },
         });
@@ -88,7 +88,7 @@ joplin.plugins.register({
                     await showToast('Copied selection as Plain Text!', ToastType.Success);
                 } catch (err) {
                     logger.error('Error:', err);
-                    await showToast('Failed to copy as Plain Text: ' + (err?.message || err), ToastType.Error);
+                    await showToast('Failed to copy as Plain Text: ' + getErrorMessage(err), ToastType.Error);
                 }
             },
         });
