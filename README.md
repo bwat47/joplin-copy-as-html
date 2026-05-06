@@ -130,7 +130,7 @@ The following options are provided for indentation style:
 
 ### Markdown emoji
 
-Copy as Plain Text supports the markdown-it emoji plugin, so emoji such as :white_check_mark: will be displayed in the plain text output. This can be disabled if desired via the Display emojis setting.
+Copy as Plain Text supports markdown emoji shortcodes, so emoji such as :white_check_mark: will be displayed in the plain text output. This can be disabled if desired via the Display emojis setting.
 
 ## Known Issues
 

@@ -265,6 +265,8 @@ const extraScriptConfig = {
 	externals: extraScriptExternals,
 };
 
+applyWebpackOverrides(extraScriptConfig);
+
 const createArchiveConfig = {
 	stats: 'errors-only',
 	entry: './dist/index.js',
@@ -281,6 +283,8 @@ const createArchiveConfig = {
 		},
 	}],
 };
+
+applyWebpackOverrides(createArchiveConfig);
 
 function resolveExtraScriptPath(name) {
 	const relativePath = `./src/${name}`;

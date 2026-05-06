@@ -13,7 +13,7 @@ module.exports = {
 
     // This tells Jest to NOT ignore transformation for the problematic packages.
     transformIgnorePatterns: [
-        'node_modules/(?!(string-width|strip-ansi|ansi-regex|emoji-regex|get-east-asian-width)/)',
+        'node_modules/(?!(string-width|strip-ansi|ansi-regex|emoji-regex|get-east-asian-width|unified|remark-[^/]+|mdast-[^/]+|micromark[^/]*|decode-named-character-reference|devlop|bail|is-plain-obj|trough|vfile[^/]*|unist-[^/]+|property-information|space-separated-tokens|comma-separated-tokens|hast-[^/]+|html-[^/]+|zwitch|ccount|character-entities[^/]*|escape-string-regexp|markdown-table|trim-lines|longest-streak|node-emoji|emoticon)/)',
     ],
 
     moduleFileExtensions: ['ts', 'js', 'json', 'node'],

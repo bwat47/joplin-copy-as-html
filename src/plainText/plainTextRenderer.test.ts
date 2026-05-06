@@ -57,11 +57,8 @@ describe('List rendering', () => {
 `;
         const result = convertMarkdownToPlainText(markdown, { ...defaultOptions, indentType: 'spaces' });
         const expected = `- Item 1
-
     - Nested Item 1.1
-
     - Nested Item 1.2
-
 - Item 2
 `;
         expect(result.trimEnd()).toBe(expected.trimEnd());
@@ -77,12 +74,21 @@ describe('List rendering', () => {
         // prettier-ignore
         const expected =
 `1. Item 1
-
 \t1. Nested 1.1
-
 2. Item 2
 `;
         expect(result.trimEnd()).toBe(expected.trimEnd());
+    });
+
+    it('should preserve GFM task list markers', () => {
+        const markdown = `
+- [x] Finished
+- [ ] Pending
+`;
+        const result = convertMarkdownToPlainText(markdown, defaultOptions);
+        const expected = `- [x] Finished
+- [ ] Pending`;
+        expect(result.trimEnd()).toBe(expected);
     });
 });
 
@@ -201,9 +207,7 @@ Some introductory text.
 ## A Quote with a Heading
 
 - List item 1
-
 - **Bold** and *italic* item 2
-
     - Nested list
 
 Final paragraph.`;
@@ -381,10 +385,9 @@ line three
   new line`;
         const result = convertMarkdownToPlainText(markdown, defaultOptions);
         const expected = `- Item with soft break
-continuation
-
+    continuation
 - Item with hard break
-new line
+    new line
 `;
         expect(result.trimEnd()).toBe(expected.trimEnd());
     });
@@ -463,9 +466,9 @@ describe('Integration', () => {
     });
 });
 
-// Markdown-it plugin integration
-describe('Markdown-it Plugin Integration', () => {
-    it('should use markdown-it-mark for highlighted text', () => {
+// Remark plugin integration
+describe('Remark Plugin Integration', () => {
+    it('should use remark marker support for highlighted text', () => {
         const markdown = '==highlighted==';
         const options = { ...defaultOptions, preserveMark: true };
         const result = convertMarkdownToPlainText(markdown, options);

@@ -19,7 +19,7 @@
 - `src/constants.ts` / `src/types.ts` – shared configuration, string constants, and TypeScript contracts.
 - `src/utils.ts` – validation helpers, toast messaging wrapper.
 - `src/html/` – HTML renderer pipeline (`htmlRenderer.ts`, `htmlRenderer.test.ts`, `assetProcessor.ts`, `domPostProcess.ts`, `domPostProcess.test.ts`).
-- `src/plainText/` – plain text pipeline (`plainTextRenderer.ts`, `plainTextRenderer.test.ts`, `plainTextCollector.ts`, `plainTextFormatter.ts`, `tokenRenderers.ts`, `markdownSetup.ts`).
+- `src/plainText/` – plain text pipeline (`plainTextRenderer.ts`, `plainTextRenderer.test.ts`).
 - Tests live beside source (`*.test.ts`). `tests/` directory is unused.
 
 ## Architecture Summary
@@ -49,11 +49,11 @@ The HTML renderer leverages Joplin's native `renderMarkup` command to ensure the
 
 ### Plain Text Pipeline (`plainText/plainTextRenderer.ts`)
 
-The Plain Text renderer maintains its own `markdown-it` instance to allow for precise control over token generation and formatting rules, independent of Joplin's rendering settings.
+The Plain Text renderer maintains its own remark processor to parse Markdown to mdast, independent of Joplin's rendering settings.
 
-- `plainText/plainTextCollector.ts` walks the markdown-it token stream directly (no renderer hooks) and produces `PlainTextBlock[]` for paragraphs, headings, lists, tables, blockquotes, and code blocks.
-- `plainText/tokenRenderers.ts` provides pure helpers for lists, tables, links, and blank-line rules used by the collector.
-- `plainText/plainTextFormatter.ts` assembles the final string from blocks, applying spacing and user-selected preservation options.
+- `plainText/plainTextRenderer.ts` parses with `remark-parse` and syntax plugins for GFM, emoji, mark, insert, superscript, and subscript.
+- The renderer walks mdast nodes directly with separate block and inline rendering paths.
+- Lists, tables, links, code, HTML text extraction, and preservation toggles are handled in the AST renderer.
 
 ## Settings
 
@@ -81,12 +81,10 @@ All default to `false` unless noted.
 - `html/assetProcessor.test.ts` tests resource embedding, remote image downloading, and base64 conversion.
 - `html/domPostProcess.test.ts` tests DOM sanitization, link patching, image wrapping, and the `unwrapRenderedMd` logic.
 - `plainText/plainTextRenderer.test.ts` covers integration scenarios for the plain text pipeline.
-- `plainText/plainTextFormatter.test.ts` tests final text assembly, spacing, and preservation options.
-- `plainText/tokenRenderers.test.ts` focuses on pure helpers (tables, list formatting, blank-line logic).
 - `utils.test.ts` tests validation helpers and utility functions.
 - Common fixtures live in `testHelpers.ts`; tests avoid real I/O via mocks.
 
 ## Dependencies
 
-- Runtime: `markdown-it` plus plugins (`mark`, `ins`, `sup`, `sub`, `emoji`); `string-width` for alignment; `dompurify` for sanitization.
+- Runtime: remark/unified plus plugins (`gfm`, `emoji`, `flexible-markers`, `ins`, `supersub`); `string-width` for alignment; `dompurify` for sanitization.
 - Dev: TypeScript, Jest/ts-jest, ESLint, Prettier, Webpack, and the Joplin plugin tooling defined in `package.json`.
