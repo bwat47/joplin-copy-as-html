@@ -1,7 +1,7 @@
 # Joplin Copy as HTML
 
-> [!important]
-> My coding knowledge is currently very limited. This plugin was created entirely with AI tools, and I may be limited in my ability to fix any issues.
+> [!note]
+> This plugin was created entirely with AI tools.
 
 This plugin allows you to copy selected text in the markdown editor as either HTML or structured plain text.
 
@@ -130,8 +130,8 @@ The following options are provided for indentation style:
 
 The following options are provided for list spacing:
 
-- Tight - No blank lines between list items (default).
-- Loose - Adds blank lines between list items.
+- Tight - No blank lines between list items.
+- Loose - Adds blank lines between list items (default).
 
 ### Markdown emoji
 
