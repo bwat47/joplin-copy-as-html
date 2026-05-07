@@ -96,34 +96,24 @@ This command parses the selected Markdown and renders it as paste-friendly plain
 The following options are provided to preserve specific markdown formatting markers in the `text/plain` output when desired:
 
 - Preserve superscript markers
-  Superscript markers will be preserved in plain text output.
 
 - Preserve subscript markers
-  Subscript markers will be preserved in plain text output.
 
 - Preserve emphasis markers
-  Emphasis markers will be preserved in plain text output.
 
 - Preserve bold markers
-  Bold markers will be preserved in plain text output.
 
 - Preserve heading markers
-  Heading markers will be preserved in plain text output.
 
 - Preserve strikethrough markers
-  Strikethrough markers will be preserved in plain text output.
 
 - Preserve horizontal rules
-  Horizontal rules will be preserved in plain text output.
 
 - Preserve highlight markers
-  Highlight markers will be preserved in plain text output.
 
 - Preserve insert markers
-  Insert markers will be preserved in plain text output.
 
 - Preserve table pipes
-  Markdown pipe separators will be preserved in plain text output.
 
 The following options are provided for external hyperlinks (only affects markdown links with `http`/`https` URLs):
 
