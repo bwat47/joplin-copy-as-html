@@ -174,6 +174,9 @@ function renderListItemContent(node: PlainTextNode, options: PlainTextOptions, d
     for (const child of node.children ?? []) {
         if (child.type === 'paragraph') {
             const paragraph = normalizeBlockText(renderChildrenInline(child.children, options));
+            if (options.listSpacing === 'loose' && paragraph && lines.length > 0 && lines[lines.length - 1] !== '') {
+                lines.push('');
+            }
             if (paragraph) lines.push(...paragraph.split('\n'));
             continue;
         }

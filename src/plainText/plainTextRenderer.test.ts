@@ -129,6 +129,21 @@ describe('List rendering', () => {
 2. Next parent item`;
         expect(result.trimEnd()).toBe(expected);
     });
+
+    it('should add a blank line before continuation paragraphs when list spacing is loose', () => {
+        const markdown = `3. Go to the Companies tab and make sure that your Test company is there. If your test company is already there, continue to step 4.
+
+   Or, if you only see your Live company, create the Test company by clicking 'New', select your Test company from the dropdown, click OK, and then click Create. This will create the Test company database.
+
+4. Then, take a backup of your LIVE database. To do this, go to the Companies tab and highlight your **LIVE** Company and click **Backup As**. Choose where to save/what to name the backup (it will be a .DAT file).`;
+        const result = convertMarkdownToPlainText(markdown, { ...defaultOptions, listSpacing: 'loose' });
+        const expected = `3. Go to the Companies tab and make sure that your Test company is there. If your test company is already there, continue to step 4.
+
+    Or, if you only see your Live company, create the Test company by clicking 'New', select your Test company from the dropdown, click OK, and then click Create. This will create the Test company database.
+
+4. Then, take a backup of your LIVE database. To do this, go to the Companies tab and highlight your LIVE Company and click Backup As. Choose where to save/what to name the backup (it will be a .DAT file).`;
+        expect(result.trimEnd()).toBe(expected);
+    });
 });
 
 // Character preservation tests
