@@ -137,8 +137,8 @@ describe('domPostProcess', () => {
     it('converts SVG image sources to PNG data URIs when enabled', async () => {
         const originalImage = (globalThis as { Image?: typeof Image }).Image;
         class FakeImage {
-            public onload: ((this: GlobalEventHandlers, ev: Event) => unknown) | null = null;
-            public onerror: ((this: GlobalEventHandlers, ev: Event) => unknown) | null = null;
+            public onload: ((this: FakeImage, ev: Event) => unknown) | null = null;
+            public onerror: ((this: FakeImage, ev: Event) => unknown) | null = null;
             public naturalWidth = 24;
             public naturalHeight = 24;
             set src(value: string) {

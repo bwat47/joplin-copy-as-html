@@ -89,7 +89,7 @@ export async function convertResourceToBase64(id: string): Promise<string | null
 
         // Fetch resource file with timeout
         const filePromise = joplin.data.get(['resources', id, 'file']);
-        let timeoutId: NodeJS.Timeout;
+        let timeoutId: NodeJS.Timeout | undefined;
         const timeoutPromise = new Promise<never>((_, reject) => {
             timeoutId = setTimeout(
                 () => reject(new Error('Timeout retrieving resource file')),
@@ -101,7 +101,9 @@ export async function convertResourceToBase64(id: string): Promise<string | null
         try {
             fileObj = (await Promise.race([filePromise, timeoutPromise])) as JoplinFileData;
         } finally {
-            clearTimeout(timeoutId);
+            if (timeoutId) {
+                clearTimeout(timeoutId);
+            }
         }
 
         let fileBuffer: Buffer;
@@ -118,7 +120,7 @@ export async function convertResourceToBase64(id: string): Promise<string | null
                 logger.warn(`Large image detected: Resource :/${id} is ${formatMB(fileBuffer.length)}`);
             }
         } catch (err) {
-            const msg = err && err.message ? err.message : String(err);
+            const msg = err instanceof Error ? err.message : String(err);
             logger.error(`Error retrieving resource file :/${id}: ${msg}`);
             return null;
         }

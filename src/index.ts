@@ -117,7 +117,7 @@ joplin.plugins.register({
             );
 
             // Check if there's a valid text selection in the markdown editor
-            let hasValidSelection = false;
+            let hasValidSelection: boolean;
             try {
                 // Try to get the current selection - this should only work in markdown editor
                 const selection = await joplin.commands.execute('editor.execCommand', {
