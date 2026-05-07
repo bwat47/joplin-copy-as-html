@@ -140,14 +140,6 @@ export async function registerPluginSettings(): Promise<void> {
             label: 'Preserve insert characters (++TEST++)',
             description: 'If enabled, ++TEST++ will remain as-is in plain text output.',
         },
-        [SETTINGS.DISPLAY_EMOJIS]: {
-            value: true,
-            type: SettingItemType.Bool,
-            section: SECTION_ID,
-            public: true,
-            label: 'Display emojis',
-            description: 'If enabled, emojis will be displayed in the plain text output.',
-        },
         [SETTINGS.HYPERLINK_BEHAVIOR]: {
             value: 'title',
             type: SettingItemType.String,
@@ -187,6 +179,14 @@ export async function registerPluginSettings(): Promise<void> {
             public: true,
             label: 'List spacing',
             description: 'Whether plain text lists should include blank lines between list items.',
+        },
+        [SETTINGS.DISPLAY_EMOJIS]: {
+            value: true,
+            type: SettingItemType.Bool,
+            section: SECTION_ID,
+            public: true,
+            label: 'Display emojis',
+            description: 'If enabled, emojis will be displayed in the plain text output.',
         },
         [SETTINGS.PRESERVE_TABLE_PIPES]: {
             value: false,
