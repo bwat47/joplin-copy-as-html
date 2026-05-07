@@ -41,6 +41,10 @@ export function validatePlainTextSettings(settings: unknown): PlainTextOptions {
             typeof s.indentType === 'string' && ['spaces', 'tabs'].includes(s.indentType)
                 ? (s.indentType as 'spaces' | 'tabs')
                 : 'spaces',
+        listSpacing:
+            typeof s.listSpacing === 'string' && ['tight', 'loose'].includes(s.listSpacing)
+                ? (s.listSpacing as 'tight' | 'loose')
+                : 'tight',
     };
 }
 

@@ -30,6 +30,7 @@ describe('validatePlainTextSettings', () => {
             preserveSuperscript: 'yes', // not a boolean
             hyperlinkBehavior: 'invalidOption',
             indentType: 123, // not a string
+            listSpacing: 'wide',
         };
 
         const validated = validatePlainTextSettings(invalidSettings);
@@ -37,6 +38,7 @@ describe('validatePlainTextSettings', () => {
         expect(validated.preserveSuperscript).toBe(false);
         expect(validated.hyperlinkBehavior).toBe('title');
         expect(validated.indentType).toBe('spaces');
+        expect(validated.listSpacing).toBe('tight');
     });
 
     it('should return default values for undefined or null settings', () => {
@@ -44,12 +46,14 @@ describe('validatePlainTextSettings', () => {
         expect(validatedUndefined.preserveSuperscript).toBe(false);
         expect(validatedUndefined.hyperlinkBehavior).toBe('title');
         expect(validatedUndefined.indentType).toBe('spaces');
+        expect(validatedUndefined.listSpacing).toBe('tight');
         expect(validatedUndefined.displayEmojis).toBe(true);
 
         const validatedNull = validatePlainTextSettings(null);
         expect(validatedNull.preserveSuperscript).toBe(false);
         expect(validatedNull.hyperlinkBehavior).toBe('title');
         expect(validatedNull.indentType).toBe('spaces');
+        expect(validatedNull.listSpacing).toBe('tight');
         expect(validatedNull.displayEmojis).toBe(true);
     });
 });

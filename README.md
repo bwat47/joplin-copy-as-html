@@ -128,6 +128,11 @@ The following options are provided for indentation style:
 - Tabs
 - (4) Spaces (default)
 
+The following options are provided for list spacing:
+
+- Tight - No blank lines between list items (default).
+- Loose - Adds blank lines between list items.
+
 ### Markdown emoji
 
 Copy as Plain Text supports markdown emoji shortcodes, so emoji such as :white_check_mark: will be displayed in the plain text output. This can be disabled if desired via the Display emojis setting.

@@ -173,6 +173,15 @@ function renderListItemContent(node: PlainTextNode, options: PlainTextOptions, d
             continue;
         }
 
+        if (
+            options.listSpacing === 'loose' &&
+            child.type === 'list' &&
+            lines.length > 0 &&
+            lines[lines.length - 1] !== ''
+        ) {
+            lines.push('');
+        }
+
         const block = renderBlockNode(child, options, child.type === 'list' ? depth : depth + 1);
         if (block) lines.push(...block.split('\n'));
     }
@@ -185,7 +194,9 @@ function renderListNode(node: PlainTextNode, options: PlainTextOptions, depth: n
     const start = node.start ?? PLAIN_TEXT_CONSTANTS.ORDERED_LIST_START;
     const indent = indentUnit(options).repeat(Math.max(0, depth));
 
-    (node.children ?? []).forEach((item, index) => {
+    const items = node.children ?? [];
+
+    items.forEach((item, index) => {
         const ordered = !!node.ordered;
         const taskMarker = typeof item.checked === 'boolean' ? `[${item.checked ? 'x' : ' '}] ` : '';
         const marker = ordered
@@ -197,6 +208,10 @@ function renderListNode(node: PlainTextNode, options: PlainTextOptions, depth: n
         lines.push(`${indent}${marker}${taskMarker}${firstLine}`);
         for (const line of itemLines) {
             lines.push(line ? `${indent}${indentUnit(options)}${line}` : '');
+        }
+
+        if (options.listSpacing === 'loose' && index < items.length - 1) {
+            lines.push('');
         }
     });
 

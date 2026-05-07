@@ -74,6 +74,7 @@ All default to `false` unless noted.
 - `displayEmojis` (default `true`): convert `:emoji:` syntax to Unicode.
 - `hyperlinkBehavior`: emit external links as `title`, `url`, or `markdown`.
 - `indentType`: choose list indentation via spaces or tabs.
+- `listSpacing`: choose tight or loose list item spacing.
 
 ## Testing Strategy
 

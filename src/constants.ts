@@ -23,6 +23,7 @@ export const SETTINGS = {
     DISPLAY_EMOJIS: 'displayEmojis',
     HYPERLINK_BEHAVIOR: 'hyperlinkBehavior',
     INDENT_TYPE: 'indentType',
+    LIST_SPACING: 'listSpacing',
 };
 
 // Timeouts used for asset processing

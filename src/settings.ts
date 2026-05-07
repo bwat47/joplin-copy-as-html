@@ -175,6 +175,19 @@ export async function registerPluginSettings(): Promise<void> {
             label: 'List indentation type',
             description: 'How nested lists should be indented in plain text output.',
         },
+        [SETTINGS.LIST_SPACING]: {
+            value: 'tight',
+            type: SettingItemType.String,
+            isEnum: true,
+            options: {
+                tight: 'Tight',
+                loose: 'Loose',
+            },
+            section: SECTION_ID,
+            public: true,
+            label: 'List spacing',
+            description: 'Whether plain text lists should include blank lines between list items.',
+        },
     });
 }
 
@@ -210,6 +223,7 @@ export async function loadPlainTextSettings(): Promise<PlainTextOptions> {
         displayEmojis: await joplin.settings.value(SETTINGS.DISPLAY_EMOJIS),
         hyperlinkBehavior: await joplin.settings.value(SETTINGS.HYPERLINK_BEHAVIOR),
         indentType: await joplin.settings.value(SETTINGS.INDENT_TYPE),
+        listSpacing: await joplin.settings.value(SETTINGS.LIST_SPACING),
     };
     return validatePlainTextSettings(plainTextSettings);
 }

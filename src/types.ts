@@ -31,6 +31,7 @@ export interface PlainTextOptions {
     displayEmojis: boolean;
     hyperlinkBehavior: 'title' | 'url' | 'markdown';
     indentType: 'spaces' | 'tabs';
+    listSpacing: 'tight' | 'loose';
 }
 
 export interface TableRow {

@@ -18,6 +18,7 @@ const defaultOptions: PlainTextOptions = {
     displayEmojis: true,
     hyperlinkBehavior: 'title',
     indentType: 'spaces',
+    listSpacing: 'tight',
 };
 
 describe('Link Handling in Plain Text', () => {
@@ -88,6 +89,43 @@ describe('List rendering', () => {
         const result = convertMarkdownToPlainText(markdown, defaultOptions);
         const expected = `- [x] Finished
 - [ ] Pending`;
+        expect(result.trimEnd()).toBe(expected);
+    });
+
+    it('should add blank lines between list items when list spacing is loose', () => {
+        const markdown = `
+- Item 1
+  - Nested Item 1.1
+  - Nested Item 1.2
+- Item 2
+`;
+        const result = convertMarkdownToPlainText(markdown, { ...defaultOptions, listSpacing: 'loose' });
+        const expected = `- Item 1
+
+    - Nested Item 1.1
+
+    - Nested Item 1.2
+
+- Item 2
+`;
+        expect(result.trimEnd()).toBe(expected.trimEnd());
+    });
+
+    it('should add a blank line before nested lists when list spacing is loose', () => {
+        const markdown = `
+1. Parent item:
+    - Child item:
+        - Grandchild item
+2. Next parent item
+`;
+        const result = convertMarkdownToPlainText(markdown, { ...defaultOptions, listSpacing: 'loose' });
+        const expected = `1. Parent item:
+
+    - Child item:
+
+        - Grandchild item
+
+2. Next parent item`;
         expect(result.trimEnd()).toBe(expected);
     });
 });

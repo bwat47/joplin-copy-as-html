@@ -132,6 +132,16 @@
                 "tabs": "Tabs"
             },
             "value": "spaces"
+        },
+        "listSpacing": {
+            "type": "enum",
+            "label": "List spacing",
+            "description": "Whether plain text lists should include blank lines between list items.",
+            "options": {
+                "tight": "Tight",
+                "loose": "Loose"
+            },
+            "value": "tight"
         }
     }
 }
