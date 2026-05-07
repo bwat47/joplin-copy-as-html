@@ -102,10 +102,10 @@ The following options are provided to preserve specific markdown formatting mark
   Subscript markers will be preserved in plain text output.
 
 - Preserve emphasis markers
-  Emphasis markers will be preserved in plain text output, but the exact original delimiter style is not guaranteed.
+  Emphasis markers will be preserved in plain text output.
 
 - Preserve bold markers
-  Bold markers will be preserved in plain text output, but the exact original delimiter style is not guaranteed.
+  Bold markers will be preserved in plain text output.
 
 - Preserve heading markers
   Heading markers will be preserved in plain text output.
