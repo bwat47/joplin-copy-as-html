@@ -135,7 +135,7 @@
                 "tight": "Tight",
                 "loose": "Loose"
             },
-            "value": "tight"
+            "value": "loose"
         },
         "displayEmojis": {
             "type": "bool",

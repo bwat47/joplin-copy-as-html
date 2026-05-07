@@ -168,7 +168,7 @@ export async function registerPluginSettings(): Promise<void> {
             description: 'How nested lists should be indented in plain text output.',
         },
         [SETTINGS.LIST_SPACING]: {
-            value: 'tight',
+            value: 'loose',
             type: SettingItemType.String,
             isEnum: true,
             options: {
