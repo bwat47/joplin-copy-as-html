@@ -66,14 +66,14 @@
         },
         "preserveEmphasis": {
             "type": "bool",
-            "label": "Preserve emphasis characters (*TEST* or _TEST_)",
-            "description": "If enabled, *TEST* or _TEST_ will remain as-is in plain text output.",
+            "label": "Preserve emphasis markers",
+            "description": "If enabled, emphasized text will keep markdown emphasis markers in plain text output.",
             "value": false
         },
         "preserveBold": {
             "type": "bool",
-            "label": "Preserve bold characters (**TEST** or __TEST__)",
-            "description": "If enabled, **TEST** or __TEST__ will remain as-is in plain text output.",
+            "label": "Preserve bold markers",
+            "description": "If enabled, bold text will keep markdown bold markers in plain text output.",
             "value": false
         },
         "preserveHeading": {
@@ -106,12 +106,6 @@
             "description": "If enabled, ++TEST++ will remain as-is in plain text output.",
             "value": false
         },
-        "displayEmojis": {
-            "type": "bool",
-            "label": "Display emojis",
-            "description": "If enabled, emojis will be displayed in the plain text output.",
-            "value": true
-        },
         "hyperlinkBehavior": {
             "type": "enum",
             "label": "Plain Text hyperlink behavior",
@@ -132,6 +126,28 @@
                 "tabs": "Tabs"
             },
             "value": "spaces"
+        },
+        "listSpacing": {
+            "type": "enum",
+            "label": "List spacing",
+            "description": "Whether plain text lists should include blank lines between list items.",
+            "options": {
+                "tight": "Tight",
+                "loose": "Loose"
+            },
+            "value": "tight"
+        },
+        "displayEmojis": {
+            "type": "bool",
+            "label": "Display emojis",
+            "description": "If enabled, emojis will be displayed in the plain text output.",
+            "value": true
+        },
+        "preserveTablePipes": {
+            "type": "bool",
+            "label": "Preserve table pipes",
+            "description": "If enabled, plain text tables will include markdown pipe separators.",
+            "value": false
         }
     }
 }

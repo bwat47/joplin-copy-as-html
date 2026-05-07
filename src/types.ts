@@ -4,7 +4,6 @@
  * Defines TypeScript interfaces for all data structures used across the plugin:
  *
  * - Configuration interfaces (HtmlOptions, PlainTextOptions)
- * - Processing data structures (ImageDimensions, TableData, ListItem)
  * - Joplin API types (JoplinResource, JoplinFileData)
  *
  * These types provide compile-time safety and serve as documentation for the
@@ -31,22 +30,8 @@ export interface PlainTextOptions {
     displayEmojis: boolean;
     hyperlinkBehavior: 'title' | 'url' | 'markdown';
     indentType: 'spaces' | 'tabs';
-}
-
-export interface TableRow {
-    cells: string[];
-    isHeader: boolean;
-}
-
-export interface TableData {
-    rows: TableRow[];
-}
-
-export interface ListItem {
-    content: string;
-    ordered: boolean;
-    index?: number;
-    indentLevel: number;
+    listSpacing: 'tight' | 'loose';
+    preserveTablePipes: boolean;
 }
 
 export interface JoplinResource {

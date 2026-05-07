@@ -3,7 +3,7 @@
 > [!important]
 > My coding knowledge is currently very limited. This plugin was created entirely with AI tools, and I may be limited in my ability to fix any issues.
 
-This plugin allows you to copy selected text in the markdown editor as either HTML or plain text (with markdown formatting characters removed).
+This plugin allows you to copy selected text in the markdown editor as either HTML or structured plain text.
 
 The primary use case is copying text from Joplin and pasting formatted text into other apps that support HTML formatting (e.g. pasting text into an Outlook email). A plain text fallback is provided for scenarios where you need to paste text into an application that supports neither HTML formatting nor markdown.
 
@@ -89,21 +89,21 @@ SVG images may have compatibility issues with certain editors/email clients, so 
 
 "Copy selection as Plain Text" is provided as a right click context menu option and as a keyboard shortcut (ctrl + alt + c by default).
 
-This will strip markdown formatting characters, backslash escapes, and image embeds from the source markdown and populate it as text/plain in the clipboard, for scenarios where you need to paste into an app that supports neither HTML formatting or markdown.
-
-List leaders and nested list indentation will be maintained (these are normally lost when copying plain text from the markdown viewer or rich text editor).
+This command parses the selected Markdown and renders it as paste-friendly plain text. By default it removes all markdown formatting markers and image embeds, while preserving document structure such as paragraphs, list leaders, nested list indentation, tables (optimized for plain text readability), footnotes, and link text.
 
 ### Customizing plain text output
 
-The following options are provided to preserve specific markdown formatting in the text/plain output:
+The following options are provided to preserve specific markdown formatting markers in the `text/plain` output when desired:
 
 - Preserve superscript characters `(^TEST^)`
 
 - Preserve subscript characters `(~TEST~)`
 
-- Preserve emphasis characters `(*TEST* or _TEST_)`
+- Preserve emphasis markers
+  Emphasis is preserved with markdown markers, but the exact original delimiter style is not guaranteed.
 
-- Preserve bold characters `(**TEST** or __TEST__)`
+- Preserve bold markers
+  Bold text is preserved with markdown markers, but the exact original delimiter style is not guaranteed.
 
 - Preserve heading characters `(## TEST)`
 
@@ -115,7 +115,9 @@ The following options are provided to preserve specific markdown formatting in t
 
 - Preserve insert characters `(++TEST++)`
 
-The following options are provided for external hyperlinks (only impacts markdown links containing http/https URL):
+- Preserve table pipes (`| Column | Column |`)
+
+The following options are provided for external hyperlinks (only affects markdown links with `http`/`https` URLs):
 
 - Title - Displays link title only (default).
 
@@ -128,9 +130,14 @@ The following options are provided for indentation style:
 - Tabs
 - (4) Spaces (default)
 
+The following options are provided for list spacing:
+
+- Tight - No blank lines between list items (default).
+- Loose - Adds blank lines between list items.
+
 ### Markdown emoji
 
-Copy as Plain Text supports the markdown-it emoji plugin, so emoji such as :white_check_mark: will be displayed in the plain text output. This can be disabled if desired via the Display emojis setting.
+Copy as Plain Text supports markdown emoji shortcodes, so emoji such as :white_check_mark: can be rendered as Unicode in the plain text output. This can be disabled via the Display emojis setting.
 
 ## Known Issues
 

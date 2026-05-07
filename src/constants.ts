@@ -23,6 +23,8 @@ export const SETTINGS = {
     DISPLAY_EMOJIS: 'displayEmojis',
     HYPERLINK_BEHAVIOR: 'hyperlinkBehavior',
     INDENT_TYPE: 'indentType',
+    LIST_SPACING: 'listSpacing',
+    PRESERVE_TABLE_PIPES: 'preserveTablePipes',
 };
 
 // Timeouts used for asset processing
@@ -50,18 +52,16 @@ export const PLAIN_TEXT_CONSTANTS = {
     ORDERED_LIST_START: 1,
     BULLET_PREFIX: '- ',
     ORDERED_SUFFIX: '. ',
-    LIST_ITEM_TRAILING_BLANK_LINE: true,
     HEADING_PREFIX_CHAR: '#',
     HORIZONTAL_RULE_MARKER: '---',
-    CODE_FENCE_MARKER: '```',
     MAX_PARAGRAPH_NEWLINES: 2,
     MIN_COLUMN_WIDTH: 3,
     SPACES_PER_INDENT: 4,
     TABLE_CELL_PADDING: 2,
+    TABLE_PIPE: '|',
 } as const;
 
-// Regex patterns for footnote references and definitions
+// Regex patterns for plain-text footnote rendering
 export const PLAIN_TEXT_REGEX = {
     FOOTNOTE_REF: /\[\^([^\]]+)\]/g,
-    FOOTNOTE_DEF: /\[\^([^\]]+)\]:/g,
 } as const;

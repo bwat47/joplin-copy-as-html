@@ -18,6 +18,8 @@ const defaultOptions: PlainTextOptions = {
     displayEmojis: true,
     hyperlinkBehavior: 'title',
     indentType: 'spaces',
+    listSpacing: 'tight',
+    preserveTablePipes: false,
 };
 
 describe('Link Handling in Plain Text', () => {
@@ -57,11 +59,8 @@ describe('List rendering', () => {
 `;
         const result = convertMarkdownToPlainText(markdown, { ...defaultOptions, indentType: 'spaces' });
         const expected = `- Item 1
-
     - Nested Item 1.1
-
     - Nested Item 1.2
-
 - Item 2
 `;
         expect(result.trimEnd()).toBe(expected.trimEnd());
@@ -77,12 +76,58 @@ describe('List rendering', () => {
         // prettier-ignore
         const expected =
 `1. Item 1
-
 \t1. Nested 1.1
-
 2. Item 2
 `;
         expect(result.trimEnd()).toBe(expected.trimEnd());
+    });
+
+    it('should preserve GFM task list markers', () => {
+        const markdown = `
+- [x] Finished
+- [ ] Pending
+`;
+        const result = convertMarkdownToPlainText(markdown, defaultOptions);
+        const expected = `- [x] Finished
+- [ ] Pending`;
+        expect(result.trimEnd()).toBe(expected);
+    });
+
+    it('should add blank lines between list items when list spacing is loose', () => {
+        const markdown = `
+- Item 1
+  - Nested Item 1.1
+  - Nested Item 1.2
+- Item 2
+`;
+        const result = convertMarkdownToPlainText(markdown, { ...defaultOptions, listSpacing: 'loose' });
+        const expected = `- Item 1
+
+    - Nested Item 1.1
+
+    - Nested Item 1.2
+
+- Item 2
+`;
+        expect(result.trimEnd()).toBe(expected.trimEnd());
+    });
+
+    it('should add a blank line before nested lists when list spacing is loose', () => {
+        const markdown = `
+1. Parent item:
+    - Child item:
+        - Grandchild item
+2. Next parent item
+`;
+        const result = convertMarkdownToPlainText(markdown, { ...defaultOptions, listSpacing: 'loose' });
+        const expected = `1. Parent item:
+
+    - Child item:
+
+        - Grandchild item
+
+2. Next parent item`;
+        expect(result.trimEnd()).toBe(expected);
     });
 });
 
@@ -134,6 +179,20 @@ describe('Emoji Handling', () => {
         expect(result.trim()).toBe('Joplin is great');
     });
 
+    it('should strip valid emoji aliases without corrupting colon-delimited text', () => {
+        const markdown = 'Time 10:30:45 and :tada: plus :+1: remains formatted.';
+        const options = { ...defaultOptions, displayEmojis: false };
+        const result = convertMarkdownToPlainText(markdown, options);
+        expect(result.trim()).toBe('Time 10:30:45 and  plus  remains formatted.');
+    });
+
+    it('should leave unknown shortcode-like text unchanged when emoji display is disabled', () => {
+        const markdown = 'Keep :not-an-emoji: as written.';
+        const options = { ...defaultOptions, displayEmojis: false };
+        const result = convertMarkdownToPlainText(markdown, options);
+        expect(result.trim()).toBe('Keep :not-an-emoji: as written.');
+    });
+
     it('should render emojis contained within table cells', () => {
         const markdown = `
 | Feature | Status | Notes |
@@ -145,6 +204,32 @@ describe('Emoji Handling', () => {
         const trimmed = result.trim();
         expect(trimmed).toContain('✅');
         expect(trimmed).toContain('🎉');
+    });
+});
+
+describe('Table rendering', () => {
+    const markdown = `
+| Feature | Status |
+| --- | --- |
+| Bug Fixes | Done |
+`;
+
+    it('should render plain text tables without pipes by default', () => {
+        const result = convertMarkdownToPlainText(markdown, defaultOptions);
+        const expected = `Feature    Status
+---------  ------
+Bug Fixes  Done`;
+
+        expect(result.trim()).toBe(expected);
+    });
+
+    it('should preserve markdown table pipes when enabled', () => {
+        const result = convertMarkdownToPlainText(markdown, { ...defaultOptions, preserveTablePipes: true });
+        const expected = `| Feature   | Status |
+| --------- | ------ |
+| Bug Fixes | Done   |`;
+
+        expect(result.trim()).toBe(expected);
     });
 });
 
@@ -201,9 +286,7 @@ Some introductory text.
 ## A Quote with a Heading
 
 - List item 1
-
 - **Bold** and *italic* item 2
-
     - Nested list
 
 Final paragraph.`;
@@ -381,10 +464,9 @@ line three
   new line`;
         const result = convertMarkdownToPlainText(markdown, defaultOptions);
         const expected = `- Item with soft break
-continuation
-
+    continuation
 - Item with hard break
-new line
+    new line
 `;
         expect(result.trimEnd()).toBe(expected.trimEnd());
     });
@@ -463,9 +545,9 @@ describe('Integration', () => {
     });
 });
 
-// Markdown-it plugin integration
-describe('Markdown-it Plugin Integration', () => {
-    it('should use markdown-it-mark for highlighted text', () => {
+// Remark plugin integration
+describe('Remark Plugin Integration', () => {
+    it('should use remark marker support for highlighted text', () => {
         const markdown = '==highlighted==';
         const options = { ...defaultOptions, preserveMark: true };
         const result = convertMarkdownToPlainText(markdown, options);

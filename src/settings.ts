@@ -83,8 +83,8 @@ export async function registerPluginSettings(): Promise<void> {
             section: SECTION_ID,
             public: true,
             advanced: true,
-            label: 'Preserve emphasis characters (*TEST* or _TEST_)',
-            description: 'If enabled, *TEST* or _TEST_ will remain as-is in plain text output.',
+            label: 'Preserve emphasis markers',
+            description: 'If enabled, emphasized text will keep markdown emphasis markers in plain text output.',
         },
         [SETTINGS.PRESERVE_BOLD]: {
             value: false,
@@ -92,8 +92,8 @@ export async function registerPluginSettings(): Promise<void> {
             section: SECTION_ID,
             public: true,
             advanced: true,
-            label: 'Preserve bold characters (**TEST** or __TEST__)',
-            description: 'If enabled, **TEST** or __TEST__ will remain as-is in plain text output.',
+            label: 'Preserve bold markers',
+            description: 'If enabled, bold text will keep markdown bold markers in plain text output.',
         },
         [SETTINGS.PRESERVE_HEADING]: {
             value: false,
@@ -140,14 +140,6 @@ export async function registerPluginSettings(): Promise<void> {
             label: 'Preserve insert characters (++TEST++)',
             description: 'If enabled, ++TEST++ will remain as-is in plain text output.',
         },
-        [SETTINGS.DISPLAY_EMOJIS]: {
-            value: true,
-            type: SettingItemType.Bool,
-            section: SECTION_ID,
-            public: true,
-            label: 'Display emojis',
-            description: 'If enabled, emojis will be displayed in the plain text output.',
-        },
         [SETTINGS.HYPERLINK_BEHAVIOR]: {
             value: 'title',
             type: SettingItemType.String,
@@ -174,6 +166,35 @@ export async function registerPluginSettings(): Promise<void> {
             public: true,
             label: 'List indentation type',
             description: 'How nested lists should be indented in plain text output.',
+        },
+        [SETTINGS.LIST_SPACING]: {
+            value: 'tight',
+            type: SettingItemType.String,
+            isEnum: true,
+            options: {
+                tight: 'Tight',
+                loose: 'Loose',
+            },
+            section: SECTION_ID,
+            public: true,
+            label: 'List spacing',
+            description: 'Whether plain text lists should include blank lines between list items.',
+        },
+        [SETTINGS.DISPLAY_EMOJIS]: {
+            value: true,
+            type: SettingItemType.Bool,
+            section: SECTION_ID,
+            public: true,
+            label: 'Display emojis',
+            description: 'If enabled, emojis will be displayed in the plain text output.',
+        },
+        [SETTINGS.PRESERVE_TABLE_PIPES]: {
+            value: false,
+            type: SettingItemType.Bool,
+            section: SECTION_ID,
+            public: true,
+            label: 'Preserve table pipes',
+            description: 'If enabled, plain text tables will include markdown pipe separators.',
         },
     });
 }
@@ -210,6 +231,8 @@ export async function loadPlainTextSettings(): Promise<PlainTextOptions> {
         displayEmojis: await joplin.settings.value(SETTINGS.DISPLAY_EMOJIS),
         hyperlinkBehavior: await joplin.settings.value(SETTINGS.HYPERLINK_BEHAVIOR),
         indentType: await joplin.settings.value(SETTINGS.INDENT_TYPE),
+        listSpacing: await joplin.settings.value(SETTINGS.LIST_SPACING),
+        preserveTablePipes: await joplin.settings.value(SETTINGS.PRESERVE_TABLE_PIPES),
     };
     return validatePlainTextSettings(plainTextSettings);
 }
