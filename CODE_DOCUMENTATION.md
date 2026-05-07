@@ -70,7 +70,7 @@ All settings are registered in `settings.ts` via `registerPluginSettings()`. Set
 
 All default to `false` unless noted.
 
-- Preservation toggles: `preserveSuperscript`, `preserveSubscript`, `preserveEmphasis`, `preserveBold`, `preserveHeading`, `preserveStrikethrough`, `preserveHorizontalRule`, `preserveMark`, `preserveInsert`.
+- Preservation toggles: `preserveSuperscript`, `preserveSubscript`, `preserveEmphasis`, `preserveBold`, `preserveHeading`, `preserveStrikethrough`, `preserveHorizontalRule`, `preserveMark`, `preserveInsert`, `preserveTablePipes`.
 - `displayEmojis` (default `true`): convert `:emoji:` syntax to Unicode.
 - `hyperlinkBehavior`: emit external links as `title`, `url`, or `markdown`.
 - `indentType`: choose list indentation via spaces or tabs.

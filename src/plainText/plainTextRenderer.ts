@@ -239,16 +239,20 @@ function renderTableNode(node: PlainTextNode, options: PlainTextOptions): string
 
     const lines: string[] = [];
     rows.forEach((row, rowIndex) => {
+        const paddedCells = row.map((cell, index) => padCell(cell, columnWidths[index] ?? 0));
         lines.push(
-            row
-                .map((cell, index) => padCell(cell, columnWidths[index] ?? 0))
-                .join(' '.repeat(PLAIN_TEXT_CONSTANTS.TABLE_CELL_PADDING))
+            options.preserveTablePipes
+                ? `${PLAIN_TEXT_CONSTANTS.TABLE_PIPE} ${paddedCells.join(` ${PLAIN_TEXT_CONSTANTS.TABLE_PIPE} `)} ${PLAIN_TEXT_CONSTANTS.TABLE_PIPE}`
+                : paddedCells.join(' '.repeat(PLAIN_TEXT_CONSTANTS.TABLE_CELL_PADDING))
         );
         if (rowIndex === 0 && rows.length > 1) {
+            const separatorCells = columnWidths.map((width) =>
+                '-'.repeat(Math.max(PLAIN_TEXT_CONSTANTS.MIN_COLUMN_WIDTH, width))
+            );
             lines.push(
-                columnWidths
-                    .map((width) => '-'.repeat(Math.max(PLAIN_TEXT_CONSTANTS.MIN_COLUMN_WIDTH, width)))
-                    .join('  ')
+                options.preserveTablePipes
+                    ? `${PLAIN_TEXT_CONSTANTS.TABLE_PIPE} ${separatorCells.join(` ${PLAIN_TEXT_CONSTANTS.TABLE_PIPE} `)} ${PLAIN_TEXT_CONSTANTS.TABLE_PIPE}`
+                    : separatorCells.join('  ')
             );
         }
     });

@@ -31,6 +31,7 @@ export interface PlainTextOptions {
     hyperlinkBehavior: 'title' | 'url' | 'markdown';
     indentType: 'spaces' | 'tabs';
     listSpacing: 'tight' | 'loose';
+    preserveTablePipes: boolean;
 }
 
 export interface JoplinResource {

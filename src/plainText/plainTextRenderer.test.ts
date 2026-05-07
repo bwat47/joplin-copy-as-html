@@ -19,6 +19,7 @@ const defaultOptions: PlainTextOptions = {
     hyperlinkBehavior: 'title',
     indentType: 'spaces',
     listSpacing: 'tight',
+    preserveTablePipes: false,
 };
 
 describe('Link Handling in Plain Text', () => {
@@ -189,6 +190,32 @@ describe('Emoji Handling', () => {
         const trimmed = result.trim();
         expect(trimmed).toContain('✅');
         expect(trimmed).toContain('🎉');
+    });
+});
+
+describe('Table rendering', () => {
+    const markdown = `
+| Feature | Status |
+| --- | --- |
+| Bug Fixes | Done |
+`;
+
+    it('should render plain text tables without pipes by default', () => {
+        const result = convertMarkdownToPlainText(markdown, defaultOptions);
+        const expected = `Feature    Status
+---------  ------
+Bug Fixes  Done`;
+
+        expect(result.trim()).toBe(expected);
+    });
+
+    it('should preserve markdown table pipes when enabled', () => {
+        const result = convertMarkdownToPlainText(markdown, { ...defaultOptions, preserveTablePipes: true });
+        const expected = `| Feature   | Status |
+| --------- | ------ |
+| Bug Fixes | Done   |`;
+
+        expect(result.trim()).toBe(expected);
     });
 });
 

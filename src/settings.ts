@@ -188,6 +188,14 @@ export async function registerPluginSettings(): Promise<void> {
             label: 'List spacing',
             description: 'Whether plain text lists should include blank lines between list items.',
         },
+        [SETTINGS.PRESERVE_TABLE_PIPES]: {
+            value: false,
+            type: SettingItemType.Bool,
+            section: SECTION_ID,
+            public: true,
+            label: 'Preserve table pipes',
+            description: 'If enabled, plain text tables will include markdown pipe separators.',
+        },
     });
 }
 
@@ -224,6 +232,7 @@ export async function loadPlainTextSettings(): Promise<PlainTextOptions> {
         hyperlinkBehavior: await joplin.settings.value(SETTINGS.HYPERLINK_BEHAVIOR),
         indentType: await joplin.settings.value(SETTINGS.INDENT_TYPE),
         listSpacing: await joplin.settings.value(SETTINGS.LIST_SPACING),
+        preserveTablePipes: await joplin.settings.value(SETTINGS.PRESERVE_TABLE_PIPES),
     };
     return validatePlainTextSettings(plainTextSettings);
 }

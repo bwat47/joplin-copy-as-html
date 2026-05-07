@@ -113,6 +113,8 @@ The following options are provided to preserve specific markdown formatting mark
 
 - Preserve insert characters `(++TEST++)`
 
+- Preserve table pipes (`| Column | Column |`)
+
 The following options are provided for external hyperlinks (only affects markdown links with `http`/`https` URLs):
 
 - Title - Displays link title only (default).

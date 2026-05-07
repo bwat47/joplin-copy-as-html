@@ -24,6 +24,7 @@ export const SETTINGS = {
     HYPERLINK_BEHAVIOR: 'hyperlinkBehavior',
     INDENT_TYPE: 'indentType',
     LIST_SPACING: 'listSpacing',
+    PRESERVE_TABLE_PIPES: 'preserveTablePipes',
 };
 
 // Timeouts used for asset processing
@@ -57,6 +58,7 @@ export const PLAIN_TEXT_CONSTANTS = {
     MIN_COLUMN_WIDTH: 3,
     SPACES_PER_INDENT: 4,
     TABLE_CELL_PADDING: 2,
+    TABLE_PIPE: '|',
 } as const;
 
 // Regex patterns for plain-text footnote rendering

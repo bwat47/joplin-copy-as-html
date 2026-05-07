@@ -45,6 +45,7 @@ export function validatePlainTextSettings(settings: unknown): PlainTextOptions {
             typeof s.listSpacing === 'string' && ['tight', 'loose'].includes(s.listSpacing)
                 ? (s.listSpacing as 'tight' | 'loose')
                 : 'tight',
+        preserveTablePipes: validateBooleanSetting(s.preserveTablePipes),
     };
 }
 
