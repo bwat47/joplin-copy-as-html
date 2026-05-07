@@ -95,27 +95,35 @@ This command parses the selected Markdown and renders it as paste-friendly plain
 
 The following options are provided to preserve specific markdown formatting markers in the `text/plain` output when desired:
 
-- Preserve superscript characters `(^TEST^)`
+- Preserve superscript markers
+  Superscript markers will be preserved in plain text output.
 
-- Preserve subscript characters `(~TEST~)`
+- Preserve subscript markers
+  Subscript markers will be preserved in plain text output.
 
 - Preserve emphasis markers
-  Emphasis is preserved with markdown markers, but the exact original delimiter style is not guaranteed.
+  Emphasis markers will be preserved in plain text output, but the exact original delimiter style is not guaranteed.
 
 - Preserve bold markers
-  Bold text is preserved with markdown markers, but the exact original delimiter style is not guaranteed.
+  Bold markers will be preserved in plain text output, but the exact original delimiter style is not guaranteed.
 
-- Preserve heading characters `(## TEST)`
+- Preserve heading markers
+  Heading markers will be preserved in plain text output.
 
-- Preserve strikethrough characters (`~~TEST~~`)
+- Preserve strikethrough markers
+  Strikethrough markers will be preserved in plain text output.
 
-- Preserve horizontal rule (`---`)
+- Preserve horizontal rules
+  Horizontal rules will be preserved in plain text output.
 
-- Preserve highlight characters `(==TEST==)`
+- Preserve highlight markers
+  Highlight markers will be preserved in plain text output.
 
-- Preserve insert characters `(++TEST++)`
+- Preserve insert markers
+  Insert markers will be preserved in plain text output.
 
-- Preserve table pipes (`| Column | Column |`)
+- Preserve table pipes
+  Markdown pipe separators will be preserved in plain text output.
 
 The following options are provided for external hyperlinks (only affects markdown links with `http`/`https` URLs):
 

@@ -65,8 +65,8 @@ export async function registerPluginSettings(): Promise<void> {
             section: SECTION_ID,
             public: true,
             advanced: true,
-            label: 'Preserve superscript characters (^TEST^)',
-            description: 'If enabled, ^TEST^ will remain ^TEST^ in plain text output.',
+            label: 'Preserve superscript markers',
+            description: 'If enabled, superscript markers will be preserved in plain text output.',
         },
         [SETTINGS.PRESERVE_SUBSCRIPT]: {
             value: false,
@@ -74,8 +74,8 @@ export async function registerPluginSettings(): Promise<void> {
             section: SECTION_ID,
             public: true,
             advanced: true,
-            label: 'Preserve subscript characters (~TEST~)',
-            description: 'If enabled, ~TEST~ will remain ~TEST~ in plain text output.',
+            label: 'Preserve subscript markers',
+            description: 'If enabled, subscript markers will be preserved in plain text output.',
         },
         [SETTINGS.PRESERVE_EMPHASIS]: {
             value: false,
@@ -84,7 +84,7 @@ export async function registerPluginSettings(): Promise<void> {
             public: true,
             advanced: true,
             label: 'Preserve emphasis markers',
-            description: 'If enabled, emphasized text will keep markdown emphasis markers in plain text output.',
+            description: 'If enabled, emphasis markers will be preserved in plain text output.',
         },
         [SETTINGS.PRESERVE_BOLD]: {
             value: false,
@@ -93,7 +93,7 @@ export async function registerPluginSettings(): Promise<void> {
             public: true,
             advanced: true,
             label: 'Preserve bold markers',
-            description: 'If enabled, bold text will keep markdown bold markers in plain text output.',
+            description: 'If enabled, bold markers will be preserved in plain text output.',
         },
         [SETTINGS.PRESERVE_HEADING]: {
             value: false,
@@ -101,8 +101,8 @@ export async function registerPluginSettings(): Promise<void> {
             section: SECTION_ID,
             public: true,
             advanced: true,
-            label: 'Preserve heading characters (## TEST)',
-            description: 'If enabled, ## TEST will remain as-is in plain text output.',
+            label: 'Preserve heading markers',
+            description: 'If enabled, heading markers will be preserved in plain text output.',
         },
         [SETTINGS.PRESERVE_STRIKETHROUGH]: {
             value: false,
@@ -110,8 +110,8 @@ export async function registerPluginSettings(): Promise<void> {
             section: SECTION_ID,
             public: true,
             advanced: true,
-            label: 'Preserve strikethrough characters (~~TEST~~)',
-            description: 'If enabled, ~~TEST~~ will remain as-is in plain text output.',
+            label: 'Preserve strikethrough markers',
+            description: 'If enabled, strikethrough markers will be preserved in plain text output.',
         },
         [SETTINGS.PRESERVE_HORIZONTAL_RULE]: {
             value: false,
@@ -119,8 +119,8 @@ export async function registerPluginSettings(): Promise<void> {
             section: SECTION_ID,
             public: true,
             advanced: true,
-            label: 'Preserve horizontal rule (---)',
-            description: 'If enabled, horizontal rules will be preserved as --- in plain text output.',
+            label: 'Preserve horizontal rules',
+            description: 'If enabled, horizontal rules will be preserved in plain text output.',
         },
         [SETTINGS.PRESERVE_MARK]: {
             value: false,
@@ -128,8 +128,8 @@ export async function registerPluginSettings(): Promise<void> {
             section: SECTION_ID,
             public: true,
             advanced: true,
-            label: 'Preserve highlight characters (==TEST==)',
-            description: 'If enabled, ==TEST== will remain as-is in plain text output.',
+            label: 'Preserve highlight markers',
+            description: 'If enabled, highlight markers will be preserved in plain text output.',
         },
         [SETTINGS.PRESERVE_INSERT]: {
             value: false,
@@ -137,8 +137,8 @@ export async function registerPluginSettings(): Promise<void> {
             section: SECTION_ID,
             public: true,
             advanced: true,
-            label: 'Preserve insert characters (++TEST++)',
-            description: 'If enabled, ++TEST++ will remain as-is in plain text output.',
+            label: 'Preserve insert markers',
+            description: 'If enabled, insert markers will be preserved in plain text output.',
         },
         [SETTINGS.HYPERLINK_BEHAVIOR]: {
             value: 'title',
@@ -194,7 +194,7 @@ export async function registerPluginSettings(): Promise<void> {
             section: SECTION_ID,
             public: true,
             label: 'Preserve table pipes',
-            description: 'If enabled, plain text tables will include markdown pipe separators.',
+            description: 'If enabled, markdown pipe separators will be preserved in plain text output.',
         },
     });
 }
