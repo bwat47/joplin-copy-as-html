@@ -179,6 +179,20 @@ describe('Emoji Handling', () => {
         expect(result.trim()).toBe('Joplin is great');
     });
 
+    it('should strip valid emoji aliases without corrupting colon-delimited text', () => {
+        const markdown = 'Time 10:30:45 and :tada: plus :+1: remains formatted.';
+        const options = { ...defaultOptions, displayEmojis: false };
+        const result = convertMarkdownToPlainText(markdown, options);
+        expect(result.trim()).toBe('Time 10:30:45 and  plus  remains formatted.');
+    });
+
+    it('should leave unknown shortcode-like text unchanged when emoji display is disabled', () => {
+        const markdown = 'Keep :not-an-emoji: as written.';
+        const options = { ...defaultOptions, displayEmojis: false };
+        const result = convertMarkdownToPlainText(markdown, options);
+        expect(result.trim()).toBe('Keep :not-an-emoji: as written.');
+    });
+
     it('should render emojis contained within table cells', () => {
         const markdown = `
 | Feature | Status | Notes |

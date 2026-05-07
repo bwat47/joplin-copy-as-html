@@ -6,6 +6,7 @@
  */
 
 import type { Root } from 'mdast';
+import * as nodeEmoji from 'node-emoji';
 import stringWidth from 'string-width';
 import remarkEmoji from 'remark-emoji';
 import remarkFlexibleMarkers from 'remark-flexible-markers';
@@ -32,6 +33,8 @@ type PlainTextNode = {
     children?: PlainTextNode[];
 };
 
+const EMOJI_SHORTCODE_PATTERN = /:([+\w-]+):/g;
+
 const domParser: DOMParser | null = typeof DOMParser !== 'undefined' ? new DOMParser() : null;
 
 function createRemarkProcessor(displayEmojis: boolean) {
@@ -54,7 +57,9 @@ function createRemarkProcessor(displayEmojis: boolean) {
 const stripEmojiShortcodes: Plugin<[], Root> = () => {
     return (tree: Root): void => {
         walkTextNodes(tree as unknown as PlainTextNode, (node) => {
-            node.value = (node.value ?? '').replace(/:\+1:|:-1:|:[\w-]+:/g, '');
+            node.value = (node.value ?? '').replace(EMOJI_SHORTCODE_PATTERN, (match, key: string) => {
+                return nodeEmoji.has(key) ? '' : match;
+            });
         });
     };
 };
