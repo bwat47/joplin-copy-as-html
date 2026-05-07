@@ -99,9 +99,11 @@ The following options are provided to preserve specific markdown formatting mark
 
 - Preserve subscript characters `(~TEST~)`
 
-- Preserve emphasis characters `(*TEST* or _TEST_)`
+- Preserve emphasis markers
+  Emphasis is preserved with markdown markers, but the exact original delimiter style is not guaranteed.
 
-- Preserve bold characters `(**TEST** or __TEST__)`
+- Preserve bold markers
+  Bold text is preserved with markdown markers, but the exact original delimiter style is not guaranteed.
 
 - Preserve heading characters `(## TEST)`
 

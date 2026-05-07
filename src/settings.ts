@@ -83,8 +83,8 @@ export async function registerPluginSettings(): Promise<void> {
             section: SECTION_ID,
             public: true,
             advanced: true,
-            label: 'Preserve emphasis characters (*TEST* or _TEST_)',
-            description: 'If enabled, *TEST* or _TEST_ will remain as-is in plain text output.',
+            label: 'Preserve emphasis markers',
+            description: 'If enabled, emphasized text will keep markdown emphasis markers in plain text output.',
         },
         [SETTINGS.PRESERVE_BOLD]: {
             value: false,
@@ -92,8 +92,8 @@ export async function registerPluginSettings(): Promise<void> {
             section: SECTION_ID,
             public: true,
             advanced: true,
-            label: 'Preserve bold characters (**TEST** or __TEST__)',
-            description: 'If enabled, **TEST** or __TEST__ will remain as-is in plain text output.',
+            label: 'Preserve bold markers',
+            description: 'If enabled, bold text will keep markdown bold markers in plain text output.',
         },
         [SETTINGS.PRESERVE_HEADING]: {
             value: false,
