@@ -89,7 +89,7 @@ SVG images may have compatibility issues with certain editors/email clients, so 
 
 "Copy selection as Plain Text" is provided as a right click context menu option and as a keyboard shortcut (ctrl + alt + c by default).
 
-This command parses the selected Markdown and renders it as paste-friendly plain text. By default it removes all markdown formatting markers and image embeds, while preserving document structure such as paragraphs, list leaders, nested list indentation, tables (optimized for plain text readability), footnotes, and link text.
+This command parses the selected Markdown and renders it as paste-friendly plain text. By default it removes all markdown formatting markers and image embeds, while preserving document structure such as paragraphs, list leaders, nested list indentation, tables (optimized for plain text readability), footnotes, and link text. However, the plain text output can be customized to retain specific markdown formatting (see below).
 
 ### Customizing plain text output
 
@@ -136,7 +136,3 @@ The following options are provided for list spacing:
 ### Markdown emoji
 
 Copy as Plain Text supports markdown emoji shortcodes, so emoji such as :white_check_mark: can be rendered as Unicode in the plain text output. This can be disabled via the Display emojis setting.
-
-## Known Issues
-
-- The plugin's keyboard shortcuts sometimes don't work on cold start of Joplin, can be fixed by toggling editors or going to Tools | Options | Keyboard Shortcuts and back.
