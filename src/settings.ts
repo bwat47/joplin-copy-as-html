@@ -140,6 +140,15 @@ export async function registerPluginSettings(): Promise<void> {
             label: 'Preserve insert markers',
             description: 'If enabled, insert markers will be preserved in plain text output.',
         },
+        [SETTINGS.PRESERVE_CODE_BACKTICKS]: {
+            value: false,
+            type: SettingItemType.Bool,
+            section: SECTION_ID,
+            public: true,
+            advanced: true,
+            label: 'Preserve code backticks',
+            description: 'If enabled, inline code and code block backticks will be preserved in plain text output.',
+        },
         [SETTINGS.HYPERLINK_BEHAVIOR]: {
             value: 'title',
             type: SettingItemType.String,
@@ -228,6 +237,7 @@ export async function loadPlainTextSettings(): Promise<PlainTextOptions> {
         preserveHorizontalRule: await joplin.settings.value(SETTINGS.PRESERVE_HORIZONTAL_RULE),
         preserveMark: await joplin.settings.value(SETTINGS.PRESERVE_MARK),
         preserveInsert: await joplin.settings.value(SETTINGS.PRESERVE_INSERT),
+        preserveCodeBackticks: await joplin.settings.value(SETTINGS.PRESERVE_CODE_BACKTICKS),
         displayEmojis: await joplin.settings.value(SETTINGS.DISPLAY_EMOJIS),
         hyperlinkBehavior: await joplin.settings.value(SETTINGS.HYPERLINK_BEHAVIOR),
         indentType: await joplin.settings.value(SETTINGS.INDENT_TYPE),

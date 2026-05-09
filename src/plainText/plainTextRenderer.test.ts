@@ -15,6 +15,7 @@ const defaultOptions: PlainTextOptions = {
     preserveHorizontalRule: false,
     preserveMark: false,
     preserveInsert: false,
+    preserveCodeBackticks: false,
     displayEmojis: true,
     hyperlinkBehavior: 'title',
     indentType: 'spaces',
@@ -142,6 +143,68 @@ describe('List rendering', () => {
     Or, if you only see your Live company, create the Test company by clicking 'New', select your Test company from the dropdown, click OK, and then click Create. This will create the Test company database.
 
 4. Then, take a backup of your LIVE database. To do this, go to the Companies tab and highlight your LIVE Company and click Backup As. Choose where to save/what to name the backup (it will be a .DAT file).`;
+        expect(result.trimEnd()).toBe(expected);
+    });
+
+    it('should add a blank line before code blocks within list items when list spacing is loose', () => {
+        const markdown = `3. **\`buildColorTheme\`** - emit per-type rules:
+
+   \`\`\`typescript
+   rules[\`.cm-gh-alert-\${type}\`] = {
+       '--cm-gh-alert-color': color,
+       '--cm-gh-alert-bg': bg,
+   };
+   return EditorView.theme(rules);
+   \`\`\`
+
+4. **Range computation helper**:`;
+        const result = convertMarkdownToPlainText(markdown, {
+            ...defaultOptions,
+            listSpacing: 'loose',
+            preserveBold: true,
+            preserveCodeBackticks: true,
+        });
+        const expected = `3. **\`buildColorTheme\`** - emit per-type rules:
+
+    \`\`\`typescript
+    rules[\`.cm-gh-alert-\${type}\`] = {
+        '--cm-gh-alert-color': color,
+        '--cm-gh-alert-bg': bg,
+    };
+    return EditorView.theme(rules);
+    \`\`\`
+
+4. **Range computation helper**:`;
+        expect(result.trimEnd()).toBe(expected);
+    });
+
+    it('should add a blank line before code blocks within list items when list spacing is loose (preserveCodeBackticks disabled)', () => {
+        const markdown = `3. **\`buildColorTheme\`** - emit per-type rules:
+
+   \`\`\`typescript
+   rules[\`.cm-gh-alert-\${type}\`] = {
+       '--cm-gh-alert-color': color,
+       '--cm-gh-alert-bg': bg,
+   };
+   return EditorView.theme(rules);
+   \`\`\`
+
+4. **Range computation helper**:`;
+        const result = convertMarkdownToPlainText(markdown, {
+            ...defaultOptions,
+            listSpacing: 'loose',
+            preserveBold: true,
+            preserveCodeBackticks: false,
+        });
+        const expected = `3. **buildColorTheme** - emit per-type rules:
+
+    rules[\`.cm-gh-alert-\${type}\`] = {
+        '--cm-gh-alert-color': color,
+        '--cm-gh-alert-bg': bg,
+    };
+    return EditorView.theme(rules);
+
+4. **Range computation helper**:`;
         expect(result.trimEnd()).toBe(expected);
     });
 });
@@ -407,6 +470,18 @@ describe('Code Block Handling', () => {
         expect(result.trim()).toBe('Use `backticks` for inline code.');
     });
 
+    it('should preserve inline code backticks when enabled', () => {
+        const markdown = 'Use the `console.log()` function to debug.';
+        const result = convertMarkdownToPlainText(markdown, { ...defaultOptions, preserveCodeBackticks: true });
+        expect(result.trim()).toBe('Use the `console.log()` function to debug.');
+    });
+
+    it('should preserve nested inline code backticks when enabled', () => {
+        const markdown = 'Use `` `backticks` `` for inline code.';
+        const result = convertMarkdownToPlainText(markdown, { ...defaultOptions, preserveCodeBackticks: true });
+        expect(result.trim()).toBe('Use `` `backticks` `` for inline code.');
+    });
+
     it('should remove fence markers but preserve content', () => {
         const markdown = `\`\`\`typescript
 function test() {
@@ -418,6 +493,19 @@ function test() {
     return "hello";
 }`;
         expect(result.trim()).toBe(expected);
+    });
+
+    it('should preserve fenced code block backticks when enabled', () => {
+        const markdown = '```javascript\nconst x = 1;\nconsole.log(x);\n```';
+        const result = convertMarkdownToPlainText(markdown, { ...defaultOptions, preserveCodeBackticks: true });
+        const expected = '```javascript\nconst x = 1;\nconsole.log(x);\n```';
+        expect(result.trim()).toBe(expected);
+    });
+
+    it('should use a longer code block fence when the content contains triple backticks', () => {
+        const markdown = '````\n```nested fence```\n````';
+        const result = convertMarkdownToPlainText(markdown, { ...defaultOptions, preserveCodeBackticks: true });
+        expect(result.trim()).toBe('````\n```nested fence```\n````');
     });
 });
 

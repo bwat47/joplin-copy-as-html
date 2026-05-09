@@ -27,6 +27,7 @@ export interface PlainTextOptions {
     preserveHorizontalRule: boolean;
     preserveMark: boolean;
     preserveInsert: boolean;
+    preserveCodeBackticks: boolean;
     displayEmojis: boolean;
     hyperlinkBehavior: 'title' | 'url' | 'markdown';
     indentType: 'spaces' | 'tabs';
