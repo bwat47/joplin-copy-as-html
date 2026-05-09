@@ -123,6 +123,11 @@ function renderInlineWithMarkers(
     return preserve ? `${marker}${text}${marker}` : text;
 }
 
+/**
+ * Returns a backtick fence string long enough to wrap `text` without ambiguity.
+ * The fence must be strictly longer than any consecutive backtick run inside the
+ * content, and at least `minimumLength` characters (1 for inline code, 3 for blocks).
+ */
 function backtickFenceFor(text: string, minimumLength: number): string {
     const runs = text.match(/`+/g) ?? [];
     const longestRun = runs.reduce((max, run) => Math.max(max, run.length), 0);

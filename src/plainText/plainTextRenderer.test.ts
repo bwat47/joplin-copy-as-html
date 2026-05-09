@@ -177,6 +177,36 @@ describe('List rendering', () => {
 4. **Range computation helper**:`;
         expect(result.trimEnd()).toBe(expected);
     });
+
+    it('should add a blank line before code blocks within list items when list spacing is loose (preserveCodeBackticks disabled)', () => {
+        const markdown = `3. **\`buildColorTheme\`** - emit per-type rules:
+
+   \`\`\`typescript
+   rules[\`.cm-gh-alert-\${type}\`] = {
+       '--cm-gh-alert-color': color,
+       '--cm-gh-alert-bg': bg,
+   };
+   return EditorView.theme(rules);
+   \`\`\`
+
+4. **Range computation helper**:`;
+        const result = convertMarkdownToPlainText(markdown, {
+            ...defaultOptions,
+            listSpacing: 'loose',
+            preserveBold: true,
+            preserveCodeBackticks: false,
+        });
+        const expected = `3. **buildColorTheme** - emit per-type rules:
+
+    rules[\`.cm-gh-alert-\${type}\`] = {
+        '--cm-gh-alert-color': color,
+        '--cm-gh-alert-bg': bg,
+    };
+    return EditorView.theme(rules);
+
+4. **Range computation helper**:`;
+        expect(result.trimEnd()).toBe(expected);
+    });
 });
 
 // Character preservation tests
