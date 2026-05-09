@@ -20,6 +20,7 @@ export const SETTINGS = {
     PRESERVE_HORIZONTAL_RULE: 'preserveHorizontalRule',
     PRESERVE_MARK: 'preserveMark',
     PRESERVE_INSERT: 'preserveInsert',
+    PRESERVE_CODE_BACKTICKS: 'preserveCodeBackticks',
     DISPLAY_EMOJIS: 'displayEmojis',
     HYPERLINK_BEHAVIOR: 'hyperlinkBehavior',
     INDENT_TYPE: 'indentType',

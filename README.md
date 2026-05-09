@@ -113,6 +113,8 @@ The following options are provided to preserve specific markdown formatting mark
 
 - Preserve insert markers
 
+- Preserve code backticks
+
 - Preserve table pipes
 
 The following options are provided for external hyperlinks (only affects markdown links with `http`/`https` URLs):

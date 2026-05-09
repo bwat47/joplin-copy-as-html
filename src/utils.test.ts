@@ -32,6 +32,7 @@ describe('validatePlainTextSettings', () => {
             indentType: 123, // not a string
             listSpacing: 'wide',
             preserveTablePipes: 'yes',
+            preserveCodeBackticks: 'yes',
         };
 
         const validated = validatePlainTextSettings(invalidSettings);
@@ -41,6 +42,7 @@ describe('validatePlainTextSettings', () => {
         expect(validated.indentType).toBe('spaces');
         expect(validated.listSpacing).toBe('tight');
         expect(validated.preserveTablePipes).toBe(false);
+        expect(validated.preserveCodeBackticks).toBe(false);
     });
 
     it('should return default values for undefined or null settings', () => {
@@ -51,6 +53,7 @@ describe('validatePlainTextSettings', () => {
         expect(validatedUndefined.listSpacing).toBe('tight');
         expect(validatedUndefined.displayEmojis).toBe(true);
         expect(validatedUndefined.preserveTablePipes).toBe(false);
+        expect(validatedUndefined.preserveCodeBackticks).toBe(false);
 
         const validatedNull = validatePlainTextSettings(null);
         expect(validatedNull.preserveSuperscript).toBe(false);
@@ -59,6 +62,7 @@ describe('validatePlainTextSettings', () => {
         expect(validatedNull.listSpacing).toBe('tight');
         expect(validatedNull.displayEmojis).toBe(true);
         expect(validatedNull.preserveTablePipes).toBe(false);
+        expect(validatedNull.preserveCodeBackticks).toBe(false);
     });
 });
 

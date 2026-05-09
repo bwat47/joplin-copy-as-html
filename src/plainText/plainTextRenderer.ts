@@ -30,6 +30,7 @@ type PlainTextNode = {
     ordered?: boolean;
     start?: number;
     checked?: boolean | null;
+    lang?: string | null;
     children?: PlainTextNode[];
 };
 
@@ -122,12 +123,35 @@ function renderInlineWithMarkers(
     return preserve ? `${marker}${text}${marker}` : text;
 }
 
+function backtickFenceFor(text: string, minimumLength: number): string {
+    const runs = text.match(/`+/g) ?? [];
+    const longestRun = runs.reduce((max, run) => Math.max(max, run.length), 0);
+    return '`'.repeat(Math.max(minimumLength, longestRun + 1));
+}
+
+function renderInlineCode(value: string, options: PlainTextOptions): string {
+    if (!options.preserveCodeBackticks) return value;
+
+    const fence = backtickFenceFor(value, 1);
+    const padding = value.startsWith('`') || value.endsWith('`') ? ' ' : '';
+    return `${fence}${padding}${value}${padding}${fence}`;
+}
+
+function renderCodeBlock(node: PlainTextNode, options: PlainTextOptions): string {
+    const value = (node.value ?? '').replace(/\n+$/g, '');
+    if (!options.preserveCodeBackticks) return value;
+
+    const fence = backtickFenceFor(value, 3);
+    const lang = node.lang ?? '';
+    return `${fence}${lang}\n${value}\n${fence}`;
+}
+
 function renderInlineNode(node: PlainTextNode, options: PlainTextOptions): string {
     switch (node.type) {
         case 'text':
             return unescapeMarkdownText((node.value ?? '').replace(PLAIN_TEXT_REGEX.FOOTNOTE_REF, '[$1]'));
         case 'inlineCode':
-            return node.value ?? '';
+            return renderInlineCode(node.value ?? '', options);
         case 'break':
             return '\n';
         case 'html':
@@ -281,7 +305,7 @@ function renderBlockNode(node: PlainTextNode, options: PlainTextOptions, depth =
         case 'blockquote':
             return renderBlocks(node.children ?? [], options, depth).trim();
         case 'code':
-            return (node.value ?? '').replace(/\n+$/g, '');
+            return renderCodeBlock(node, options);
         case 'html':
             return htmlFragmentToPlainText(node.value ?? '');
         case 'thematicBreak':

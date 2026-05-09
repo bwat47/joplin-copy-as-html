@@ -106,6 +106,12 @@
             "description": "If enabled, insert markers will be preserved in plain text output.",
             "value": false
         },
+        "preserveCodeBackticks": {
+            "type": "bool",
+            "label": "Preserve code backticks",
+            "description": "If enabled, inline code and code block backticks will be preserved in plain text output.",
+            "value": false
+        },
         "hyperlinkBehavior": {
             "type": "enum",
             "label": "Plain text hyperlink behavior",
