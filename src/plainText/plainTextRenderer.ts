@@ -205,16 +205,11 @@ function renderListItemContent(node: PlainTextNode, options: PlainTextOptions, d
             continue;
         }
 
-        if (
-            options.listSpacing === 'loose' &&
-            child.type === 'list' &&
-            lines.length > 0 &&
-            lines[lines.length - 1] !== ''
-        ) {
+        const block = renderBlockNode(child, options, child.type === 'list' ? depth : depth + 1);
+        if (options.listSpacing === 'loose' && block && lines.length > 0 && lines[lines.length - 1] !== '') {
             lines.push('');
         }
 
-        const block = renderBlockNode(child, options, child.type === 'list' ? depth : depth + 1);
         if (block) lines.push(...block.split('\n'));
     }
 

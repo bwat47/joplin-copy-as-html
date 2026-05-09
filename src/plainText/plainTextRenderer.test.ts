@@ -145,6 +145,38 @@ describe('List rendering', () => {
 4. Then, take a backup of your LIVE database. To do this, go to the Companies tab and highlight your LIVE Company and click Backup As. Choose where to save/what to name the backup (it will be a .DAT file).`;
         expect(result.trimEnd()).toBe(expected);
     });
+
+    it('should add a blank line before code blocks within list items when list spacing is loose', () => {
+        const markdown = `3. **\`buildColorTheme\`** - emit per-type rules:
+
+   \`\`\`typescript
+   rules[\`.cm-gh-alert-\${type}\`] = {
+       '--cm-gh-alert-color': color,
+       '--cm-gh-alert-bg': bg,
+   };
+   return EditorView.theme(rules);
+   \`\`\`
+
+4. **Range computation helper**:`;
+        const result = convertMarkdownToPlainText(markdown, {
+            ...defaultOptions,
+            listSpacing: 'loose',
+            preserveBold: true,
+            preserveCodeBackticks: true,
+        });
+        const expected = `3. **\`buildColorTheme\`** - emit per-type rules:
+
+    \`\`\`typescript
+    rules[\`.cm-gh-alert-\${type}\`] = {
+        '--cm-gh-alert-color': color,
+        '--cm-gh-alert-bg': bg,
+    };
+    return EditorView.theme(rules);
+    \`\`\`
+
+4. **Range computation helper**:`;
+        expect(result.trimEnd()).toBe(expected);
+    });
 });
 
 // Character preservation tests
