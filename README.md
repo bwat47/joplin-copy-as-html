@@ -89,7 +89,7 @@ SVG images may have compatibility issues with certain editors/email clients, so 
 
 "Copy selection as Plain Text" is provided as a right click context menu option and as a keyboard shortcut (ctrl + alt + c by default).
 
-This command parses the selected Markdown and renders it as paste-friendly plain text. By default it removes all markdown formatting markers and image embeds, while preserving document structure such as paragraphs, list leaders, nested list indentation, tables (optimized for plain text readability), footnotes, and link text. However, the plain text output can be customized to retain specific markdown formatting (see below).
+This command parses the selected Markdown and renders it as normalized paste-friendly plain text. By default it removes all markdown formatting markers and image embeds, while preserving document structure such as paragraphs, list leaders, nested list indentation, tables (optimized for plain text readability), footnotes, and link text. However, the plain text output can be customized to retain specific markdown formatting (see below).
 
 ### Customizing plain text output
 
