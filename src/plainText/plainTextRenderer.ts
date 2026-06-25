@@ -75,6 +75,12 @@ function walkTextNodes(node: PlainTextNode, visitor: (node: PlainTextNode) => vo
     }
 }
 
+/**
+ * Depth-first search for the first text node within an mdast `node`.
+ * Used to locate the start of a blockquote's content (e.g. an alert marker).
+ * @param node - Root node to search under.
+ * @returns The first text node, or null if none exists.
+ */
 function findFirstTextNode(node: PlainTextNode): PlainTextNode | null {
     if (node.type === 'text') return node;
 
@@ -86,6 +92,12 @@ function findFirstTextNode(node: PlainTextNode): PlainTextNode | null {
     return null;
 }
 
+/**
+ * Strips a leading GitHub/Joplin alert marker (e.g. `[!note]`) from the start of
+ * a blockquote's first text node, mutating it in place. Any trailing title text
+ * is preserved.
+ * @param node - Blockquote node to process.
+ */
 function stripGithubAlertMarkerFromBlockquote(node: PlainTextNode): void {
     const firstText = findFirstTextNode(node);
     if (!firstText?.value) return;
@@ -93,6 +105,13 @@ function stripGithubAlertMarkerFromBlockquote(node: PlainTextNode): void {
     firstText.value = firstText.value.replace(GITHUB_ALERT_MARKER_REGEX, '');
 }
 
+/**
+ * Re-applies blockquote markers to already-rendered text, prefixing each line
+ * with `> ` (or a bare `>` for blank lines). Used when `preserveQuoteMarkers`
+ * is enabled so the plain-text output keeps its quote structure.
+ * @param text - Rendered blockquote body.
+ * @returns The body with every line quote-prefixed.
+ */
 function prefixBlockquoteLines(text: string): string {
     return text
         .split('\n')

@@ -284,6 +284,13 @@ function wrapTopLevelImages(doc: Document): void {
         });
 }
 
+/**
+ * Depth-first search for the first non-whitespace text node within `node`.
+ * Used to locate the start of a blockquote's content (e.g. an alert marker),
+ * skipping over wrapper elements and empty/whitespace-only text nodes.
+ * @param node - Root node to search under.
+ * @returns The first meaningful Text node, or null if none exists.
+ */
 function findFirstTextNode(node: Node): Text | null {
     for (const child of Array.from(node.childNodes)) {
         if (child.nodeType === 3 && child.textContent?.trim()) {
@@ -299,6 +306,12 @@ function findFirstTextNode(node: Node): Text | null {
     return null;
 }
 
+/**
+ * Removes leading whitespace-only text nodes and `<br>` elements from `element`.
+ * Run after stripping an alert marker so the residual blank line / line break it
+ * left behind does not appear in the rendered blockquote.
+ * @param element - Element whose leading empty nodes should be trimmed.
+ */
 function removeLeadingEmptyNodes(element: Element): void {
     while (element.firstChild) {
         const first = element.firstChild;
@@ -311,6 +324,12 @@ function removeLeadingEmptyNodes(element: Element): void {
     }
 }
 
+/**
+ * Removes `element` when it is a now-empty `<p>` left behind by marker stripping.
+ * Skips removal if the paragraph still holds visible text or embedded content
+ * (images, inputs, tables, lists, or code) that has no text representation.
+ * @param element - Candidate paragraph to remove.
+ */
 function removeIfEmptyParagraph(element: Element): void {
     if (element.tagName !== 'P') return;
     if (element.textContent?.trim()) return;
@@ -319,6 +338,13 @@ function removeIfEmptyParagraph(element: Element): void {
     element.remove();
 }
 
+/**
+ * Strips a leading GitHub/Joplin alert marker (e.g. `[!note]`) from the start of
+ * each blockquote's content, keeping any trailing title text. Cleans up the empty
+ * text node and line break the marker leaves behind, and drops the wrapping
+ * paragraph if it becomes empty.
+ * @param doc - Document to process in place.
+ */
 function stripGithubAlertMarkers(doc: Document): void {
     doc.querySelectorAll('blockquote').forEach((blockquote) => {
         const firstText = findFirstTextNode(blockquote);
