@@ -322,6 +322,32 @@ describe('Complex Structures and Edge Cases', () => {
         expect(result.trim()).toBe('This is a quote.');
     });
 
+    it('should remove marker-only GitHub alert syntax from blockquotes', () => {
+        const markdown = `> [!note]
+> Test abc`;
+        const result = convertMarkdownToPlainText(markdown, defaultOptions);
+
+        expect(result.trim()).toBe('Test abc');
+    });
+
+    it('should keep GitHub alert titles as blockquote content', () => {
+        const markdown = `> [!note] title
+> Test abc`;
+        const result = convertMarkdownToPlainText(markdown, defaultOptions);
+
+        expect(result.trim()).toBe(`title
+Test abc`);
+    });
+
+    it('should remove extended GitHub alert types from blockquotes', () => {
+        const markdown = `> [!example] Extended title
+> Test abc`;
+        const result = convertMarkdownToPlainText(markdown, defaultOptions);
+
+        expect(result.trim()).toBe(`Extended title
+Test abc`);
+    });
+
     it('should handle nested blockquotes', () => {
         const markdown = `
 > Level 1

@@ -48,6 +48,9 @@ export const HTML_CONSTANTS = {
 
 export const RESOURCE_ID_REGEX = /^[a-f0-9]{32}$/i;
 
+// Matches a GitHub/Joplin alert marker only at the start of blockquote content.
+export const GITHUB_ALERT_MARKER_REGEX = /^\s*\[![^\]\r\n]+\](?:[ \t]*\r?\n|[ \t]*)/i;
+
 // Plain text renderer specific (values not already in CONSTANTS)
 export const PLAIN_TEXT_CONSTANTS = {
     ORDERED_LIST_START: 1,

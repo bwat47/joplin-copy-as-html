@@ -16,7 +16,7 @@ import remarkParse from 'remark-parse';
 import remarkSupersub from 'remark-supersub';
 import { unified } from 'unified';
 import type { Plugin } from 'unified';
-import { PLAIN_TEXT_CONSTANTS, PLAIN_TEXT_REGEX } from '../constants';
+import { GITHUB_ALERT_MARKER_REGEX, PLAIN_TEXT_CONSTANTS, PLAIN_TEXT_REGEX } from '../constants';
 import { logger } from '../logger';
 import type { PlainTextOptions } from '../types';
 
@@ -73,6 +73,24 @@ function walkTextNodes(node: PlainTextNode, visitor: (node: PlainTextNode) => vo
     for (const child of node.children ?? []) {
         walkTextNodes(child, visitor);
     }
+}
+
+function findFirstTextNode(node: PlainTextNode): PlainTextNode | null {
+    if (node.type === 'text') return node;
+
+    for (const child of node.children ?? []) {
+        const textNode = findFirstTextNode(child);
+        if (textNode) return textNode;
+    }
+
+    return null;
+}
+
+function stripGithubAlertMarkerFromBlockquote(node: PlainTextNode): void {
+    const firstText = findFirstTextNode(node);
+    if (!firstText?.value) return;
+
+    firstText.value = firstText.value.replace(GITHUB_ALERT_MARKER_REGEX, '');
 }
 
 function htmlFragmentToPlainText(html: string): string {
@@ -303,6 +321,7 @@ function renderBlockNode(node: PlainTextNode, options: PlainTextOptions, depth =
             return `${PLAIN_TEXT_CONSTANTS.HEADING_PREFIX_CHAR.repeat(level)} ${text}`.trim();
         }
         case 'blockquote':
+            stripGithubAlertMarkerFromBlockquote(node);
             return renderBlocks(node.children ?? [], options, depth).trim();
         case 'code':
             return renderCodeBlock(node, options);

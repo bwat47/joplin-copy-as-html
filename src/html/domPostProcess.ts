@@ -1,5 +1,5 @@
 import DOMPurify from 'dompurify';
-import { HTML_CONSTANTS } from '../constants';
+import { GITHUB_ALERT_MARKER_REGEX, HTML_CONSTANTS } from '../constants';
 import { logger } from '../logger';
 import { convertResourceToBase64, downloadRemoteImageAsBase64 } from './assetProcessor';
 
@@ -284,6 +284,59 @@ function wrapTopLevelImages(doc: Document): void {
         });
 }
 
+function findFirstTextNode(node: Node): Text | null {
+    for (const child of Array.from(node.childNodes)) {
+        if (child.nodeType === 3 && child.textContent?.trim()) {
+            return child as Text;
+        }
+
+        if (child.nodeType === 1) {
+            const textNode = findFirstTextNode(child);
+            if (textNode) return textNode;
+        }
+    }
+
+    return null;
+}
+
+function removeLeadingEmptyNodes(element: Element): void {
+    while (element.firstChild) {
+        const first = element.firstChild;
+        const isEmptyText = first.nodeType === 3 && !first.textContent?.trim();
+        const isLineBreak = first.nodeType === 1 && (first as Element).tagName === 'BR';
+
+        if (!isEmptyText && !isLineBreak) break;
+
+        first.remove();
+    }
+}
+
+function removeIfEmptyParagraph(element: Element): void {
+    if (element.tagName !== 'P') return;
+    if (element.textContent?.trim()) return;
+    if (element.querySelector('img,input,table,ul,ol,pre,code')) return;
+
+    element.remove();
+}
+
+function stripGithubAlertMarkers(doc: Document): void {
+    doc.querySelectorAll('blockquote').forEach((blockquote) => {
+        const firstText = findFirstTextNode(blockquote);
+        if (!firstText?.textContent) return;
+
+        const strippedText = firstText.textContent.replace(GITHUB_ALERT_MARKER_REGEX, '');
+        if (strippedText === firstText.textContent) return;
+
+        firstText.textContent = strippedText;
+
+        const parentElement = firstText.parentElement;
+        if (!parentElement) return;
+
+        removeLeadingEmptyNodes(parentElement);
+        removeIfEmptyParagraph(parentElement);
+    });
+}
+
 /**
  * Checks if an element should skip rasterization (e.g., inside code blocks).
  * @param node - Element to check
@@ -457,12 +510,13 @@ interface PostProcessOptions {
  * 1. Sanitize HTML with DOMPurify (removes scripts, dangerous attributes)
  * 2. Remove duplicate joplin-source elements from code blocks
  * 3. Replace broken resource placeholders with error messages
- * 4. Remove non-image Joplin resource links (:/... or joplin://resource/...)
- * 5. Strip Joplin images if embedding is disabled
- * 6. Embed images (local and remote) as base64 if enabled
- * 7. Disable checkbox inputs
- * 8. Wrap top-level images in paragraph tags for consistent formatting
- * 9. Convert SVG data URIs to PNG (requires Canvas API)
+ * 4. Strip GitHub alert markers from blockquote content
+ * 5. Remove non-image Joplin resource links (:/... or joplin://resource/...)
+ * 6. Strip Joplin images if embedding is disabled
+ * 7. Embed images (local and remote) as base64 if enabled
+ * 8. Disable checkbox inputs
+ * 9. Wrap top-level images in paragraph tags for consistent formatting
+ * 10. Convert SVG data URIs to PNG (requires Canvas API)
  */
 export async function postProcessHtml(
     html: string,
@@ -481,6 +535,7 @@ export async function postProcessHtml(
     // Pipeline of transformations
     removeJoplinSourceElements(doc);
     replaceBrokenResourceSpans(doc);
+    stripGithubAlertMarkers(doc);
     stripJoplinLinks(doc);
     disableCheckboxes(doc);
 
