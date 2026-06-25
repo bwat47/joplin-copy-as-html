@@ -27,6 +27,7 @@ export function validatePlainTextSettings(settings: unknown): PlainTextOptions {
         preserveEmphasis: validateBooleanSetting(s.preserveEmphasis),
         preserveBold: validateBooleanSetting(s.preserveBold),
         preserveHeading: validateBooleanSetting(s.preserveHeading),
+        preserveQuoteMarkers: validateBooleanSetting(s.preserveQuoteMarkers),
         preserveStrikethrough: validateBooleanSetting(s.preserveStrikethrough),
         preserveHorizontalRule: validateBooleanSetting(s.preserveHorizontalRule),
         preserveMark: validateBooleanSetting(s.preserveMark),

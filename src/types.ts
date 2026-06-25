@@ -23,6 +23,7 @@ export interface PlainTextOptions {
     preserveEmphasis: boolean;
     preserveBold: boolean;
     preserveHeading: boolean;
+    preserveQuoteMarkers: boolean;
     preserveStrikethrough: boolean;
     preserveHorizontalRule: boolean;
     preserveMark: boolean;

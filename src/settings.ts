@@ -104,6 +104,15 @@ export async function registerPluginSettings(): Promise<void> {
             label: 'Preserve heading markers',
             description: 'If enabled, heading markers will be preserved in plain text output.',
         },
+        [SETTINGS.PRESERVE_QUOTE_MARKERS]: {
+            value: false,
+            type: SettingItemType.Bool,
+            section: SECTION_ID,
+            public: true,
+            advanced: true,
+            label: 'Preserve quote markers',
+            description: 'If enabled, blockquote markers will be preserved in plain text output.',
+        },
         [SETTINGS.PRESERVE_STRIKETHROUGH]: {
             value: false,
             type: SettingItemType.Bool,
@@ -233,6 +242,7 @@ export async function loadPlainTextSettings(): Promise<PlainTextOptions> {
         preserveEmphasis: await joplin.settings.value(SETTINGS.PRESERVE_EMPHASIS),
         preserveBold: await joplin.settings.value(SETTINGS.PRESERVE_BOLD),
         preserveHeading: await joplin.settings.value(SETTINGS.PRESERVE_HEADING),
+        preserveQuoteMarkers: await joplin.settings.value(SETTINGS.PRESERVE_QUOTE_MARKERS),
         preserveStrikethrough: await joplin.settings.value(SETTINGS.PRESERVE_STRIKETHROUGH),
         preserveHorizontalRule: await joplin.settings.value(SETTINGS.PRESERVE_HORIZONTAL_RULE),
         preserveMark: await joplin.settings.value(SETTINGS.PRESERVE_MARK),

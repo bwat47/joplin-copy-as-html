@@ -122,6 +122,30 @@ describe('domPostProcess', () => {
         expect(out).toContain('Resource');
     });
 
+    it('removes marker-only GitHub alert syntax from blockquotes', async () => {
+        const html = '<blockquote><p>[!note]<br>Test abc</p></blockquote>';
+        const out = await postProcessHtml(html);
+
+        expect(out).toContain('<blockquote><p>Test abc</p></blockquote>');
+        expect(out).not.toContain('[!note]');
+    });
+
+    it('keeps GitHub alert titles as blockquote content', async () => {
+        const html = '<blockquote><p>[!note] title<br>Test abc</p></blockquote>';
+        const out = await postProcessHtml(html);
+
+        expect(out).toContain('<blockquote><p>title<br>Test abc</p></blockquote>');
+        expect(out).not.toContain('[!note]');
+    });
+
+    it('removes extended GitHub alert types from blockquotes', async () => {
+        const html = '<blockquote><p>[!example] Extended title<br>Test abc</p></blockquote>';
+        const out = await postProcessHtml(html);
+
+        expect(out).toContain('<blockquote><p>Extended title<br>Test abc</p></blockquote>');
+        expect(out).not.toContain('[!example]');
+    });
+
     it('wraps top-level raw HTML images in separate paragraph blocks', async () => {
         const html = '<img src="https://x/a.png" alt="a">\n\n<img src="https://x/b.png" alt="b">';
         const out = await postProcessHtml(html, {

@@ -16,6 +16,7 @@ export const SETTINGS = {
     PRESERVE_EMPHASIS: 'preserveEmphasis',
     PRESERVE_BOLD: 'preserveBold',
     PRESERVE_HEADING: 'preserveHeading',
+    PRESERVE_QUOTE_MARKERS: 'preserveQuoteMarkers',
     PRESERVE_STRIKETHROUGH: 'preserveStrikethrough',
     PRESERVE_HORIZONTAL_RULE: 'preserveHorizontalRule',
     PRESERVE_MARK: 'preserveMark',
@@ -48,10 +49,14 @@ export const HTML_CONSTANTS = {
 
 export const RESOURCE_ID_REGEX = /^[a-f0-9]{32}$/i;
 
+// Matches a GitHub/Joplin alert marker only at the start of blockquote content.
+export const GITHUB_ALERT_MARKER_REGEX = /^\s*\[![^\]\r\n]+\](?:[ \t]*\r?\n|[ \t]*)/i;
+
 // Plain text renderer specific (values not already in CONSTANTS)
 export const PLAIN_TEXT_CONSTANTS = {
     ORDERED_LIST_START: 1,
     BULLET_PREFIX: '- ',
+    BLOCKQUOTE_PREFIX: '>',
     ORDERED_SUFFIX: '. ',
     HEADING_PREFIX_CHAR: '#',
     HORIZONTAL_RULE_MARKER: '---',

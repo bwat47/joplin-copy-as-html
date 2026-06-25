@@ -16,7 +16,7 @@ import remarkParse from 'remark-parse';
 import remarkSupersub from 'remark-supersub';
 import { unified } from 'unified';
 import type { Plugin } from 'unified';
-import { PLAIN_TEXT_CONSTANTS, PLAIN_TEXT_REGEX } from '../constants';
+import { GITHUB_ALERT_MARKER_REGEX, PLAIN_TEXT_CONSTANTS, PLAIN_TEXT_REGEX } from '../constants';
 import { logger } from '../logger';
 import type { PlainTextOptions } from '../types';
 
@@ -73,6 +73,52 @@ function walkTextNodes(node: PlainTextNode, visitor: (node: PlainTextNode) => vo
     for (const child of node.children ?? []) {
         walkTextNodes(child, visitor);
     }
+}
+
+/**
+ * Depth-first search for the first text node within an mdast `node`.
+ * Used to locate the start of a blockquote's content (e.g. an alert marker).
+ * @param node - Root node to search under.
+ * @returns The first text node, or null if none exists.
+ */
+function findFirstTextNode(node: PlainTextNode): PlainTextNode | null {
+    if (node.type === 'text') return node;
+
+    for (const child of node.children ?? []) {
+        const textNode = findFirstTextNode(child);
+        if (textNode) return textNode;
+    }
+
+    return null;
+}
+
+/**
+ * Strips a leading GitHub/Joplin alert marker (e.g. `[!note]`) from the start of
+ * a blockquote's first text node, mutating it in place. Any trailing title text
+ * is preserved.
+ * @param node - Blockquote node to process.
+ */
+function stripGithubAlertMarkerFromBlockquote(node: PlainTextNode): void {
+    const firstText = findFirstTextNode(node);
+    if (!firstText?.value) return;
+
+    firstText.value = firstText.value.replace(GITHUB_ALERT_MARKER_REGEX, '');
+}
+
+/**
+ * Re-applies blockquote markers to already-rendered text, prefixing each line
+ * with `> ` (or a bare `>` for blank lines). Used when `preserveQuoteMarkers`
+ * is enabled so the plain-text output keeps its quote structure.
+ * @param text - Rendered blockquote body.
+ * @returns The body with every line quote-prefixed.
+ */
+function prefixBlockquoteLines(text: string): string {
+    return text
+        .split('\n')
+        .map((line) =>
+            line ? `${PLAIN_TEXT_CONSTANTS.BLOCKQUOTE_PREFIX} ${line}` : PLAIN_TEXT_CONSTANTS.BLOCKQUOTE_PREFIX
+        )
+        .join('\n');
 }
 
 function htmlFragmentToPlainText(html: string): string {
@@ -302,8 +348,12 @@ function renderBlockNode(node: PlainTextNode, options: PlainTextOptions, depth =
             const level = Math.min(Math.max(node.depth ?? 1, 1), 6);
             return `${PLAIN_TEXT_CONSTANTS.HEADING_PREFIX_CHAR.repeat(level)} ${text}`.trim();
         }
-        case 'blockquote':
-            return renderBlocks(node.children ?? [], options, depth).trim();
+        case 'blockquote': {
+            stripGithubAlertMarkerFromBlockquote(node);
+            const quoteBody = renderBlocks(node.children ?? [], options, depth).trim();
+            if (!quoteBody) return '';
+            return options.preserveQuoteMarkers ? prefixBlockquoteLines(quoteBody) : quoteBody;
+        }
         case 'code':
             return renderCodeBlock(node, options);
         case 'html':

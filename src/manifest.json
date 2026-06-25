@@ -82,6 +82,12 @@
             "description": "If enabled, heading markers will be preserved in plain text output.",
             "value": false
         },
+        "preserveQuoteMarkers": {
+            "type": "bool",
+            "label": "Preserve quote markers",
+            "description": "If enabled, blockquote markers will be preserved in plain text output.",
+            "value": false
+        },
         "preserveStrikethrough": {
             "type": "bool",
             "label": "Preserve strikethrough markers",
