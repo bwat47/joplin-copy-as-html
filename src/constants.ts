@@ -16,6 +16,7 @@ export const SETTINGS = {
     PRESERVE_EMPHASIS: 'preserveEmphasis',
     PRESERVE_BOLD: 'preserveBold',
     PRESERVE_HEADING: 'preserveHeading',
+    PRESERVE_QUOTE_MARKERS: 'preserveQuoteMarkers',
     PRESERVE_STRIKETHROUGH: 'preserveStrikethrough',
     PRESERVE_HORIZONTAL_RULE: 'preserveHorizontalRule',
     PRESERVE_MARK: 'preserveMark',
@@ -55,6 +56,7 @@ export const GITHUB_ALERT_MARKER_REGEX = /^\s*\[![^\]\r\n]+\](?:[ \t]*\r?\n|[ \t
 export const PLAIN_TEXT_CONSTANTS = {
     ORDERED_LIST_START: 1,
     BULLET_PREFIX: '- ',
+    BLOCKQUOTE_PREFIX: '>',
     ORDERED_SUFFIX: '. ',
     HEADING_PREFIX_CHAR: '#',
     HORIZONTAL_RULE_MARKER: '---',

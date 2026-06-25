@@ -93,6 +93,15 @@ function stripGithubAlertMarkerFromBlockquote(node: PlainTextNode): void {
     firstText.value = firstText.value.replace(GITHUB_ALERT_MARKER_REGEX, '');
 }
 
+function prefixBlockquoteLines(text: string): string {
+    return text
+        .split('\n')
+        .map((line) =>
+            line ? `${PLAIN_TEXT_CONSTANTS.BLOCKQUOTE_PREFIX} ${line}` : PLAIN_TEXT_CONSTANTS.BLOCKQUOTE_PREFIX
+        )
+        .join('\n');
+}
+
 function htmlFragmentToPlainText(html: string): string {
     if (!html) return '';
     if (!domParser) {
@@ -320,9 +329,12 @@ function renderBlockNode(node: PlainTextNode, options: PlainTextOptions, depth =
             const level = Math.min(Math.max(node.depth ?? 1, 1), 6);
             return `${PLAIN_TEXT_CONSTANTS.HEADING_PREFIX_CHAR.repeat(level)} ${text}`.trim();
         }
-        case 'blockquote':
+        case 'blockquote': {
             stripGithubAlertMarkerFromBlockquote(node);
-            return renderBlocks(node.children ?? [], options, depth).trim();
+            const quoteBody = renderBlocks(node.children ?? [], options, depth).trim();
+            if (!quoteBody) return '';
+            return options.preserveQuoteMarkers ? prefixBlockquoteLines(quoteBody) : quoteBody;
+        }
         case 'code':
             return renderCodeBlock(node, options);
         case 'html':

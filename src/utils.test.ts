@@ -33,6 +33,7 @@ describe('validatePlainTextSettings', () => {
             listSpacing: 'wide',
             preserveTablePipes: 'yes',
             preserveCodeBackticks: 'yes',
+            preserveQuoteMarkers: 'yes',
         };
 
         const validated = validatePlainTextSettings(invalidSettings);
@@ -43,6 +44,7 @@ describe('validatePlainTextSettings', () => {
         expect(validated.listSpacing).toBe('tight');
         expect(validated.preserveTablePipes).toBe(false);
         expect(validated.preserveCodeBackticks).toBe(false);
+        expect(validated.preserveQuoteMarkers).toBe(false);
     });
 
     it('should return default values for undefined or null settings', () => {
@@ -54,6 +56,7 @@ describe('validatePlainTextSettings', () => {
         expect(validatedUndefined.displayEmojis).toBe(true);
         expect(validatedUndefined.preserveTablePipes).toBe(false);
         expect(validatedUndefined.preserveCodeBackticks).toBe(false);
+        expect(validatedUndefined.preserveQuoteMarkers).toBe(false);
 
         const validatedNull = validatePlainTextSettings(null);
         expect(validatedNull.preserveSuperscript).toBe(false);
@@ -63,6 +66,7 @@ describe('validatePlainTextSettings', () => {
         expect(validatedNull.displayEmojis).toBe(true);
         expect(validatedNull.preserveTablePipes).toBe(false);
         expect(validatedNull.preserveCodeBackticks).toBe(false);
+        expect(validatedNull.preserveQuoteMarkers).toBe(false);
     });
 });
 

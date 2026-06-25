@@ -105,6 +105,8 @@ The following options are provided to preserve specific markdown formatting mark
 
 - Preserve heading markers
 
+- Preserve quote markers
+
 - Preserve strikethrough markers
 
 - Preserve horizontal rules
