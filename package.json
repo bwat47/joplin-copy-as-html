@@ -9,7 +9,7 @@
         "lint": "eslint --ext .ts src/",
         "lint:fix": "eslint --ext .ts src/ --fix",
         "format": "prettier --write \"src/**/*.ts\"",
-        "test": "jest"
+        "test": "vitest run"
     },
     "license": "MIT",
     "keywords": [
@@ -19,18 +19,14 @@
         "publish"
     ],
     "devDependencies": {
-        "@babel/core": "^7.29.0",
-        "@babel/preset-env": "^7.29.5",
         "@eslint/eslintrc": "^3.3.5",
         "@eslint/js": "^10.0.1",
         "@types/dompurify": "^3.2.0",
-        "@types/jest": "^30.0.0",
-        "@types/jsdom": "^27.0.0",
+        "@types/jsdom": "^28.0.3",
         "@types/mdast": "^4.0.4",
         "@types/node": "^25.6.0",
         "@typescript-eslint/eslint-plugin": "^8.59.2",
         "@typescript-eslint/parser": "^8.59.2",
-        "babel-jest": "^30.2.0",
         "baseline-browser-mapping": "^2.9.6",
         "chalk": "^4.1.0",
         "copy-webpack-plugin": "^14.0.0",
@@ -40,13 +36,12 @@
         "eslint-plugin-prettier": "^5.5.5",
         "fs-extra": "^11.3.2",
         "glob": "^8.0.3",
-        "jest": "^30.3.0",
-        "jest-environment-jsdom": "^30.2.0",
+        "jsdom": "^29.1.1",
         "prettier": "^3.8.3",
         "tar": "^7.5.7",
-        "ts-jest": "^29.4.6",
         "ts-loader": "^9.5.7",
         "typescript": "^6.0.3",
+        "vitest": "^4.0.0",
         "webpack": "^5.103.0",
         "webpack-cli": "^6.0.1"
     },

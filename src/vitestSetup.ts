@@ -1,37 +1,37 @@
-// Jest setup file - automatically loaded before all tests
+// Vitest setup file - automatically loaded before all tests
 // Centralizes the Joplin API mock that was previously duplicated across test files
 
 import { resetAllJoplinMocks } from './testHelpers';
 
-jest.mock('api', () => ({
+vi.mock('api', () => ({
     __esModule: true,
     default: {
         data: {
-            get: jest.fn(),
+            get: vi.fn(),
         },
         settings: {
-            value: jest.fn(),
-            globalValue: jest.fn(),
+            value: vi.fn(),
+            globalValue: vi.fn(),
         },
         commands: {
-            execute: jest.fn(),
-            register: jest.fn(),
+            execute: vi.fn(),
+            register: vi.fn(),
         },
         clipboard: {
-            writeHtml: jest.fn(),
-            writeText: jest.fn(),
-            write: jest.fn(),
+            writeHtml: vi.fn(),
+            writeText: vi.fn(),
+            write: vi.fn(),
         },
         views: {
             menuItems: {
-                create: jest.fn(),
+                create: vi.fn(),
             },
             dialogs: {
-                showToast: jest.fn(),
+                showToast: vi.fn(),
             },
         },
         workspace: {
-            filterEditorContextMenu: jest.fn(),
+            filterEditorContextMenu: vi.fn(),
         },
     },
 }));

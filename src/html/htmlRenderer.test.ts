@@ -1,21 +1,22 @@
 import { processHtmlConversion } from './htmlRenderer';
 import joplin from 'api';
+import type { Mock } from 'vitest';
 import { mockHtmlSettings } from '../testHelpers';
 import * as domPostProcess from './domPostProcess';
 import * as assetProcessor from './assetProcessor';
 
-jest.mock('./domPostProcess');
-jest.mock('./assetProcessor');
+vi.mock('./domPostProcess');
+vi.mock('./assetProcessor');
 
-const mockPostProcessHtml = domPostProcess.postProcessHtml as jest.Mock;
-const mockGetUserStylesheet = assetProcessor.getUserStylesheet as jest.Mock;
+const mockPostProcessHtml = domPostProcess.postProcessHtml as Mock;
+const mockGetUserStylesheet = assetProcessor.getUserStylesheet as Mock;
 
 describe('processHtmlConversion', () => {
     beforeEach(() => {
-        jest.clearAllMocks();
+        vi.clearAllMocks();
         mockPostProcessHtml.mockImplementation((html) => Promise.resolve(html));
         mockGetUserStylesheet.mockResolvedValue('body { color: red; }');
-        (joplin.commands.execute as jest.Mock).mockResolvedValue({ html: '<p>Mocked Render</p>' });
+        (joplin.commands.execute as Mock).mockResolvedValue({ html: '<p>Mocked Render</p>' });
     });
 
     it('calls renderMarkup and returns processed HTML', async () => {
@@ -68,7 +69,7 @@ describe('processHtmlConversion', () => {
     });
 
     it('handles empty renderMarkup result', async () => {
-        (joplin.commands.execute as jest.Mock).mockResolvedValue(null);
+        (joplin.commands.execute as Mock).mockResolvedValue(null);
         const result = await processHtmlConversion('md');
         expect(result).toBe('');
     });

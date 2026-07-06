@@ -1,15 +1,16 @@
 import { postProcessHtml } from './domPostProcess';
 import * as assetProcessor from './assetProcessor';
+import type { Mock } from 'vitest';
 
 // Mock the assetProcessor module
-jest.mock('./assetProcessor');
+vi.mock('./assetProcessor');
 
-const mockConvertResource = assetProcessor.convertResourceToBase64 as jest.Mock;
-const mockDownloadRemote = assetProcessor.downloadRemoteImageAsBase64 as jest.Mock;
+const mockConvertResource = assetProcessor.convertResourceToBase64 as Mock;
+const mockDownloadRemote = assetProcessor.downloadRemoteImageAsBase64 as Mock;
 
 describe('domPostProcess', () => {
     beforeEach(() => {
-        jest.clearAllMocks();
+        vi.clearAllMocks();
         // Default mocks
         mockConvertResource.mockResolvedValue('data:image/png;base64,LOCAL');
         mockDownloadRemote.mockResolvedValue('data:image/png;base64,REMOTE');
@@ -183,7 +184,7 @@ describe('domPostProcess', () => {
         (globalThis as unknown as { Image: typeof Image }).Image = FakeImage as unknown as typeof Image;
 
         const originalCreateElement = document.createElement.bind(document);
-        const createElementSpy = jest.spyOn(document, 'createElement').mockImplementation(function (
+        const createElementSpy = vi.spyOn(document, 'createElement').mockImplementation(function (
             this: Document,
             tagName: string,
             options?: ElementCreationOptions
@@ -191,11 +192,11 @@ describe('domPostProcess', () => {
             const element = originalCreateElement(tagName, options) as HTMLElement;
             if (tagName.toLowerCase() === 'canvas') {
                 const canvas = element as unknown as HTMLCanvasElement;
-                (canvas as unknown as { getContext: () => unknown }).getContext = jest.fn().mockReturnValue({
-                    clearRect: jest.fn(),
-                    drawImage: jest.fn(),
+                (canvas as unknown as { getContext: () => unknown }).getContext = vi.fn().mockReturnValue({
+                    clearRect: vi.fn(),
+                    drawImage: vi.fn(),
                 });
-                (canvas as unknown as { toDataURL: () => string }).toDataURL = jest
+                (canvas as unknown as { toDataURL: () => string }).toDataURL = vi
                     .fn()
                     .mockReturnValue('data:image/png;base64,TESTPNG');
                 return canvas as unknown as HTMLElement;

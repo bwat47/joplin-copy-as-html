@@ -8,12 +8,12 @@
     - `manifest.json` Plugin manifest; keep in sync when adding features.
 - `tests` live alongside sources as `*.test.ts` files.
 - `publish/` Build artifacts (`*.jpl`) created by the dist task.
-- `webpack.config.js` Build pipeline; `jest.config.js` test setup.
+- `webpack.config.js` Build pipeline; `vitest.config.ts` test setup.
 - `CODE_DOCUMENTATION.md` - overview of project architecture and design decisions.
 
 ## Build, Test, and Development Commands
 
-- `npm test` Run Jest test suite.
+- `npm test` Run Vitest test suite.
 - `npm run dist` Build plugin and create archive at `publish/*.jpl`.
 - `npm run lint` Lint TypeScript with ESLint.
 - `npm run lint:fix` Auto-fix lint issues.
@@ -53,7 +53,7 @@ Use Node LTS (18+) and npm 9+ for consistency.
 
 ## Testing Guidelines
 
-- Framework: Jest with `ts-jest`/`jsdom` where needed.
+- Framework: Vitest with `jsdom` where needed.
 - Place tests next to source: `src/<area>/<name>.test.ts`.
 - Keep tests deterministic; mock I/O and Joplin APIs.
 - Run `npm test` locally; new features should include tests.

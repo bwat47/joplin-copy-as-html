@@ -1,32 +1,33 @@
 import joplin from 'api';
+import type { Mock } from 'vitest';
 import { SETTINGS } from './constants'; // Uses real keys so mocks stay in sync
 
-// NOTE: The joplin API mock (jest.mock('api', ...)) is centralized in src/jestSetup.ts
-// and automatically applied to all test files via Jest's setupFilesAfterEnv configuration.
+// NOTE: The joplin API mock (vi.mock('api', ...)) is centralized in src/vitestSetup.ts
+// and automatically applied to all test files via Vitest's setupFiles configuration.
 
 // Helper to reset all mocked Joplin APIs.
 export function resetAllJoplinMocks(): void {
-    (joplin.data.get as jest.Mock).mockReset();
-    (joplin.settings.value as jest.Mock).mockReset();
-    (joplin.settings.globalValue as jest.Mock).mockReset();
+    (joplin.data.get as Mock).mockReset();
+    (joplin.settings.value as Mock).mockReset();
+    (joplin.settings.globalValue as Mock).mockReset();
 
     // Commands
     if (joplin.commands) {
-        (joplin.commands.execute as jest.Mock).mockReset();
-        (joplin.commands.register as jest.Mock).mockReset();
+        (joplin.commands.execute as Mock).mockReset();
+        (joplin.commands.register as Mock).mockReset();
     }
 
     // Clipboard
     if (joplin.clipboard) {
-        (joplin.clipboard.writeHtml as jest.Mock).mockReset();
-        (joplin.clipboard.writeText as jest.Mock).mockReset();
-        (joplin.clipboard.write as jest.Mock).mockReset();
+        (joplin.clipboard.writeHtml as Mock).mockReset();
+        (joplin.clipboard.writeText as Mock).mockReset();
+        (joplin.clipboard.write as Mock).mockReset();
     }
 
     // Views
     if (joplin.views) {
-        (joplin.views.menuItems.create as jest.Mock).mockReset();
-        (joplin.views.dialogs.showToast as jest.Mock).mockReset();
+        (joplin.views.menuItems.create as Mock).mockReset();
+        (joplin.views.dialogs.showToast as Mock).mockReset();
     }
 }
 
@@ -40,7 +41,7 @@ export function mockHtmlSettings(
     const fullKey = SETTINGS.EXPORT_FULL_HTML;
     const svgKey = SETTINGS.EMBED_SVG_AS_PNG;
 
-    (joplin.settings.value as jest.Mock).mockImplementation((key: string) => {
+    (joplin.settings.value as Mock).mockImplementation((key: string) => {
         if (key === embedKey) return Promise.resolve(embedImages);
         if (key === fullKey) return Promise.resolve(exportFullHtml);
         if (key === svgKey) return Promise.resolve(embedSvgAsPng);

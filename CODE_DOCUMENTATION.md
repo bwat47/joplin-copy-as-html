@@ -8,8 +8,8 @@
 ## Build & Tooling
 
 - Target Node LTS (18+) and npm 9+.
-- Key scripts: `npm run dist` (build `.jpl`), `npm test` (Jest), `npm run lint`, `npm run format`, `npm run updateVersion`.
-- Bundled with Webpack; tests run through Jest + ts-jest.
+- Key scripts: `npm run dist` (build `.jpl`), `npm test` (Vitest), `npm run lint`, `npm run format`, `npm run updateVersion`.
+- Bundled with Webpack; tests run through Vitest.
 
 ## Repository Layout
 
@@ -88,4 +88,4 @@ All default to `false` unless noted.
 ## Dependencies
 
 - Runtime: remark/unified plus plugins (`gfm`, `emoji`, `flexible-markers`, `ins`, `supersub`); `string-width` for alignment; `dompurify` for sanitization.
-- Dev: TypeScript, Jest/ts-jest, ESLint, Prettier, Webpack, and the Joplin plugin tooling defined in `package.json`.
+- Dev: TypeScript, Vitest, ESLint, Prettier, Webpack, and the Joplin plugin tooling defined in `package.json`.
