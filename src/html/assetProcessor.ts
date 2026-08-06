@@ -133,6 +133,78 @@ export async function convertResourceToBase64(id: string): Promise<string | null
 }
 
 /**
+ * Validates a remote image response's status, Content-Type and declared Content-Length.
+ * @param response The fetch response to validate.
+ * @param url The requested URL (for logging).
+ * @returns The raw Content-Type header, or null if the response should be rejected.
+ */
+function validateRemoteImageHeaders(response: Response, url: string): string | null {
+    if (!response.ok) {
+        logger.warn(`Remote image download failed ${url}: ${response.status} ${response.statusText}`);
+        return null;
+    }
+
+    const contentType = response.headers.get('content-type');
+    if (!contentType?.toLowerCase().startsWith('image/')) {
+        logger.warn(`Remote content is not an image ${url} (Content-Type: ${contentType})`);
+        return null;
+    }
+
+    const contentLengthHeader = response.headers.get('content-length');
+    const declaredSize = contentLengthHeader ? Number(contentLengthHeader) : NaN;
+    if (!Number.isNaN(declaredSize) && declaredSize > CONSTANTS.MAX_IMAGE_SIZE_BYTES) {
+        logger.warn(
+            `Remote image too large ${url}: ${formatMB(declaredSize)} (max ${formatMB(CONSTANTS.MAX_IMAGE_SIZE_BYTES)})`
+        );
+        return null;
+    }
+
+    return contentType;
+}
+
+/**
+ * Streams a response body into a Buffer, aborting if it exceeds the maximum image size.
+ * @param reader Reader for the response body.
+ * @param url The requested URL (for logging).
+ * @returns The downloaded bytes, or null if the size limit was exceeded.
+ */
+async function readRemoteImageBody(
+    reader: ReadableStreamDefaultReader<Uint8Array>,
+    url: string
+): Promise<Buffer | null> {
+    const chunks: Buffer[] = [];
+    let totalSize = 0;
+
+    try {
+        for (;;) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            if (!value) continue;
+
+            const chunk = Buffer.from(value);
+            if (totalSize + chunk.length > CONSTANTS.MAX_IMAGE_SIZE_BYTES) {
+                await reader.cancel();
+                logger.warn(
+                    `Remote image exceeded maximum size during download ${url}: ${formatMB(totalSize + chunk.length)} (max ${formatMB(CONSTANTS.MAX_IMAGE_SIZE_BYTES)})`
+                );
+                return null;
+            }
+
+            totalSize += chunk.length;
+            chunks.push(chunk);
+        }
+
+        if (totalSize > CONSTANTS.MAX_IMAGE_SIZE_WARNING) {
+            logger.warn(`Large remote image detected: ${url} is ${formatMB(totalSize)}`);
+        }
+
+        return Buffer.concat(chunks);
+    } finally {
+        reader.releaseLock();
+    }
+}
+
+/**
  * Downloads a remote image and converts it to a base64 data URI.
  * Validates Content-Type and size.
  * @param url HTTP/HTTPS image URL
@@ -160,68 +232,18 @@ export async function downloadRemoteImageAsBase64(url: string): Promise<string |
             signal: combinedSignal,
         });
 
-        if (!response.ok) {
-            logger.warn(`Remote image download failed ${url}: ${response.status} ${response.statusText}`);
-            return null;
-        }
+        const contentType = validateRemoteImageHeaders(response, url);
+        if (!contentType) return null;
 
-        const contentType = response.headers.get('content-type');
-        const normalizedContentType = contentType?.toLowerCase();
-        if (!normalizedContentType?.startsWith('image/')) {
-            logger.warn(`Remote content is not an image ${url} (Content-Type: ${contentType})`);
-            return null;
-        }
-
-        const contentLengthHeader = response.headers.get('content-length');
-        if (contentLengthHeader) {
-            const declaredSize = Number(contentLengthHeader);
-            if (!Number.isNaN(declaredSize) && declaredSize > CONSTANTS.MAX_IMAGE_SIZE_BYTES) {
-                logger.warn(
-                    `Remote image too large ${url}: ${formatMB(declaredSize)} (max ${formatMB(CONSTANTS.MAX_IMAGE_SIZE_BYTES)})`
-                );
-                return null;
-            }
-        }
-
+        // Streaming path for Chromium/Electron environments
         const reader = response.body?.getReader();
-        let buffer: Buffer;
-
         if (!reader) {
             logger.warn(`Remote content body is not streamable: ${url}`);
             return null;
         }
 
-        // Streaming path for Chromium/Electron environments
-        const chunks: Buffer[] = [];
-        let totalSize = 0;
-
-        try {
-            while (true) {
-                const { done, value } = await reader.read();
-                if (done) break;
-                if (!value) continue;
-
-                const chunk = Buffer.from(value);
-                if (totalSize + chunk.length > CONSTANTS.MAX_IMAGE_SIZE_BYTES) {
-                    await reader.cancel();
-                    logger.warn(
-                        `Remote image exceeded maximum size during download ${url}: ${formatMB(totalSize + chunk.length)} (max ${formatMB(CONSTANTS.MAX_IMAGE_SIZE_BYTES)})`
-                    );
-                    return null;
-                }
-
-                totalSize += chunk.length;
-                chunks.push(chunk);
-            }
-
-            if (totalSize > CONSTANTS.MAX_IMAGE_SIZE_WARNING) {
-                logger.warn(`Large remote image detected: ${url} is ${formatMB(totalSize)}`);
-            }
-
-            buffer = Buffer.concat(chunks);
-        } finally {
-            reader.releaseLock();
-        }
+        const buffer = await readRemoteImageBody(reader, url);
+        if (!buffer) return null;
 
         const base64 = buffer.toString('base64');
         return `data:${contentType};base64,${base64}`;
