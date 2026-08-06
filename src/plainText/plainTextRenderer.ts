@@ -188,8 +188,18 @@ function renderInlineCode(value: string, options: PlainTextOptions): string {
     return `${fence}${padding}${value}${padding}${fence}`;
 }
 
+/**
+ * Removes trailing newlines without a regex. A pattern such as `/\n+$/` has
+ * super-linear backtracking on long newline runs, so this scans backwards instead.
+ */
+function stripTrailingNewlines(text: string): string {
+    let end = text.length;
+    while (end > 0 && text[end - 1] === '\n') end--;
+    return text.slice(0, end);
+}
+
 function renderCodeBlock(node: PlainTextNode, options: PlainTextOptions): string {
-    const value = (node.value ?? '').replace(/\n+$/g, '');
+    const value = stripTrailingNewlines(node.value ?? '');
     if (!options.preserveCodeBackticks) return value;
 
     const fence = backtickFenceFor(value, 3);
@@ -243,28 +253,50 @@ function indentUnit(options: PlainTextOptions): string {
     return options.indentType === 'tabs' ? '\t' : ' '.repeat(PLAIN_TEXT_CONSTANTS.SPACES_PER_INDENT);
 }
 
+/**
+ * Renders one child of a list item. Paragraphs are rendered inline so they stay on
+ * the marker's line; every other block delegates to `renderBlockNode`. Nested lists
+ * keep the current depth because `renderListNode` already indents its own items.
+ */
+function renderListItemChild(child: PlainTextNode, options: PlainTextOptions, depth: number): string {
+    if (child.type === 'paragraph') {
+        return normalizeBlockText(renderChildrenInline(child.children, options));
+    }
+
+    return renderBlockNode(child, options, child.type === 'list' ? depth : depth + 1);
+}
+
+/**
+ * Appends a blank separator line when loose spacing is enabled and the previous
+ * line is not already blank.
+ */
+function pushLooseSeparator(lines: string[], options: PlainTextOptions): void {
+    if (options.listSpacing === 'loose' && lines.length > 0 && lines[lines.length - 1] !== '') {
+        lines.push('');
+    }
+}
+
 function renderListItemContent(node: PlainTextNode, options: PlainTextOptions, depth: number): string[] {
     const lines: string[] = [];
 
     for (const child of node.children ?? []) {
-        if (child.type === 'paragraph') {
-            const paragraph = normalizeBlockText(renderChildrenInline(child.children, options));
-            if (options.listSpacing === 'loose' && paragraph && lines.length > 0 && lines[lines.length - 1] !== '') {
-                lines.push('');
-            }
-            if (paragraph) lines.push(...paragraph.split('\n'));
-            continue;
-        }
+        const block = renderListItemChild(child, options, depth);
+        if (!block) continue;
 
-        const block = renderBlockNode(child, options, child.type === 'list' ? depth : depth + 1);
-        if (options.listSpacing === 'loose' && block && lines.length > 0 && lines[lines.length - 1] !== '') {
-            lines.push('');
-        }
-
-        if (block) lines.push(...block.split('\n'));
+        pushLooseSeparator(lines, options);
+        lines.push(...block.split('\n'));
     }
 
     return lines;
+}
+
+/**
+ * Returns the task-list checkbox prefix for a list item, or an empty string when
+ * the item is not a task item.
+ */
+function taskMarkerFor(item: PlainTextNode): string {
+    if (typeof item.checked !== 'boolean') return '';
+    return item.checked ? '[x] ' : '[ ] ';
 }
 
 function renderListNode(node: PlainTextNode, options: PlainTextOptions, depth: number): string {
@@ -276,7 +308,7 @@ function renderListNode(node: PlainTextNode, options: PlainTextOptions, depth: n
 
     items.forEach((item, index) => {
         const ordered = !!node.ordered;
-        const taskMarker = typeof item.checked === 'boolean' ? `[${item.checked ? 'x' : ' '}] ` : '';
+        const taskMarker = taskMarkerFor(item);
         const marker = ordered
             ? `${start + index}${PLAIN_TEXT_CONSTANTS.ORDERED_SUFFIX}`
             : PLAIN_TEXT_CONSTANTS.BULLET_PREFIX;
@@ -294,6 +326,18 @@ function renderListNode(node: PlainTextNode, options: PlainTextOptions, depth: n
     });
 
     return lines.join('\n');
+}
+
+/**
+ * Joins one table row's cells, either wrapped in pipe delimiters (`| a | b |`) or
+ * separated by `plainSeparator` when pipes are not preserved.
+ */
+function joinTableCells(cells: string[], preservePipes: boolean, plainSeparator: string): string {
+    if (!preservePipes) return cells.join(plainSeparator);
+
+    const pipe = PLAIN_TEXT_CONSTANTS.TABLE_PIPE;
+    const cellSeparator = ` ${pipe} `;
+    return `${pipe} ${cells.join(cellSeparator)} ${pipe}`;
 }
 
 function renderTableNode(node: PlainTextNode, options: PlainTextOptions): string {
@@ -319,19 +363,13 @@ function renderTableNode(node: PlainTextNode, options: PlainTextOptions): string
     rows.forEach((row, rowIndex) => {
         const paddedCells = row.map((cell, index) => padCell(cell, columnWidths[index] ?? 0));
         lines.push(
-            options.preserveTablePipes
-                ? `${PLAIN_TEXT_CONSTANTS.TABLE_PIPE} ${paddedCells.join(` ${PLAIN_TEXT_CONSTANTS.TABLE_PIPE} `)} ${PLAIN_TEXT_CONSTANTS.TABLE_PIPE}`
-                : paddedCells.join(' '.repeat(PLAIN_TEXT_CONSTANTS.TABLE_CELL_PADDING))
+            joinTableCells(paddedCells, options.preserveTablePipes, ' '.repeat(PLAIN_TEXT_CONSTANTS.TABLE_CELL_PADDING))
         );
         if (rowIndex === 0 && rows.length > 1) {
             const separatorCells = columnWidths.map((width) =>
                 '-'.repeat(Math.max(PLAIN_TEXT_CONSTANTS.MIN_COLUMN_WIDTH, width))
             );
-            lines.push(
-                options.preserveTablePipes
-                    ? `${PLAIN_TEXT_CONSTANTS.TABLE_PIPE} ${separatorCells.join(` ${PLAIN_TEXT_CONSTANTS.TABLE_PIPE} `)} ${PLAIN_TEXT_CONSTANTS.TABLE_PIPE}`
-                    : separatorCells.join('  ')
-            );
+            lines.push(joinTableCells(separatorCells, options.preserveTablePipes, '  '));
         }
     });
 
