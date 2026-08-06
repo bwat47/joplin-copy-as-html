@@ -25,27 +25,17 @@ const defaultOptions: PlainTextOptions = {
 };
 
 describe('Link Handling in Plain Text', () => {
-    it('should display only the link title when hyperlinkBehavior is "title"', () => {
+    it.each([
+        ['title', 'Joplin'],
+        ['url', 'https://joplinapp.org'],
+        ['markdown', '[Joplin](https://joplinapp.org)'],
+    ] as const)('should render the expected output when hyperlinkBehavior is "%s"', (hyperlinkBehavior, expected) => {
         const markdown = '[Joplin](https://joplinapp.org)';
         // Use the spread operator to create a complete options object
-        const options: PlainTextOptions = { ...defaultOptions, hyperlinkBehavior: 'title' };
+        const options: PlainTextOptions = { ...defaultOptions, hyperlinkBehavior };
         const result = convertMarkdownToPlainText(markdown, options);
         // Use .trim() to remove any trailing newlines from the renderer
-        expect(result.trim()).toBe('Joplin');
-    });
-
-    it('should display only the URL when hyperlinkBehavior is "url"', () => {
-        const markdown = '[Joplin](https://joplinapp.org)';
-        const options: PlainTextOptions = { ...defaultOptions, hyperlinkBehavior: 'url' };
-        const result = convertMarkdownToPlainText(markdown, options);
-        expect(result.trim()).toBe('https://joplinapp.org');
-    });
-
-    it('should display the full markdown link when hyperlinkBehavior is "markdown"', () => {
-        const markdown = '[Joplin](https://joplinapp.org)';
-        const options: PlainTextOptions = { ...defaultOptions, hyperlinkBehavior: 'markdown' };
-        const result = convertMarkdownToPlainText(markdown, options);
-        expect(result.trim()).toBe('[Joplin](https://joplinapp.org)');
+        expect(result.trim()).toBe(expected);
     });
 });
 
@@ -252,25 +242,22 @@ describe('Emoji Handling', () => {
         expect(result.trim()).toBe('Joplin is great 🎉');
     });
 
-    it('should strip emojis when the setting is disabled', () => {
-        const markdown = 'Joplin is great :tada:';
+    it.each([
+        ['should strip emojis', 'Joplin is great :tada:', 'Joplin is great'],
+        [
+            'should strip valid emoji aliases without corrupting colon-delimited text',
+            'Time 10:30:45 and :tada: plus :+1: remains formatted.',
+            'Time 10:30:45 and  plus  remains formatted.',
+        ],
+        [
+            'should leave unknown shortcode-like text unchanged',
+            'Keep :not-an-emoji: as written.',
+            'Keep :not-an-emoji: as written.',
+        ],
+    ])('%s when the setting is disabled', (_name, markdown, expected) => {
         const options = { ...defaultOptions, displayEmojis: false };
         const result = convertMarkdownToPlainText(markdown, options);
-        expect(result.trim()).toBe('Joplin is great');
-    });
-
-    it('should strip valid emoji aliases without corrupting colon-delimited text', () => {
-        const markdown = 'Time 10:30:45 and :tada: plus :+1: remains formatted.';
-        const options = { ...defaultOptions, displayEmojis: false };
-        const result = convertMarkdownToPlainText(markdown, options);
-        expect(result.trim()).toBe('Time 10:30:45 and  plus  remains formatted.');
-    });
-
-    it('should leave unknown shortcode-like text unchanged when emoji display is disabled', () => {
-        const markdown = 'Keep :not-an-emoji: as written.';
-        const options = { ...defaultOptions, displayEmojis: false };
-        const result = convertMarkdownToPlainText(markdown, options);
-        expect(result.trim()).toBe('Keep :not-an-emoji: as written.');
+        expect(result.trim()).toBe(expected);
     });
 
     it('should render emojis contained within table cells', () => {
@@ -483,149 +470,113 @@ Outro`;
 
 // Code Block Handling
 describe('Code Block Handling', () => {
-    it('should preserve content of fenced code blocks', () => {
-        const markdown = '```javascript\nconst x = 1;\nconsole.log(x);\n```';
+    it.each([
+        [
+            'should preserve content of fenced code blocks',
+            '```javascript\nconst x = 1;\nconsole.log(x);\n```',
+            'const x = 1;\nconsole.log(x);',
+        ],
+        [
+            'should preserve content of fenced code blocks with language specifier',
+            '```python\nprint("Hello, World!")\n```',
+            'print("Hello, World!")',
+        ],
+        [
+            'should handle fenced code blocks without language specifier',
+            '```\nsome code here\nmore code\n```',
+            'some code here\nmore code',
+        ],
+        [
+            'should preserve indented code blocks',
+            '    const x = 1;\n    console.log(x);',
+            'const x = 1;\nconsole.log(x);',
+        ],
+        [
+            'should preserve inline code content',
+            'Use the `console.log()` function to debug.',
+            'Use the console.log() function to debug.',
+        ],
+        [
+            'should handle multiple inline code spans',
+            'Variables like `x` and `y` are common in `math`.',
+            'Variables like x and y are common in math.',
+        ],
+        ['should handle empty code blocks', '```\n```', ''],
+        [
+            'should handle code blocks with special characters',
+            '```\n<div class="test">Hello & goodbye</div>\n```',
+            '<div class="test">Hello & goodbye</div>',
+        ],
+        [
+            'should handle nested backticks in inline code',
+            'Use `` `backticks` `` for inline code.',
+            'Use `backticks` for inline code.',
+        ],
+        [
+            'should remove fence markers but preserve content',
+            '```typescript\nfunction test() {\n    return "hello";\n}\n```',
+            'function test() {\n    return "hello";\n}',
+        ],
+    ])('%s', (_name, markdown, expected) => {
         const result = convertMarkdownToPlainText(markdown, defaultOptions);
-        expect(result.trim()).toBe('const x = 1;\nconsole.log(x);');
-    });
-
-    it('should preserve content of fenced code blocks with language specifier', () => {
-        const markdown = '```python\nprint("Hello, World!")\n```';
-        const result = convertMarkdownToPlainText(markdown, defaultOptions);
-        expect(result.trim()).toBe('print("Hello, World!")');
-    });
-
-    it('should handle fenced code blocks without language specifier', () => {
-        const markdown = '```\nsome code here\nmore code\n```';
-        const result = convertMarkdownToPlainText(markdown, defaultOptions);
-        expect(result.trim()).toBe('some code here\nmore code');
-    });
-
-    it('should preserve indented code blocks', () => {
-        const markdown = `    const x = 1;
-    console.log(x);`;
-        const result = convertMarkdownToPlainText(markdown, defaultOptions);
-        expect(result.trim()).toBe('const x = 1;\nconsole.log(x);');
-    });
-
-    it('should preserve inline code content', () => {
-        const markdown = 'Use the `console.log()` function to debug.';
-        const result = convertMarkdownToPlainText(markdown, defaultOptions);
-        expect(result.trim()).toBe('Use the console.log() function to debug.');
-    });
-
-    it('should handle multiple inline code spans', () => {
-        const markdown = 'Variables like `x` and `y` are common in `math`.';
-        const result = convertMarkdownToPlainText(markdown, defaultOptions);
-        expect(result.trim()).toBe('Variables like x and y are common in math.');
-    });
-
-    it('should handle empty code blocks', () => {
-        const markdown = '```\n```';
-        const result = convertMarkdownToPlainText(markdown, defaultOptions);
-        expect(result.trim()).toBe('');
-    });
-
-    it('should handle code blocks with special characters', () => {
-        const markdown = '```\n<div class="test">Hello & goodbye</div>\n```';
-        const result = convertMarkdownToPlainText(markdown, defaultOptions);
-        expect(result.trim()).toBe('<div class="test">Hello & goodbye</div>');
-    });
-
-    it('should handle nested backticks in inline code', () => {
-        const markdown = 'Use `` `backticks` `` for inline code.';
-        const result = convertMarkdownToPlainText(markdown, defaultOptions);
-        expect(result.trim()).toBe('Use `backticks` for inline code.');
-    });
-
-    it('should preserve inline code backticks when enabled', () => {
-        const markdown = 'Use the `console.log()` function to debug.';
-        const result = convertMarkdownToPlainText(markdown, { ...defaultOptions, preserveCodeBackticks: true });
-        expect(result.trim()).toBe('Use the `console.log()` function to debug.');
-    });
-
-    it('should preserve nested inline code backticks when enabled', () => {
-        const markdown = 'Use `` `backticks` `` for inline code.';
-        const result = convertMarkdownToPlainText(markdown, { ...defaultOptions, preserveCodeBackticks: true });
-        expect(result.trim()).toBe('Use `` `backticks` `` for inline code.');
-    });
-
-    it('should remove fence markers but preserve content', () => {
-        const markdown = `\`\`\`typescript
-function test() {
-    return "hello";
-}
-\`\`\``;
-        const result = convertMarkdownToPlainText(markdown, defaultOptions);
-        const expected = `function test() {
-    return "hello";
-}`;
         expect(result.trim()).toBe(expected);
     });
 
-    it('should preserve fenced code block backticks when enabled', () => {
-        const markdown = '```javascript\nconst x = 1;\nconsole.log(x);\n```';
+    it.each([
+        [
+            'should preserve inline code backticks',
+            'Use the `console.log()` function to debug.',
+            'Use the `console.log()` function to debug.',
+        ],
+        [
+            'should preserve nested inline code backticks',
+            'Use `` `backticks` `` for inline code.',
+            'Use `` `backticks` `` for inline code.',
+        ],
+        [
+            'should preserve fenced code block backticks',
+            '```javascript\nconst x = 1;\nconsole.log(x);\n```',
+            '```javascript\nconst x = 1;\nconsole.log(x);\n```',
+        ],
+        [
+            'should use a longer code block fence when the content contains triple backticks',
+            '````\n```nested fence```\n````',
+            '````\n```nested fence```\n````',
+        ],
+    ])('%s when preserveCodeBackticks is enabled', (_name, markdown, expected) => {
         const result = convertMarkdownToPlainText(markdown, { ...defaultOptions, preserveCodeBackticks: true });
-        const expected = '```javascript\nconst x = 1;\nconsole.log(x);\n```';
         expect(result.trim()).toBe(expected);
-    });
-
-    it('should use a longer code block fence when the content contains triple backticks', () => {
-        const markdown = '````\n```nested fence```\n````';
-        const result = convertMarkdownToPlainText(markdown, { ...defaultOptions, preserveCodeBackticks: true });
-        expect(result.trim()).toBe('````\n```nested fence```\n````');
     });
 });
 
 // Line Break Handling
 describe('Line Break Handling', () => {
-    it('should convert soft line breaks to newlines', () => {
-        const markdown = 'Line one\nLine two';
+    it.each([
+        ['should convert soft line breaks to newlines', 'Line one\nLine two', 'Line one\nLine two'],
+        // Two spaces + newline = hard break
+        ['should convert hard line breaks to newlines', 'Line one  \nLine two', 'Line one\nLine two'],
+        // Backslash + newline = hard break
+        ['should handle backslash hard line breaks', 'Line one\\\nLine two', 'Line one\nLine two'],
+        [
+            'should handle mixed line break scenarios',
+            'First paragraph with soft break\nand continuation.\n\nSecond paragraph with hard break  \non new line.\n\nThird paragraph with backslash break\\\non new line.',
+            'First paragraph with soft break\nand continuation.\n\nSecond paragraph with hard break\non new line.\n\nThird paragraph with backslash break\non new line.',
+        ],
+        [
+            'should preserve line breaks within code blocks',
+            '```\nline one\nline two\nline three\n```',
+            'line one\nline two\nline three',
+        ],
+        // Multiple newlines should collapse to max configured newlines (likely 2)
+        ['should handle multiple consecutive line breaks', 'Line one\n\n\nLine two', 'Line one\n\nLine two'],
+        [
+            'should handle line breaks in blockquotes',
+            '> First line\n> Second line  \n> Hard break line\n> \n> New paragraph in quote',
+            'First line\nSecond line\nHard break line\n\nNew paragraph in quote',
+        ],
+    ])('%s', (_name, markdown, expected) => {
         const result = convertMarkdownToPlainText(markdown, defaultOptions);
-        expect(result.trim()).toBe('Line one\nLine two');
-    });
-
-    it('should convert hard line breaks to newlines', () => {
-        const markdown = 'Line one  \nLine two'; // Two spaces + newline = hard break
-        const result = convertMarkdownToPlainText(markdown, defaultOptions);
-        expect(result.trim()).toBe('Line one\nLine two');
-    });
-
-    it('should handle backslash hard line breaks', () => {
-        const markdown = 'Line one\\\nLine two'; // Backslash + newline = hard break
-        const result = convertMarkdownToPlainText(markdown, defaultOptions);
-        expect(result.trim()).toBe('Line one\nLine two');
-    });
-
-    it('should handle mixed line break scenarios', () => {
-        const markdown = `First paragraph with soft break
-and continuation.
-
-Second paragraph with hard break  
-on new line.
-
-Third paragraph with backslash break\\
-on new line.`;
-        const result = convertMarkdownToPlainText(markdown, defaultOptions);
-        const expected = `First paragraph with soft break
-and continuation.
-
-Second paragraph with hard break
-on new line.
-
-Third paragraph with backslash break
-on new line.`;
         expect(result.trim()).toBe(expected);
-    });
-
-    it('should preserve line breaks within code blocks', () => {
-        const markdown = `\`\`\`
-line one
-line two
-line three
-\`\`\``;
-        const result = convertMarkdownToPlainText(markdown, defaultOptions);
-        expect(result.trim()).toBe('line one\nline two\nline three');
     });
 
     it('should handle line breaks in lists', () => {
@@ -640,28 +591,6 @@ line three
     new line
 `;
         expect(result.trimEnd()).toBe(expected.trimEnd());
-    });
-
-    it('should handle multiple consecutive line breaks', () => {
-        const markdown = 'Line one\n\n\nLine two'; // Multiple newlines
-        const result = convertMarkdownToPlainText(markdown, defaultOptions);
-        // Should collapse to max configured newlines (likely 2)
-        expect(result.trim()).toBe('Line one\n\nLine two');
-    });
-
-    it('should handle line breaks in blockquotes', () => {
-        const markdown = `> First line
-> Second line  
-> Hard break line
-> 
-> New paragraph in quote`;
-        const result = convertMarkdownToPlainText(markdown, defaultOptions);
-        const expected = `First line
-Second line
-Hard break line
-
-New paragraph in quote`;
-        expect(result.trim()).toBe(expected);
     });
 });
 
