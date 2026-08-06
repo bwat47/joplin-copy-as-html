@@ -123,28 +123,30 @@ describe('domPostProcess', () => {
         expect(out).toContain('Resource');
     });
 
-    it('removes marker-only GitHub alert syntax from blockquotes', async () => {
-        const html = '<blockquote><p>[!note]<br>Test abc</p></blockquote>';
+    it.each([
+        [
+            'removes marker-only GitHub alert syntax from blockquotes',
+            '<blockquote><p>[!note]<br>Test abc</p></blockquote>',
+            '<blockquote><p>Test abc</p></blockquote>',
+            '[!note]',
+        ],
+        [
+            'keeps GitHub alert titles as blockquote content',
+            '<blockquote><p>[!note] title<br>Test abc</p></blockquote>',
+            '<blockquote><p>title<br>Test abc</p></blockquote>',
+            '[!note]',
+        ],
+        [
+            'removes extended GitHub alert types from blockquotes',
+            '<blockquote><p>[!example] Extended title<br>Test abc</p></blockquote>',
+            '<blockquote><p>Extended title<br>Test abc</p></blockquote>',
+            '[!example]',
+        ],
+    ])('%s', async (_name, html, expectedHtml, removedMarker) => {
         const out = await postProcessHtml(html);
 
-        expect(out).toContain('<blockquote><p>Test abc</p></blockquote>');
-        expect(out).not.toContain('[!note]');
-    });
-
-    it('keeps GitHub alert titles as blockquote content', async () => {
-        const html = '<blockquote><p>[!note] title<br>Test abc</p></blockquote>';
-        const out = await postProcessHtml(html);
-
-        expect(out).toContain('<blockquote><p>title<br>Test abc</p></blockquote>');
-        expect(out).not.toContain('[!note]');
-    });
-
-    it('removes extended GitHub alert types from blockquotes', async () => {
-        const html = '<blockquote><p>[!example] Extended title<br>Test abc</p></blockquote>';
-        const out = await postProcessHtml(html);
-
-        expect(out).toContain('<blockquote><p>Extended title<br>Test abc</p></blockquote>');
-        expect(out).not.toContain('[!example]');
+        expect(out).toContain(expectedHtml);
+        expect(out).not.toContain(removedMarker);
     });
 
     it('wraps top-level raw HTML images in separate paragraph blocks', async () => {
