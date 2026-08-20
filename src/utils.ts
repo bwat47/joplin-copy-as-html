@@ -61,7 +61,7 @@ export function validateHtmlSettings(settings: unknown): HtmlOptions {
     };
 }
 
-export function validateBooleanSetting(setting: unknown, defaultValue: boolean = false): boolean {
+export function validateBooleanSetting(setting: unknown, defaultValue = false): boolean {
     return typeof setting === 'boolean' ? setting : defaultValue;
 }
 
@@ -83,7 +83,7 @@ export async function showToast(
     message: string,
     type: ToastType = ToastType.Info,
     duration = CONSTANTS.TOAST_DURATION
-) {
+): Promise<void> {
     try {
         await joplin.views.dialogs.showToast({ message, type, duration });
     } catch (err) {
