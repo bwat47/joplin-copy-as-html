@@ -11,6 +11,7 @@ vi.mock('api', () => ({
         },
         settings: {
             value: vi.fn(),
+            values: vi.fn(),
             globalValue: vi.fn(),
         },
         commands: {

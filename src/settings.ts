@@ -218,17 +218,50 @@ export async function registerPluginSettings(): Promise<void> {
 }
 
 /**
+ * Setting keys read when loading HTML conversion options.
+ * Keys match the corresponding `HtmlOptions` property names, so the raw record
+ * returned by `joplin.settings.values()` can be handed straight to the validator.
+ */
+const HTML_SETTING_KEYS = [
+    SETTINGS.EMBED_IMAGES,
+    SETTINGS.EXPORT_FULL_HTML,
+    SETTINGS.DOWNLOAD_REMOTE_IMAGES,
+    SETTINGS.EMBED_SVG_AS_PNG,
+];
+
+/**
+ * Setting keys read when loading plain text conversion options.
+ * Keys match the corresponding `PlainTextOptions` property names.
+ */
+const PLAIN_TEXT_SETTING_KEYS = [
+    SETTINGS.PRESERVE_SUPERSCRIPT,
+    SETTINGS.PRESERVE_SUBSCRIPT,
+    SETTINGS.PRESERVE_EMPHASIS,
+    SETTINGS.PRESERVE_BOLD,
+    SETTINGS.PRESERVE_HEADING,
+    SETTINGS.PRESERVE_QUOTE_MARKERS,
+    SETTINGS.PRESERVE_STRIKETHROUGH,
+    SETTINGS.PRESERVE_HORIZONTAL_RULE,
+    SETTINGS.PRESERVE_MARK,
+    SETTINGS.PRESERVE_INSERT,
+    SETTINGS.PRESERVE_CODE_BACKTICKS,
+    SETTINGS.DISPLAY_EMOJIS,
+    SETTINGS.HYPERLINK_BEHAVIOR,
+    SETTINGS.INDENT_TYPE,
+    SETTINGS.LIST_SPACING,
+    SETTINGS.PRESERVE_TABLE_PIPES,
+];
+
+/**
  * Loads and validates HTML conversion settings from Joplin.
+ *
+ * Uses `values()` rather than repeated `value()` calls: each `value()` is a
+ * separate round trip across the plugin bridge, and Joplin's API documentation
+ * recommends `values()` for bulk reads.
  * @returns Validated HTML options object.
  */
 export async function loadHtmlSettings(): Promise<HtmlOptions> {
-    const htmlSettings = {
-        embedImages: await joplin.settings.value(SETTINGS.EMBED_IMAGES),
-        exportFullHtml: await joplin.settings.value(SETTINGS.EXPORT_FULL_HTML),
-        downloadRemoteImages: await joplin.settings.value(SETTINGS.DOWNLOAD_REMOTE_IMAGES),
-        embedSvgAsPng: await joplin.settings.value(SETTINGS.EMBED_SVG_AS_PNG),
-    };
-    return validateHtmlSettings(htmlSettings);
+    return validateHtmlSettings(await joplin.settings.values(HTML_SETTING_KEYS));
 }
 
 /**
@@ -236,23 +269,5 @@ export async function loadHtmlSettings(): Promise<HtmlOptions> {
  * @returns Validated plain text options object.
  */
 export async function loadPlainTextSettings(): Promise<PlainTextOptions> {
-    const plainTextSettings = {
-        preserveSuperscript: await joplin.settings.value(SETTINGS.PRESERVE_SUPERSCRIPT),
-        preserveSubscript: await joplin.settings.value(SETTINGS.PRESERVE_SUBSCRIPT),
-        preserveEmphasis: await joplin.settings.value(SETTINGS.PRESERVE_EMPHASIS),
-        preserveBold: await joplin.settings.value(SETTINGS.PRESERVE_BOLD),
-        preserveHeading: await joplin.settings.value(SETTINGS.PRESERVE_HEADING),
-        preserveQuoteMarkers: await joplin.settings.value(SETTINGS.PRESERVE_QUOTE_MARKERS),
-        preserveStrikethrough: await joplin.settings.value(SETTINGS.PRESERVE_STRIKETHROUGH),
-        preserveHorizontalRule: await joplin.settings.value(SETTINGS.PRESERVE_HORIZONTAL_RULE),
-        preserveMark: await joplin.settings.value(SETTINGS.PRESERVE_MARK),
-        preserveInsert: await joplin.settings.value(SETTINGS.PRESERVE_INSERT),
-        preserveCodeBackticks: await joplin.settings.value(SETTINGS.PRESERVE_CODE_BACKTICKS),
-        displayEmojis: await joplin.settings.value(SETTINGS.DISPLAY_EMOJIS),
-        hyperlinkBehavior: await joplin.settings.value(SETTINGS.HYPERLINK_BEHAVIOR),
-        indentType: await joplin.settings.value(SETTINGS.INDENT_TYPE),
-        listSpacing: await joplin.settings.value(SETTINGS.LIST_SPACING),
-        preserveTablePipes: await joplin.settings.value(SETTINGS.PRESERVE_TABLE_PIPES),
-    };
-    return validatePlainTextSettings(plainTextSettings);
+    return validatePlainTextSettings(await joplin.settings.values(PLAIN_TEXT_SETTING_KEYS));
 }
