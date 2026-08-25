@@ -9,6 +9,7 @@ import { SETTINGS } from './constants'; // Uses real keys so mocks stay in sync
 export function resetAllJoplinMocks(): void {
     (joplin.data.get as Mock).mockReset();
     (joplin.settings.value as Mock).mockReset();
+    (joplin.settings.values as Mock).mockReset();
     (joplin.settings.globalValue as Mock).mockReset();
 
     // Commands
@@ -31,20 +32,29 @@ export function resetAllJoplinMocks(): void {
     }
 }
 
-// Mock plugin settings queried via joplin.settings.value(), key-based (order independent).
-// Uses SETTINGS.EMBED_IMAGES / SETTINGS.EXPORT_FULL_HTML so renaming constants won’t break tests.
+// Mock plugin settings, key-based (order independent), for both joplin.settings.value()
+// and joplin.settings.values(). Uses the SETTINGS constants so renaming keys won’t break tests.
+function mockSettingValues(values: Record<string, unknown>): void {
+    const lookup = (key: string) => (key in values ? values[key] : false);
+
+    (joplin.settings.value as Mock).mockImplementation((key: string) => Promise.resolve(lookup(key)));
+
+    (joplin.settings.values as Mock).mockImplementation((keys: string[] | string) => {
+        const keyList = Array.isArray(keys) ? keys : [keys];
+        const result: Record<string, unknown> = {};
+        for (const key of keyList) result[key] = lookup(key);
+        return Promise.resolve(result);
+    });
+}
+
 export function mockHtmlSettings(
     opts: { embedImages?: boolean; exportFullHtml?: boolean; embedSvgAsPng?: boolean } = {}
 ): void {
     const { embedImages = false, exportFullHtml = false, embedSvgAsPng = true } = opts;
-    const embedKey = SETTINGS.EMBED_IMAGES;
-    const fullKey = SETTINGS.EXPORT_FULL_HTML;
-    const svgKey = SETTINGS.EMBED_SVG_AS_PNG;
 
-    (joplin.settings.value as Mock).mockImplementation((key: string) => {
-        if (key === embedKey) return Promise.resolve(embedImages);
-        if (key === fullKey) return Promise.resolve(exportFullHtml);
-        if (key === svgKey) return Promise.resolve(embedSvgAsPng);
-        return Promise.resolve(false);
+    mockSettingValues({
+        [SETTINGS.EMBED_IMAGES]: embedImages,
+        [SETTINGS.EXPORT_FULL_HTML]: exportFullHtml,
+        [SETTINGS.EMBED_SVG_AS_PNG]: embedSvgAsPng,
     });
 }
