@@ -24,14 +24,19 @@ function ensurePurifyHooks(): void {
 
 /**
  * Sanitizes HTML using DOMPurify with our security policy.
+ * Uses the sanitized DOM directly (RETURN_DOM) so post-processing operates on
+ * the exact tree DOMPurify validated, avoiding a serialize/reparse round-trip.
  * @param html - Raw HTML string to sanitize
- * @returns Sanitized HTML string
+ * @returns The sanitized `<body>` (in a fresh, inert document), or null if DOMPurify could not parse the input
  */
-function sanitizeHtml(html: string): string {
+function sanitizeToRoot(html: string): HTMLElement | null {
     ensurePurifyHooks();
     return purifyInstance.sanitize(html, {
+        RETURN_DOM: true,
         // Keep it permissive for rich content but remove dangerous elements
         ALLOWED_TAGS: [
+            // Required with RETURN_DOM: otherwise DOMPurify removes the returned <body> from its document
+            'body',
             'h1',
             'h2',
             'h3',
@@ -134,34 +139,37 @@ function sanitizeHtml(html: string): string {
         ],
         FORBID_TAGS: ['script', 'iframe', 'object', 'embed', 'form'],
         FORBID_ATTR: ['onload', 'onerror', 'onclick'], // Remove event handlers
-    });
+    }) as HTMLElement | null;
 }
 
 // ----------------------
 // DOM Transform Helpers
 // ----------------------
+// Helpers take the content root rather than its Document and query only its
+// descendants. Stray <html>/<head>/<body> tags in the input merge their attributes
+// onto the document's structural elements, so those must never be matched.
 
 /**
  * Removes non-image Joplin resource links and replaces them with their text content.
  * Links containing images are preserved.
- * @param doc - DOM document to process
+ * @param root - Content root to process
  */
-function stripJoplinLinks(doc: Document): void {
-    doc.querySelectorAll('a[data-resource-id], a[href^=":/"], a[href^="joplin://resource/"]').forEach((link) => {
+function stripJoplinLinks(root: HTMLElement): void {
+    root.querySelectorAll('a[data-resource-id], a[href^=":/"], a[href^="joplin://resource/"]').forEach((link) => {
         // Don't modify links that contain images
         if (link.querySelector('img')) return;
 
         const text = link.textContent?.trim() || 'Resource';
-        link.replaceWith(doc.createTextNode(text));
+        link.replaceWith(root.ownerDocument.createTextNode(text));
     });
 }
 
 /**
  * Removes Joplin resource images from the document.
- * @param doc - DOM document to process
+ * @param root - Content root to process
  */
-function stripJoplinImages(doc: Document): void {
-    const imgs = Array.from(doc.querySelectorAll('img'));
+function stripJoplinImages(root: HTMLElement): void {
+    const imgs = Array.from(root.querySelectorAll('img'));
     for (const img of imgs) {
         if (img.closest('pre, code')) continue;
 
@@ -179,10 +187,10 @@ function stripJoplinImages(doc: Document): void {
  * Removes joplin-source elements that duplicate code block content.
  * renderMarkup includes both the raw source (for RTE round-tripping) and
  * the highlighted version - we only want the highlighted one.
- * @param doc - DOM document to process
+ * @param root - Content root to process
  */
-function removeJoplinSourceElements(doc: Document): void {
-    const sourceElements = doc.querySelectorAll('.joplin-source');
+function removeJoplinSourceElements(root: HTMLElement): void {
+    const sourceElements = root.querySelectorAll('.joplin-source');
     if (sourceElements.length > 0) {
         logger.debug(`Removing ${sourceElements.length} joplin-source elements`);
         sourceElements.forEach((el) => el.remove());
@@ -192,12 +200,12 @@ function removeJoplinSourceElements(doc: Document): void {
 /**
  * Replaces Joplin's broken resource placeholders with our custom error message.
  * Joplin renders broken images as a span with class "not-loaded-resource" containing a large placeholder image.
- * @param doc - DOM document to process
+ * @param root - Content root to process
  */
-function replaceBrokenResourceSpans(doc: Document): void {
-    const brokenSpans = doc.querySelectorAll('span.not-loaded-resource');
+function replaceBrokenResourceSpans(root: HTMLElement): void {
+    const brokenSpans = root.querySelectorAll('span.not-loaded-resource');
     brokenSpans.forEach((span) => {
-        const fallback = doc.createElement('span');
+        const fallback = root.ownerDocument.createElement('span');
         fallback.textContent = HTML_CONSTANTS.IMAGE_LOAD_ERROR;
         fallback.style.color = HTML_CONSTANTS.ERROR_COLOR;
         span.replaceWith(fallback);
@@ -207,14 +215,14 @@ function replaceBrokenResourceSpans(doc: Document): void {
 /**
  * Iterates through images in the DOM and embeds them as base64 data URIs.
  * Handles both local Joplin resources and remote images based on options.
- * @param doc - DOM document to process
+ * @param root - Content root to process
  * @param options - Embedding options
  */
 async function embedImagesInDom(
-    doc: Document,
+    root: HTMLElement,
     options: { embedImages: boolean; downloadRemoteImages: boolean }
 ): Promise<void> {
-    const images = Array.from(doc.querySelectorAll('img'));
+    const images = Array.from(root.querySelectorAll('img'));
     logger.debug(`Found ${images.length} images to process`);
 
     const jobs: Promise<void>[] = [];
@@ -235,7 +243,7 @@ async function embedImagesInDom(
                         logger.debug(`Embedded resource: ${resourceId}`);
                     } else {
                         // Replace with error placeholder
-                        const span = doc.createElement('span');
+                        const span = root.ownerDocument.createElement('span');
                         span.textContent = HTML_CONSTANTS.IMAGE_LOAD_ERROR;
                         span.style.color = HTML_CONSTANTS.ERROR_COLOR;
                         img.replaceWith(span);
@@ -262,23 +270,23 @@ async function embedImagesInDom(
 
 /**
  * Disables all checkbox inputs to make them read-only in the exported HTML.
- * @param doc - DOM document to process
+ * @param root - Content root to process
  */
-function disableCheckboxes(doc: Document): void {
-    doc.querySelectorAll('input[type="checkbox"]').forEach((checkbox) => {
+function disableCheckboxes(root: HTMLElement): void {
+    root.querySelectorAll('input[type="checkbox"]').forEach((checkbox) => {
         checkbox.setAttribute('disabled', 'disabled');
     });
 }
 
 /**
  * Wraps top-level images in paragraph tags for consistent formatting.
- * @param doc - DOM document to process
+ * @param root - Content root to process
  */
-function wrapTopLevelImages(doc: Document): void {
-    Array.from(doc.body.children)
+function wrapTopLevelImages(root: HTMLElement): void {
+    Array.from(root.children)
         .filter((el) => el.tagName === 'IMG')
         .forEach((img) => {
-            const p = doc.createElement('p');
+            const p = root.ownerDocument.createElement('p');
             img.replaceWith(p);
             p.appendChild(img);
         });
@@ -343,10 +351,10 @@ function removeIfEmptyParagraph(element: Element): void {
  * each blockquote's content, keeping any trailing title text. Cleans up the empty
  * text node and line break the marker leaves behind, and drops the wrapping
  * paragraph if it becomes empty.
- * @param doc - Document to process in place.
+ * @param root - Content root to process in place.
  */
-function stripGithubAlertMarkers(doc: Document): void {
-    doc.querySelectorAll('blockquote').forEach((blockquote) => {
+function stripGithubAlertMarkers(root: HTMLElement): void {
+    root.querySelectorAll('blockquote').forEach((blockquote) => {
         const firstText = findFirstTextNode(blockquote);
         if (!firstText?.textContent) return;
 
@@ -383,10 +391,10 @@ function isSvgDataUri(src: string | null): boolean {
 
 /**
  * Converts all SVG images in the document to PNG for better compatibility.
- * @param doc - DOM document to process
+ * @param root - Content root to process
  */
-async function convertSvgImagesToPng(doc: Document): Promise<void> {
-    const svgImgs = Array.from(doc.querySelectorAll('img'))
+async function convertSvgImagesToPng(root: HTMLElement): Promise<void> {
+    const svgImgs = Array.from(root.querySelectorAll('img'))
         .map((img) => ({ img, src: img.getAttribute('src') }))
         .filter((item): item is { img: HTMLImageElement; src: string } => {
             return item.src !== null && isSvgDataUri(item.src);
@@ -552,33 +560,30 @@ export async function postProcessHtml(
         convertSvgToPng: true,
     }
 ): Promise<string> {
-    const sanitized = sanitizeHtml(html);
-
-    // Parse into DOM
-    const parser = new DOMParser();
-    const doc = parser.parseFromString(`<body>${sanitized}</body>`, 'text/html');
+    const root = sanitizeToRoot(html);
+    if (!root) return '';
 
     // Pipeline of transformations
-    removeJoplinSourceElements(doc);
-    replaceBrokenResourceSpans(doc);
-    stripGithubAlertMarkers(doc);
-    stripJoplinLinks(doc);
-    disableCheckboxes(doc);
+    removeJoplinSourceElements(root);
+    replaceBrokenResourceSpans(root);
+    stripGithubAlertMarkers(root);
+    stripJoplinLinks(root);
+    disableCheckboxes(root);
 
     if (!opts.embedImages) {
-        stripJoplinImages(doc);
+        stripJoplinImages(root);
     } else {
-        await embedImagesInDom(doc, {
+        await embedImagesInDom(root, {
             embedImages: opts.embedImages,
             downloadRemoteImages: opts.downloadRemoteImages,
         });
     }
 
-    wrapTopLevelImages(doc);
+    wrapTopLevelImages(root);
 
     if (opts.convertSvgToPng) {
-        await convertSvgImagesToPng(doc);
+        await convertSvgImagesToPng(root);
     }
 
-    return doc.body.innerHTML;
+    return root.innerHTML;
 }
