@@ -102,6 +102,15 @@ describe('domPostProcess', () => {
         expect(out).toContain('highlighted code');
     });
 
+    it.each([
+        ['body', '<body class="joplin-source"><p>Visible content</p></body>'],
+        ['html', '<html class="joplin-source"><body><p>Visible content</p></body></html>'],
+        ['head', '<head class="joplin-source"></head><p>Visible content</p>'],
+    ])('ignores attributes the input sets on the document <%s> element', async (_tag, html) => {
+        const out = await postProcessHtml(html);
+        expect(out).toBe('<p>Visible content</p>');
+    });
+
     it('replaces Joplin broken resource spans with error message', async () => {
         const html = `
             <span class="not-loaded-resource" data-resource-id="c188011f98504be1b60bb72ccd7c2cea">
