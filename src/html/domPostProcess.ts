@@ -391,9 +391,7 @@ function isSvgDataUri(src: string | null): boolean {
 async function convertSvgImagesToPng(root: HTMLElement): Promise<void> {
     const svgImgs = Array.from(root.querySelectorAll('img'))
         .map((img) => ({ img, src: img.getAttribute('src') }))
-        .filter((item): item is { img: HTMLImageElement; src: string } => {
-            return item.src !== null && isSvgDataUri(item.src);
-        });
+        .filter((item): item is { img: HTMLImageElement; src: string } => isSvgDataUri(item.src));
 
     const jobs = svgImgs.map(async ({ img, src }) => {
         if (shouldSkipRasterization(img)) return;
@@ -440,11 +438,7 @@ async function convertSvgImagesToPng(root: HTMLElement): Promise<void> {
 async function rasterizeSvgDataUriToPng(
     svgDataUri: string
 ): Promise<{ dataUrl: string; originalWidth: number; originalHeight: number } | null> {
-    if (
-        typeof Image === 'undefined' ||
-        typeof document === 'undefined' ||
-        typeof document.createElement !== 'function'
-    ) {
+    if (typeof Image === 'undefined' || typeof document === 'undefined') {
         return null;
     }
 
@@ -468,8 +462,8 @@ async function rasterizeSvgDataUriToPng(
 
                 // Render at 2x scale for sharper output (especially on high-DPI displays)
                 const SCALE_FACTOR = 2;
-                const width = Math.max(1, Math.round(sourceWidth * SCALE_FACTOR));
-                const height = Math.max(1, Math.round(sourceHeight * SCALE_FACTOR));
+                const width = sourceWidth * SCALE_FACTOR;
+                const height = sourceHeight * SCALE_FACTOR;
 
                 const canvas = document.createElement('canvas');
                 canvas.width = width;
@@ -481,20 +475,13 @@ async function rasterizeSvgDataUriToPng(
                     return;
                 }
 
-                ctx.clearRect(0, 0, width, height);
                 ctx.drawImage(img, 0, 0, width, height);
 
-                try {
-                    const dataUrl = canvas.toDataURL('image/png');
-                    resolve({
-                        dataUrl,
-                        originalWidth: sourceWidth,
-                        originalHeight: sourceHeight,
-                    });
-                } catch (dataUrlError) {
-                    logger.debug('Canvas toDataURL failed', dataUrlError);
-                    resolve(null);
-                }
+                resolve({
+                    dataUrl: canvas.toDataURL('image/png'),
+                    originalWidth: sourceWidth,
+                    originalHeight: sourceHeight,
+                });
             } catch (err) {
                 logger.debug('SVG rasterization failed', err);
                 resolve(null);

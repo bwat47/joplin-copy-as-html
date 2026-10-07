@@ -230,7 +230,6 @@ describe('domPostProcess', () => {
             if (tagName.toLowerCase() === 'canvas') {
                 const canvas = element as unknown as HTMLCanvasElement;
                 (canvas as unknown as { getContext: () => unknown }).getContext = vi.fn().mockReturnValue({
-                    clearRect: vi.fn(),
                     drawImage: vi.fn(),
                 });
                 (canvas as unknown as { toDataURL: () => string }).toDataURL = vi
