@@ -21,22 +21,31 @@ import { getErrorMessage, showToast } from './utils';
 const COPY_AS_HTML_COMMAND = { name: 'copyAsHtml', label: 'Copy selection as HTML' };
 const COPY_AS_PLAIN_TEXT_COMMAND = { name: 'copyAsPlainText', label: 'Copy selection as Plain Text' };
 
-async function getMarkdownSelection(commandLabel: string): Promise<string | null> {
+/**
+ * Reads the current editor selection.
+ * @returns The selected text (possibly empty), or null when not in the Markdown editor.
+ */
+async function readEditorSelection(): Promise<string | null> {
     try {
         const selection: unknown = await joplin.commands.execute('editor.execCommand', { name: 'getSelection' });
-        if (typeof selection !== 'string') {
-            await showToast(`${commandLabel}: This command only works in the Markdown editor.`);
-            return null;
-        }
-        if (!selection.length) {
-            await showToast('No text selected.');
-            return null;
-        }
-        return selection;
+        return typeof selection === 'string' ? selection : null;
     } catch {
+        // getSelection is only available in the Markdown editor
+        return null;
+    }
+}
+
+async function getMarkdownSelection(commandLabel: string): Promise<string | null> {
+    const selection = await readEditorSelection();
+    if (selection === null) {
         await showToast(`${commandLabel}: This command only works in the Markdown editor.`);
         return null;
     }
+    if (!selection) {
+        await showToast('No text selected.');
+        return null;
+    }
+    return selection;
 }
 
 async function copySelectionAsHtml(): Promise<void> {
@@ -113,21 +122,9 @@ function registerEditorContextMenu(): void {
             contextMenu.items.map((item) => item.commandName)
         );
 
-        // Check if there's a valid text selection in the markdown editor
-        let hasValidSelection: boolean;
-        try {
-            // Try to get the current selection - this should only work in markdown editor
-            const selection: unknown = await joplin.commands.execute('editor.execCommand', {
-                name: 'getSelection',
-            });
-            // Only show menu items if selection is a non-empty string
-            hasValidSelection = typeof selection === 'string' && selection.length > 0;
-            logger.debug('Has valid selection:', hasValidSelection);
-        } catch {
-            // If getSelection fails, we're likely not in markdown editor
-            hasValidSelection = false;
-            logger.debug('No valid selection - not adding context menu items');
-        }
+        // Only show menu items for a non-empty selection in the Markdown editor
+        const hasValidSelection = !!(await readEditorSelection());
+        logger.debug('Has valid selection:', hasValidSelection);
 
         // Only add our commands to the context menu if there's a valid selection
         if (hasValidSelection) {
