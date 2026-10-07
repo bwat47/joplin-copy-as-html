@@ -214,14 +214,11 @@ function replaceBrokenResourceSpans(root: HTMLElement): void {
 
 /**
  * Iterates through images in the DOM and embeds them as base64 data URIs.
- * Handles both local Joplin resources and remote images based on options.
+ * Embeds local Joplin resources and optionally downloads remote images.
  * @param root - Content root to process
- * @param options - Embedding options
+ * @param downloadRemoteImages - Whether to download and embed remote images
  */
-async function embedImagesInDom(
-    root: HTMLElement,
-    options: { embedImages: boolean; downloadRemoteImages: boolean }
-): Promise<void> {
+async function embedImagesInDom(root: HTMLElement, downloadRemoteImages: boolean): Promise<void> {
     const images = Array.from(root.querySelectorAll('img'));
     logger.debug(`Found ${images.length} images to process`);
 
@@ -235,7 +232,7 @@ async function embedImagesInDom(
         const src = img.getAttribute('src') || '';
 
         // Case 1: Joplin Resource (local)
-        if (resourceId && options.embedImages) {
+        if (resourceId) {
             jobs.push(
                 convertResourceToBase64(resourceId).then((dataUri) => {
                     if (dataUri) {
@@ -252,7 +249,7 @@ async function embedImagesInDom(
             );
         }
         // Case 2: Remote Image
-        else if (/^https?:\/\//i.test(src) && options.embedImages && options.downloadRemoteImages) {
+        else if (/^https?:\/\//i.test(src) && downloadRemoteImages) {
             jobs.push(
                 downloadRemoteImageAsBase64(src).then((dataUri) => {
                     if (dataUri) {
@@ -573,10 +570,7 @@ export async function postProcessHtml(
     if (!opts.embedImages) {
         stripJoplinImages(root);
     } else {
-        await embedImagesInDom(root, {
-            embedImages: opts.embedImages,
-            downloadRemoteImages: opts.downloadRemoteImages,
-        });
+        await embedImagesInDom(root, opts.downloadRemoteImages);
     }
 
     wrapTopLevelImages(root);
