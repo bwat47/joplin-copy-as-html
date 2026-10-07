@@ -81,23 +81,3 @@ export const RESOURCE_ID_REGEX = /^[a-f0-9]{32}$/i;
 
 // Matches a GitHub/Joplin alert marker only at the start of blockquote content.
 export const GITHUB_ALERT_MARKER_REGEX = /^\s*\[![^\]\r\n]+\](?:[ \t]*\r?\n|[ \t]*)/i;
-
-// Plain text renderer output formatting
-export const PLAIN_TEXT_CONSTANTS = {
-    ORDERED_LIST_START: 1,
-    BULLET_PREFIX: '- ',
-    BLOCKQUOTE_PREFIX: '>',
-    ORDERED_SUFFIX: '. ',
-    HEADING_PREFIX_CHAR: '#',
-    HORIZONTAL_RULE_MARKER: '---',
-    MAX_PARAGRAPH_NEWLINES: 2,
-    MIN_COLUMN_WIDTH: 3,
-    SPACES_PER_INDENT: 4,
-    TABLE_CELL_PADDING: 2,
-    TABLE_PIPE: '|',
-} as const;
-
-// Regex patterns for plain-text footnote rendering
-export const PLAIN_TEXT_REGEX = {
-    FOOTNOTE_REF: /\[\^([^\]]+)\]/g,
-} as const;
