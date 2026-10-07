@@ -12,7 +12,7 @@ vi.mock('api', () => ({
         settings: {
             value: vi.fn(),
             values: vi.fn(),
-            globalValue: vi.fn(),
+            globalValues: vi.fn(),
         },
         commands: {
             execute: vi.fn(),

@@ -10,7 +10,7 @@ export function resetAllJoplinMocks(): void {
     (joplin.data.get as Mock).mockReset();
     (joplin.settings.value as Mock).mockReset();
     (joplin.settings.values as Mock).mockReset();
-    (joplin.settings.globalValue as Mock).mockReset();
+    (joplin.settings.globalValues as Mock).mockReset();
 
     // Commands
     if (joplin.commands) {

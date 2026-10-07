@@ -262,7 +262,7 @@ export async function downloadRemoteImageAsBase64(url: string): Promise<string |
  * the bundled default stylesheet. Used when exporting full HTML documents.
  */
 export async function getUserStylesheet(): Promise<string> {
-    const profileDir: unknown = await joplin.settings.globalValue('profileDir');
+    const [profileDir]: unknown[] = await joplin.settings.globalValues(['profileDir']);
     if (typeof profileDir !== 'string' || !profileDir) {
         return defaultStylesheet;
     }
