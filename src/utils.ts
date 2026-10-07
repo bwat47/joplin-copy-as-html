@@ -34,15 +34,9 @@ export function validatePlainTextSettings(settings: unknown): PlainTextOptions {
         preserveInsert: validateBooleanSetting(s.preserveInsert),
         preserveCodeBackticks: validateBooleanSetting(s.preserveCodeBackticks),
         displayEmojis: validateBooleanSetting(s.displayEmojis, true), // Default to true
-        // Only accept a string value and one of the allowed options.
-        hyperlinkBehavior:
-            typeof s.hyperlinkBehavior === 'string' && ['title', 'url', 'markdown'].includes(s.hyperlinkBehavior)
-                ? s.hyperlinkBehavior
-                : 'title',
-        indentType:
-            typeof s.indentType === 'string' && ['spaces', 'tabs'].includes(s.indentType) ? s.indentType : 'spaces',
-        listSpacing:
-            typeof s.listSpacing === 'string' && ['tight', 'loose'].includes(s.listSpacing) ? s.listSpacing : 'loose',
+        hyperlinkBehavior: validateEnumSetting(s.hyperlinkBehavior, ['title', 'url', 'markdown'], 'title'),
+        indentType: validateEnumSetting(s.indentType, ['spaces', 'tabs'], 'spaces'),
+        listSpacing: validateEnumSetting(s.listSpacing, ['tight', 'loose'], 'loose'),
         preserveTablePipes: validateBooleanSetting(s.preserveTablePipes),
     };
 }
@@ -59,6 +53,13 @@ export function validateHtmlSettings(settings: unknown): HtmlOptions {
 
 export function validateBooleanSetting(setting: unknown, defaultValue = false): boolean {
     return typeof setting === 'boolean' ? setting : defaultValue;
+}
+
+/**
+ * Returns `setting` if it is one of the `allowed` values, otherwise `defaultValue`.
+ */
+function validateEnumSetting<T extends string>(setting: unknown, allowed: readonly T[], defaultValue: T): T {
+    return allowed.some((value) => value === setting) ? (setting as T) : defaultValue;
 }
 
 /**

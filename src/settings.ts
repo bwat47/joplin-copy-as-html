@@ -54,7 +54,6 @@ export async function registerPluginSettings(): Promise<void> {
             type: SettingItemType.Bool,
             section: SECTION_ID,
             public: true,
-            advanced: false,
             label: 'Convert SVG images to PNG',
             description:
                 'If enabled, embedded SVG images will be rasterized as PNG to improve compatibility with applications that cannot display inline SVG.',
