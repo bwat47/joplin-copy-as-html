@@ -42,7 +42,7 @@ export function validatePlainTextSettings(settings: unknown): PlainTextOptions {
         indentType:
             typeof s.indentType === 'string' && ['spaces', 'tabs'].includes(s.indentType) ? s.indentType : 'spaces',
         listSpacing:
-            typeof s.listSpacing === 'string' && ['tight', 'loose'].includes(s.listSpacing) ? s.listSpacing : 'tight',
+            typeof s.listSpacing === 'string' && ['tight', 'loose'].includes(s.listSpacing) ? s.listSpacing : 'loose',
         preserveTablePipes: validateBooleanSetting(s.preserveTablePipes),
     };
 }

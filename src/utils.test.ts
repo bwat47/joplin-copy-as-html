@@ -41,7 +41,7 @@ describe('validatePlainTextSettings', () => {
         expect(validated.preserveSuperscript).toBe(false);
         expect(validated.hyperlinkBehavior).toBe('title');
         expect(validated.indentType).toBe('spaces');
-        expect(validated.listSpacing).toBe('tight');
+        expect(validated.listSpacing).toBe('loose');
         expect(validated.preserveTablePipes).toBe(false);
         expect(validated.preserveCodeBackticks).toBe(false);
         expect(validated.preserveQuoteMarkers).toBe(false);
@@ -52,7 +52,7 @@ describe('validatePlainTextSettings', () => {
         expect(validatedUndefined.preserveSuperscript).toBe(false);
         expect(validatedUndefined.hyperlinkBehavior).toBe('title');
         expect(validatedUndefined.indentType).toBe('spaces');
-        expect(validatedUndefined.listSpacing).toBe('tight');
+        expect(validatedUndefined.listSpacing).toBe('loose');
         expect(validatedUndefined.displayEmojis).toBe(true);
         expect(validatedUndefined.preserveTablePipes).toBe(false);
         expect(validatedUndefined.preserveCodeBackticks).toBe(false);
@@ -62,7 +62,7 @@ describe('validatePlainTextSettings', () => {
         expect(validatedNull.preserveSuperscript).toBe(false);
         expect(validatedNull.hyperlinkBehavior).toBe('title');
         expect(validatedNull.indentType).toBe('spaces');
-        expect(validatedNull.listSpacing).toBe('tight');
+        expect(validatedNull.listSpacing).toBe('loose');
         expect(validatedNull.displayEmojis).toBe(true);
         expect(validatedNull.preserveTablePipes).toBe(false);
         expect(validatedNull.preserveCodeBackticks).toBe(false);
