@@ -18,7 +18,7 @@ import joplin from 'api';
 import { PlainTextOptions, HtmlOptions } from './types';
 import { logger } from './logger';
 import { ToastType } from 'api/types';
-import { CONSTANTS, DEFAULT_HTML_OPTIONS, DEFAULT_PLAIN_TEXT_OPTIONS } from './constants';
+import { DEFAULT_HTML_OPTIONS, DEFAULT_PLAIN_TEXT_OPTIONS } from './constants';
 
 export function validatePlainTextSettings(settings: unknown): PlainTextOptions {
     const s = (settings || {}) as Partial<PlainTextOptions>;
@@ -77,13 +77,9 @@ export function getErrorMessage(error: unknown): string {
  * Wraps the Joplin API to provide error handling and consistent defaults.
  * @param message The message to display
  * @param type The type of toast (Info, Success, Error), defaults to Info
- * @param duration Duration in milliseconds, defaults to constant value
+ * @param duration Duration in milliseconds, defaults to 3 seconds
  */
-export async function showToast(
-    message: string,
-    type: ToastType = ToastType.Info,
-    duration = CONSTANTS.TOAST_DURATION
-): Promise<void> {
+export async function showToast(message: string, type: ToastType = ToastType.Info, duration = 3000): Promise<void> {
     try {
         await joplin.views.dialogs.showToast({ message, type, duration });
     } catch (err) {

@@ -1,8 +1,8 @@
 /**
- * @fileoverview Configuration Constants - Centralized plugin settings and patterns
+ * @fileoverview Shared Constants - Setting keys, setting defaults, and shared patterns
  *
- * Contains all configuration constants, regex patterns, and magic numbers used
- * throughout the plugin.
+ * Holds values used by more than one module. Values used by a single module
+ * live in that module.
  *
  */
 
@@ -57,18 +57,6 @@ export const DEFAULT_PLAIN_TEXT_OPTIONS: PlainTextOptions = {
     indentType: 'spaces',
     listSpacing: 'loose',
     preserveTablePipes: false,
-};
-
-// Asset processing limits and UI timing
-export const CONSTANTS = {
-    BASE64_TIMEOUT_MS: 5000, //5s
-    REMOTE_TIMEOUT_MS: 10000, //10s
-    MAX_IMAGE_SIZE_BYTES: 25 * 1024 * 1024, // 25MB limit
-    MAX_IMAGE_SIZE_WARNING: 15 * 1024 * 1024, // 15MB warning threshold
-    // Generic User-Agent for remote image fetches to improve compatibility
-    // while avoiding detailed browser impersonation.
-    REMOTE_IMAGE_USER_AGENT: 'Mozilla/5.0',
-    TOAST_DURATION: 3000,
 };
 
 // Matches a GitHub/Joplin alert marker only at the start of blockquote content.
