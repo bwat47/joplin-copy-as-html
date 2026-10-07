@@ -36,7 +36,7 @@ function extractFileBuffer(fileObj: JoplinFileData): Buffer {
  * @returns True if valid, false otherwise.
  */
 function validateResourceId(id: string): boolean {
-    return typeof id === 'string' && id.length === 32 && RESOURCE_ID_REGEX.test(id);
+    return RESOURCE_ID_REGEX.test(id);
 }
 
 /**
@@ -71,14 +71,9 @@ export async function convertResourceToBase64(id: string): Promise<string | null
     try {
         const rawResource: unknown = await joplin.data.get(['resources', id], { fields: ['id', 'mime'] });
 
-        if (!rawResource) {
-            logger.warn(`Resource not found: :/${id}`);
-            return null;
-        }
-
-        // Validate shape before casting to avoid runtime crashes on unexpected data
+        // Validate shape before use to avoid runtime crashes on unexpected data
         if (!isJoplinResource(rawResource)) {
-            logger.warn(`Resource metadata invalid for :/${id}`);
+            logger.warn(`Resource not found or metadata invalid: :/${id}`);
             return null;
         }
 
@@ -106,24 +101,18 @@ export async function convertResourceToBase64(id: string): Promise<string | null
             }
         }
 
-        let fileBuffer: Buffer;
-        try {
-            fileBuffer = extractFileBuffer(fileObj);
+        const fileBuffer = extractFileBuffer(fileObj);
 
-            // Check file size limits
-            if (fileBuffer.length > CONSTANTS.MAX_IMAGE_SIZE_BYTES) {
-                logger.warn(
-                    `Resource too large: :/${id} is ${formatMB(fileBuffer.length)} (max ${formatMB(CONSTANTS.MAX_IMAGE_SIZE_BYTES)})`
-                );
-                return null;
-            } else if (fileBuffer.length > CONSTANTS.MAX_IMAGE_SIZE_WARNING) {
-                logger.warn(`Large image detected: Resource :/${id} is ${formatMB(fileBuffer.length)}`);
-            }
-        } catch (err) {
-            const msg = err instanceof Error ? err.message : String(err);
-            logger.error(`Error retrieving resource file :/${id}: ${msg}`);
+        // Check file size limits
+        if (fileBuffer.length > CONSTANTS.MAX_IMAGE_SIZE_BYTES) {
+            logger.warn(
+                `Resource too large: :/${id} is ${formatMB(fileBuffer.length)} (max ${formatMB(CONSTANTS.MAX_IMAGE_SIZE_BYTES)})`
+            );
             return null;
+        } else if (fileBuffer.length > CONSTANTS.MAX_IMAGE_SIZE_WARNING) {
+            logger.warn(`Large image detected: Resource :/${id} is ${formatMB(fileBuffer.length)}`);
         }
+
         const base64 = fileBuffer.toString('base64');
         return `data:${rawResource.mime};base64,${base64}`;
     } catch (err) {
@@ -213,12 +202,8 @@ async function readRemoteImageBody(
 export async function downloadRemoteImageAsBase64(url: string): Promise<string | null> {
     const controller = new AbortController();
     // Requires Electron with Chromium 116+ (AbortSignal.timeout/any support)
-    const AbortSignalWithTimeout = AbortSignal as typeof AbortSignal & {
-        timeout(ms: number): AbortSignal;
-        any(signals: AbortSignal[]): AbortSignal;
-    };
-    const timeoutSignal = AbortSignalWithTimeout.timeout(CONSTANTS.REMOTE_TIMEOUT_MS);
-    const combinedSignal = AbortSignalWithTimeout.any([controller.signal, timeoutSignal]);
+    const timeoutSignal = AbortSignal.timeout(CONSTANTS.REMOTE_TIMEOUT_MS);
+    const combinedSignal = AbortSignal.any([controller.signal, timeoutSignal]);
 
     try {
         const response = await fetch(url, {
@@ -251,9 +236,7 @@ export async function downloadRemoteImageAsBase64(url: string): Promise<string |
         logger.error('Failed to download remote image:', url, err);
         return null;
     } finally {
-        if (!controller.signal.aborted) {
-            controller.abort();
-        }
+        controller.abort();
     }
 }
 
