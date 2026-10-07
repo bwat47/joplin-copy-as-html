@@ -184,7 +184,7 @@ describe('domPostProcess', () => {
                     }
                     return;
                 }
-                Promise.resolve().then(() => {
+                queueMicrotask(() => {
                     if (this.onload) {
                         this.onload.call(this, new Event('load'));
                     }
