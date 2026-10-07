@@ -196,18 +196,23 @@ function removeJoplinSourceElements(root: HTMLElement): void {
 }
 
 /**
+ * Replaces `element` with a red "Image failed to load" message.
+ * @param element - Element to replace
+ */
+function replaceWithImageError(element: Element): void {
+    const span = element.ownerDocument.createElement('span');
+    span.textContent = HTML_CONSTANTS.IMAGE_LOAD_ERROR;
+    span.style.color = HTML_CONSTANTS.ERROR_COLOR;
+    element.replaceWith(span);
+}
+
+/**
  * Replaces Joplin's broken resource placeholders with our custom error message.
  * Joplin renders broken images as a span with class "not-loaded-resource" containing a large placeholder image.
  * @param root - Content root to process
  */
 function replaceBrokenResourceSpans(root: HTMLElement): void {
-    const brokenSpans = root.querySelectorAll('span.not-loaded-resource');
-    brokenSpans.forEach((span) => {
-        const fallback = root.ownerDocument.createElement('span');
-        fallback.textContent = HTML_CONSTANTS.IMAGE_LOAD_ERROR;
-        fallback.style.color = HTML_CONSTANTS.ERROR_COLOR;
-        span.replaceWith(fallback);
-    });
+    root.querySelectorAll('span.not-loaded-resource').forEach(replaceWithImageError);
 }
 
 /**
@@ -237,11 +242,7 @@ async function embedImagesInDom(root: HTMLElement, downloadRemoteImages: boolean
                         img.setAttribute('src', dataUri);
                         logger.debug(`Embedded resource: ${resourceId}`);
                     } else {
-                        // Replace with error placeholder
-                        const span = root.ownerDocument.createElement('span');
-                        span.textContent = HTML_CONSTANTS.IMAGE_LOAD_ERROR;
-                        span.style.color = HTML_CONSTANTS.ERROR_COLOR;
-                        img.replaceWith(span);
+                        replaceWithImageError(img);
                     }
                 })
             );
