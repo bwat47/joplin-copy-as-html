@@ -134,7 +134,6 @@ function registerEditorContextMenu(): void {
                 itemsToAdd.push({
                     commandName: 'copyAsHtml',
                     label: 'Copy selection as HTML',
-                    accelerator: 'Ctrl+Shift+C',
                 });
             }
 
@@ -142,7 +141,6 @@ function registerEditorContextMenu(): void {
                 itemsToAdd.push({
                     commandName: 'copyAsPlainText',
                     label: 'Copy selection as Plain Text',
-                    accelerator: 'Ctrl+Alt+C',
                 });
             }
 
