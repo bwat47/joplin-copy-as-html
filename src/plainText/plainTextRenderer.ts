@@ -353,17 +353,16 @@ function renderTableNode(node: PlainTextNode, options: PlainTextOptions): string
         return `${cell}${' '.repeat(width - stringWidth(cell))}`;
     }
 
+    const cellSeparator = ' '.repeat(PLAIN_TEXT_CONSTANTS.TABLE_CELL_PADDING);
     const lines: string[] = [];
     rows.forEach((row, rowIndex) => {
         const paddedCells = row.map((cell, index) => padCell(cell, columnWidths[index] ?? 0));
-        lines.push(
-            joinTableCells(paddedCells, options.preserveTablePipes, ' '.repeat(PLAIN_TEXT_CONSTANTS.TABLE_CELL_PADDING))
-        );
+        lines.push(joinTableCells(paddedCells, options.preserveTablePipes, cellSeparator));
         if (rowIndex === 0 && rows.length > 1) {
             const separatorCells = columnWidths.map((width) =>
                 '-'.repeat(Math.max(PLAIN_TEXT_CONSTANTS.MIN_COLUMN_WIDTH, width))
             );
-            lines.push(joinTableCells(separatorCells, options.preserveTablePipes, '  '));
+            lines.push(joinTableCells(separatorCells, options.preserveTablePipes, cellSeparator));
         }
     });
 
