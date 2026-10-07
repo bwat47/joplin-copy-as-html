@@ -148,6 +148,15 @@ function sanitizeToRoot(html: string): HTMLElement | null {
 // onto the document's structural elements, so those must never be matched.
 
 /**
+ * Checks whether an element sits inside a code block or inline code, where
+ * images are shown as written and must not be modified.
+ * @param element - Element to check
+ */
+function isInsideCode(element: Element): boolean {
+    return !!element.closest('pre, code');
+}
+
+/**
  * Removes non-image Joplin resource links and replaces them with their text content.
  * Links containing images are preserved.
  * @param root - Content root to process
@@ -169,7 +178,7 @@ function stripJoplinLinks(root: HTMLElement): void {
 function stripJoplinImages(root: HTMLElement): void {
     const imgs = Array.from(root.querySelectorAll('img'));
     for (const img of imgs) {
-        if (img.closest('pre, code')) continue;
+        if (isInsideCode(img)) continue;
 
         const src = img.getAttribute('src') || '';
         const resourceId = img.getAttribute('data-resource-id');
@@ -228,8 +237,7 @@ async function embedImagesInDom(root: HTMLElement, downloadRemoteImages: boolean
     const jobs: Promise<void>[] = [];
 
     for (const img of images) {
-        // Skip images inside code blocks
-        if (img.closest('pre, code')) continue;
+        if (isInsideCode(img)) continue;
 
         const resourceId = img.getAttribute('data-resource-id');
         const src = img.getAttribute('src') || '';
@@ -368,15 +376,6 @@ function stripGithubAlertMarkers(root: HTMLElement): void {
 }
 
 /**
- * Checks if an element should skip rasterization (e.g., inside code blocks).
- * @param node - Element to check
- * @returns True if rasterization should be skipped
- */
-function shouldSkipRasterization(node: Element): boolean {
-    return !!node.closest('pre, code');
-}
-
-/**
  * Checks if a source is an SVG data URI.
  * @param src - Image source to check
  * @returns True if source is an SVG data URI
@@ -392,11 +391,11 @@ function isSvgDataUri(src: string | null): boolean {
 async function convertSvgImagesToPng(root: HTMLElement): Promise<void> {
     const svgImgs = Array.from(root.querySelectorAll('img'))
         .map((img) => ({ img, src: img.getAttribute('src') }))
-        .filter((item): item is { img: HTMLImageElement; src: string } => isSvgDataUri(item.src));
+        .filter(
+            (item): item is { img: HTMLImageElement; src: string } => !isInsideCode(item.img) && isSvgDataUri(item.src)
+        );
 
     const jobs = svgImgs.map(async ({ img, src }) => {
-        if (shouldSkipRasterization(img)) return;
-
         try {
             const existingWidth = img.getAttribute('width');
             const existingHeight = img.getAttribute('height');
