@@ -36,124 +36,134 @@ async function getMarkdownSelection(commandLabel: string): Promise<string | null
     }
 }
 
+async function copySelectionAsHtml(): Promise<void> {
+    try {
+        const selection = await getMarkdownSelection('Copy as HTML');
+        if (!selection) return;
+
+        const htmlOptions = await loadHtmlSettings();
+        const html = await processHtmlConversion(selection, htmlOptions);
+
+        const plainTextOptions = await loadPlainTextSettings();
+        const plainText = convertMarkdownToPlainText(selection, plainTextOptions);
+        await joplin.clipboard.write({ html, text: plainText });
+        await showToast('Copied selection as HTML (with plain text fallback)!', ToastType.Success);
+    } catch (err) {
+        logger.error('Error:', err);
+        await showToast('Failed to copy as HTML: ' + getErrorMessage(err), ToastType.Error);
+    }
+}
+
+async function copySelectionAsPlainText(): Promise<void> {
+    try {
+        const selection = await getMarkdownSelection('Copy as Plain Text');
+        if (!selection) return;
+
+        const plainTextOptions = await loadPlainTextSettings();
+        const plainText = convertMarkdownToPlainText(selection, plainTextOptions);
+        await joplin.clipboard.writeText(plainText);
+        await showToast('Copied selection as Plain Text!', ToastType.Success);
+    } catch (err) {
+        logger.error('Error:', err);
+        await showToast('Failed to copy as Plain Text: ' + getErrorMessage(err), ToastType.Error);
+    }
+}
+
+async function registerCopyCommands(): Promise<void> {
+    // Register main HTML copy command FIRST to avoid keyboard shortcut bug
+    await joplin.commands.register({
+        name: 'copyAsHtml',
+        label: 'Copy selection as HTML',
+        iconName: 'fas fa-copy',
+        execute: copySelectionAsHtml,
+    });
+
+    // Register plain text copy command
+    await joplin.commands.register({
+        name: 'copyAsPlainText',
+        label: 'Copy selection as Plain Text',
+        iconName: 'fas fa-copy',
+        execute: copySelectionAsPlainText,
+    });
+}
+
+async function registerKeyboardShortcuts(): Promise<void> {
+    // Register keyboard shortcut for HTML copy (Edit menu as fallback)
+    await joplin.views.menuItems.create('copyAsHtmlShortcut', 'copyAsHtml', MenuItemLocation.Edit, {
+        accelerator: 'Ctrl+Shift+C',
+    });
+
+    // Register keyboard shortcut for plain text copy (Edit menu as fallback)
+    await joplin.views.menuItems.create('copyAsPlainTextShortcut', 'copyAsPlainText', MenuItemLocation.Edit, {
+        accelerator: 'Ctrl+Alt+C',
+    });
+}
+
+function registerEditorContextMenu(): void {
+    // Filter context menu to dynamically add our commands only when there's a valid text selection
+    joplin.workspace.filterEditorContextMenu(async (contextMenu) => {
+        logger.debug(
+            'Context menu items:',
+            contextMenu.items.map((item) => item.commandName)
+        );
+
+        // Check if there's a valid text selection in the markdown editor
+        let hasValidSelection: boolean;
+        try {
+            // Try to get the current selection - this should only work in markdown editor
+            const selection: unknown = await joplin.commands.execute('editor.execCommand', {
+                name: 'getSelection',
+            });
+            // Only show menu items if selection is a non-empty string
+            hasValidSelection = typeof selection === 'string' && selection.length > 0;
+            logger.debug('Has valid selection:', hasValidSelection);
+        } catch {
+            // If getSelection fails, we're likely not in markdown editor
+            hasValidSelection = false;
+            logger.debug('No valid selection - not adding context menu items');
+        }
+
+        // Only add our commands to the context menu if there's a valid selection
+        if (hasValidSelection) {
+            // Check if our commands are already in the menu to avoid duplicates
+            const hasHtmlCommand = contextMenu.items.some((item) => item.commandName === 'copyAsHtml');
+            const hasPlainTextCommand = contextMenu.items.some((item) => item.commandName === 'copyAsPlainText');
+            const itemsToAdd: MenuItem[] = [];
+
+            if (!hasHtmlCommand) {
+                itemsToAdd.push({
+                    commandName: 'copyAsHtml',
+                    label: 'Copy selection as HTML',
+                    accelerator: 'Ctrl+Shift+C',
+                });
+            }
+
+            if (!hasPlainTextCommand) {
+                itemsToAdd.push({
+                    commandName: 'copyAsPlainText',
+                    label: 'Copy selection as Plain Text',
+                    accelerator: 'Ctrl+Alt+C',
+                });
+            }
+
+            if (itemsToAdd.length > 0) {
+                contextMenu.items.push({ type: 'separator' });
+                contextMenu.items.push(...itemsToAdd);
+            }
+
+            logger.debug('Added context menu items, total:', contextMenu.items.length);
+        }
+
+        return contextMenu;
+    });
+}
+
 void joplin.plugins.register({
     onStart: async function () {
-        // Register main HTML copy command FIRST to avoid keyboard shortcut bug
-        await joplin.commands.register({
-            name: 'copyAsHtml',
-            label: 'Copy selection as HTML',
-            iconName: 'fas fa-copy',
-            execute: async () => {
-                try {
-                    const selection = await getMarkdownSelection('Copy as HTML');
-                    if (!selection) return;
-
-                    const htmlOptions = await loadHtmlSettings();
-                    const html = await processHtmlConversion(selection, htmlOptions);
-
-                    const plainTextOptions = await loadPlainTextSettings();
-                    const plainText = convertMarkdownToPlainText(selection, plainTextOptions);
-                    await joplin.clipboard.write({ html, text: plainText });
-                    await showToast('Copied selection as HTML (with plain text fallback)!', ToastType.Success);
-                } catch (err) {
-                    logger.error('Error:', err);
-                    await showToast('Failed to copy as HTML: ' + getErrorMessage(err), ToastType.Error);
-                }
-            },
-        });
-
-        // Register plain text copy command
-        await joplin.commands.register({
-            name: 'copyAsPlainText',
-            label: 'Copy selection as Plain Text',
-            iconName: 'fas fa-copy',
-            execute: async () => {
-                try {
-                    const selection = await getMarkdownSelection('Copy as Plain Text');
-                    if (!selection) return;
-
-                    const plainTextOptions = await loadPlainTextSettings();
-                    const plainText = convertMarkdownToPlainText(selection, plainTextOptions);
-                    await joplin.clipboard.writeText(plainText);
-                    await showToast('Copied selection as Plain Text!', ToastType.Success);
-                } catch (err) {
-                    logger.error('Error:', err);
-                    await showToast('Failed to copy as Plain Text: ' + getErrorMessage(err), ToastType.Error);
-                }
-            },
-        });
-
-        // Register plugin settings AFTER commands
+        // Commands must precede settings; HTML must be registered first.
+        await registerCopyCommands();
         await registerPluginSettings();
-
-        // Note: We'll register context menu items dynamically through the filter
-        // to avoid showing them in rich text editor where they don't work
-
-        // Register keyboard shortcut for HTML copy (Edit menu as fallback)
-        await joplin.views.menuItems.create('copyAsHtmlShortcut', 'copyAsHtml', MenuItemLocation.Edit, {
-            accelerator: 'Ctrl+Shift+C',
-        });
-
-        // Register keyboard shortcut for plain text copy (Edit menu as fallback)
-        await joplin.views.menuItems.create('copyAsPlainTextShortcut', 'copyAsPlainText', MenuItemLocation.Edit, {
-            accelerator: 'Ctrl+Alt+C',
-        });
-
-        // Filter context menu to dynamically add our commands only when there's a valid text selection
-        joplin.workspace.filterEditorContextMenu(async (contextMenu) => {
-            logger.debug(
-                'Context menu items:',
-                contextMenu.items.map((item) => item.commandName)
-            );
-
-            // Check if there's a valid text selection in the markdown editor
-            let hasValidSelection: boolean;
-            try {
-                // Try to get the current selection - this should only work in markdown editor
-                const selection: unknown = await joplin.commands.execute('editor.execCommand', {
-                    name: 'getSelection',
-                });
-                // Only show menu items if selection is a non-empty string
-                hasValidSelection = typeof selection === 'string' && selection.length > 0;
-                logger.debug('Has valid selection:', hasValidSelection);
-            } catch {
-                // If getSelection fails, we're likely not in markdown editor
-                hasValidSelection = false;
-                logger.debug('No valid selection - not adding context menu items');
-            }
-
-            // Only add our commands to the context menu if there's a valid selection
-            if (hasValidSelection) {
-                // Check if our commands are already in the menu to avoid duplicates
-                const hasHtmlCommand = contextMenu.items.some((item) => item.commandName === 'copyAsHtml');
-                const hasPlainTextCommand = contextMenu.items.some((item) => item.commandName === 'copyAsPlainText');
-                const itemsToAdd: MenuItem[] = [];
-
-                if (!hasHtmlCommand) {
-                    itemsToAdd.push({
-                        commandName: 'copyAsHtml',
-                        label: 'Copy selection as HTML',
-                        accelerator: 'Ctrl+Shift+C',
-                    });
-                }
-
-                if (!hasPlainTextCommand) {
-                    itemsToAdd.push({
-                        commandName: 'copyAsPlainText',
-                        label: 'Copy selection as Plain Text',
-                        accelerator: 'Ctrl+Alt+C',
-                    });
-                }
-
-                if (itemsToAdd.length > 0) {
-                    contextMenu.items.push({ type: 'separator' });
-                    contextMenu.items.push(...itemsToAdd);
-                }
-
-                logger.debug('Added context menu items, total:', contextMenu.items.length);
-            }
-
-            return contextMenu;
-        });
+        await registerKeyboardShortcuts();
+        registerEditorContextMenu();
     },
 });
