@@ -10,7 +10,6 @@ vi.mock('api', () => ({
             get: vi.fn(),
         },
         settings: {
-            value: vi.fn(),
             values: vi.fn(),
             globalValues: vi.fn(),
         },
@@ -19,7 +18,6 @@ vi.mock('api', () => ({
             register: vi.fn(),
         },
         clipboard: {
-            writeHtml: vi.fn(),
             writeText: vi.fn(),
             write: vi.fn(),
         },
