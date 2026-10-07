@@ -523,11 +523,11 @@ interface PostProcessOptions {
  * 3. Replace broken resource placeholders with error messages
  * 4. Strip GitHub alert markers from blockquote content
  * 5. Remove non-image Joplin resource links (:/... or joplin://resource/...)
- * 6. Strip Joplin images if embedding is disabled
- * 7. Embed images (local and remote) as base64 if enabled
- * 8. Disable checkbox inputs
+ * 6. Disable checkbox inputs
+ * 7. Strip Joplin images if embedding is disabled
+ * 8. Embed images (local and remote) as base64 if enabled
  * 9. Wrap top-level images in paragraph tags for consistent formatting
- * 10. Convert SVG data URIs to PNG (requires Canvas API)
+ * 10. Convert SVG data URIs to PNG if enabled (requires Canvas API)
  */
 export async function postProcessHtml(html: string, opts: PostProcessOptions): Promise<string> {
     const root = sanitizeToRoot(html);

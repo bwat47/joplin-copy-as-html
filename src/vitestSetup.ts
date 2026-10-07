@@ -1,5 +1,5 @@
 // Vitest setup file - automatically loaded before all tests
-// Centralizes the Joplin API mock that was previously duplicated across test files
+// Mocks the Joplin API for every test file and resets all mocks before each test
 
 vi.mock('api', () => ({
     __esModule: true,

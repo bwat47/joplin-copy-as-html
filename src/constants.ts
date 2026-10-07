@@ -29,7 +29,7 @@ export const SETTINGS = {
     PRESERVE_TABLE_PIPES: 'preserveTablePipes',
 };
 
-// Timeouts used for asset processing
+// Asset processing limits and UI timing
 export const CONSTANTS = {
     BASE64_TIMEOUT_MS: 5000, //5s
     REMOTE_TIMEOUT_MS: 10000, //10s
@@ -52,7 +52,7 @@ export const RESOURCE_ID_REGEX = /^[a-f0-9]{32}$/i;
 // Matches a GitHub/Joplin alert marker only at the start of blockquote content.
 export const GITHUB_ALERT_MARKER_REGEX = /^\s*\[![^\]\r\n]+\](?:[ \t]*\r?\n|[ \t]*)/i;
 
-// Plain text renderer specific (values not already in CONSTANTS)
+// Plain text renderer output formatting
 export const PLAIN_TEXT_CONSTANTS = {
     ORDERED_LIST_START: 1,
     BULLET_PREFIX: '- ',

@@ -1,8 +1,9 @@
 /**
- * @fileoverview Utility Functions - Input validation and settings processing
+ * @fileoverview Utility Functions - Settings validation, error messages, and toasts
  *
  * Contains validation functions that ensure user settings conform to expected
- * types and provide sensible defaults for invalid values.
+ * types and provide sensible defaults for invalid values, plus small shared
+ * helpers for extracting error messages and showing toast notifications.
  *
  * The validation functions are defensive programming - they handle cases where:
  * - Settings are corrupted or have unexpected types
