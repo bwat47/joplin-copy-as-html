@@ -51,20 +51,10 @@ void joplin.plugins.register({
                     const htmlOptions = await loadHtmlSettings();
                     const html = await processHtmlConversion(selection, htmlOptions);
 
-                    if (typeof joplin.clipboard.write === 'function') {
-                        try {
-                            const plainTextOptions = await loadPlainTextSettings();
-                            const plainText = convertMarkdownToPlainText(selection, plainTextOptions);
-                            await joplin.clipboard.write({ html, text: plainText });
-                            await showToast('Copied selection as HTML (with plain text fallback)!', ToastType.Success);
-                            return;
-                        } catch (multiFormatError) {
-                            logger.warn('clipboard.write failed, falling back:', multiFormatError);
-                        }
-                    }
-
-                    await joplin.clipboard.writeHtml(html);
-                    await showToast('Copied selection as HTML!', ToastType.Success);
+                    const plainTextOptions = await loadPlainTextSettings();
+                    const plainText = convertMarkdownToPlainText(selection, plainTextOptions);
+                    await joplin.clipboard.write({ html, text: plainText });
+                    await showToast('Copied selection as HTML (with plain text fallback)!', ToastType.Success);
                 } catch (err) {
                     logger.error('Error:', err);
                     await showToast('Failed to copy as HTML: ' + getErrorMessage(err), ToastType.Error);
