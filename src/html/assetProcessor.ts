@@ -49,7 +49,7 @@ function formatMB(bytes: number): string {
 }
 
 // Narrow unknown resource objects returned by the Joplin API (runtime validation)
-function isMinimalJoplinResource(obj: unknown): obj is Pick<JoplinResource, 'id' | 'mime'> {
+function isJoplinResource(obj: unknown): obj is JoplinResource {
     return (
         !!obj &&
         typeof (obj as { id?: unknown }).id === 'string' &&
@@ -77,7 +77,7 @@ export async function convertResourceToBase64(id: string): Promise<string | null
         }
 
         // Validate shape before casting to avoid runtime crashes on unexpected data
-        if (!isMinimalJoplinResource(rawResource)) {
+        if (!isJoplinResource(rawResource)) {
             logger.warn(`Resource metadata invalid for :/${id}`);
             return null;
         }
