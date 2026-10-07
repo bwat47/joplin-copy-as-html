@@ -147,10 +147,6 @@ function isExternalHttpUrl(url: string): boolean {
     return /^https?:\/\/./i.test(url);
 }
 
-function unescapeMarkdownText(text: string): string {
-    return text.replace(/\\([*_~^`#])/g, '$1').replace(/\u00A0/g, ' ');
-}
-
 function normalizeBlockText(text: string): string {
     return text.replace(/\n{3,}/g, '\n'.repeat(PLAIN_TEXT_CONSTANTS.MAX_PARAGRAPH_NEWLINES)).trim();
 }
@@ -210,7 +206,7 @@ function renderCodeBlock(node: PlainTextNode, options: PlainTextOptions): string
 function renderInlineNode(node: PlainTextNode, options: PlainTextOptions): string {
     switch (node.type) {
         case 'text':
-            return unescapeMarkdownText((node.value ?? '').replace(PLAIN_TEXT_REGEX.FOOTNOTE_REF, '[$1]'));
+            return (node.value ?? '').replace(PLAIN_TEXT_REGEX.FOOTNOTE_REF, '[$1]').replace(/\u00A0/g, ' ');
         case 'inlineCode':
             return renderInlineCode(node.value ?? '', options);
         case 'break':

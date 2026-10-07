@@ -549,6 +549,17 @@ describe('Code Block Handling', () => {
     });
 });
 
+describe('Markdown escape handling', () => {
+    it.each(['*', '_', '~', '^', '`', '#'])('should preserve a literal backslash before %s', (marker) => {
+        const markdown = `\\\\${marker}literal`;
+        expect(convertMarkdownToPlainText(markdown, defaultOptions)).toBe(`\\${marker}literal`);
+    });
+
+    it('should still decode Markdown escapes once', () => {
+        expect(convertMarkdownToPlainText(String.raw`\*literal\*`, defaultOptions)).toBe('*literal*');
+    });
+});
+
 // Line Break Handling
 describe('Line Break Handling', () => {
     it.each([
