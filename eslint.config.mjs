@@ -1,13 +1,13 @@
-// Flat config (ESM). Adds ignores, Node + Vitest globals, and TS-friendly rule tweaks.
+// Flat config (ESM). Adds typed linting, Node + Vitest globals, and project rule tweaks.
 
 import js from '@eslint/js';
-import tsParser from '@typescript-eslint/parser';
-import tsPlugin from '@typescript-eslint/eslint-plugin';
+import { defineConfig } from 'eslint/config';
+import tseslint from 'typescript-eslint';
 import sonarjs from 'eslint-plugin-sonarjs';
 import prettier from 'eslint-config-prettier';
 import globals from 'globals';
 
-export default [
+export default defineConfig([
     {
         ignores: ['api/**', 'dist/**', 'webpack.config.js', 'webpack.config.override.js', '.prettierrc.js'],
     },
@@ -15,24 +15,21 @@ export default [
     js.configs.recommended,
     sonarjs.configs.recommended,
 
-    // Project TS/JS sources
+    // Project TypeScript sources
     {
-        files: ['**/*.{ts,tsx,js}'],
+        files: ['**/*.{ts,tsx,mts,cts}'],
+        extends: [tseslint.configs.recommendedTypeChecked],
         languageOptions: {
-            parser: tsParser,
-            ecmaVersion: 2020,
-            sourceType: 'module',
+            parserOptions: {
+                projectService: true,
+                tsconfigRootDir: import.meta.dirname,
+            },
             globals: {
                 ...globals.node,
             },
         },
-        plugins: {
-            '@typescript-eslint': tsPlugin,
-        },
         rules: {
             // Turn off rules TypeScript handles (prevents NodeJS / type-only false positives)
-            'no-undef': 'off',
-            ...tsPlugin.configs.recommended.rules,
             'sonarjs/dompurify-unsafe-config': 'off',
             '@typescript-eslint/no-inferrable-types': 'error',
             '@typescript-eslint/explicit-module-boundary-types': 'error',
@@ -58,4 +55,4 @@ export default [
 
     // Prettier compatibility
     prettier,
-];
+]);
