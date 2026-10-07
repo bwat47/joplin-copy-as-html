@@ -441,7 +441,7 @@ function renderBlocks(nodes: PlainTextNode[], options: PlainTextOptions, depth =
  */
 export function convertMarkdownToPlainText(markdown: string, options: PlainTextOptions): string {
     const processor = createRemarkProcessor(options.displayEmojis);
-    const parsed = processor.parse(markdown) as Root;
+    const parsed = processor.parse(markdown);
     const tree = processor.runSync(parsed) as PlainTextNode;
     return renderBlocks(tree.children ?? [], options);
 }

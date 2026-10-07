@@ -37,16 +37,12 @@ export function validatePlainTextSettings(settings: unknown): PlainTextOptions {
         // Only accept a string value and one of the allowed options.
         hyperlinkBehavior:
             typeof s.hyperlinkBehavior === 'string' && ['title', 'url', 'markdown'].includes(s.hyperlinkBehavior)
-                ? (s.hyperlinkBehavior as 'title' | 'url' | 'markdown')
+                ? s.hyperlinkBehavior
                 : 'title',
         indentType:
-            typeof s.indentType === 'string' && ['spaces', 'tabs'].includes(s.indentType)
-                ? (s.indentType as 'spaces' | 'tabs')
-                : 'spaces',
+            typeof s.indentType === 'string' && ['spaces', 'tabs'].includes(s.indentType) ? s.indentType : 'spaces',
         listSpacing:
-            typeof s.listSpacing === 'string' && ['tight', 'loose'].includes(s.listSpacing)
-                ? (s.listSpacing as 'tight' | 'loose')
-                : 'tight',
+            typeof s.listSpacing === 'string' && ['tight', 'loose'].includes(s.listSpacing) ? s.listSpacing : 'tight',
         preserveTablePipes: validateBooleanSetting(s.preserveTablePipes),
     };
 }
