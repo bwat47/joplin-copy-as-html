@@ -7,13 +7,12 @@ import { convertResourceToBase64, downloadRemoteImageAsBase64 } from './assetPro
 // Sanitization Configuration
 // ----------------------
 
-const purifyInstance = DOMPurify;
 let purifyHooksInstalled = false;
 
 function ensurePurifyHooks(): void {
     if (purifyHooksInstalled) return;
     // Add security hook to only allow checkbox inputs
-    purifyInstance.addHook('afterSanitizeAttributes', (node) => {
+    DOMPurify.addHook('afterSanitizeAttributes', (node) => {
         if (node.tagName === 'INPUT') {
             const type = node.getAttribute('type')?.toLowerCase();
             if (type !== 'checkbox') node.remove();
@@ -31,7 +30,7 @@ function ensurePurifyHooks(): void {
  */
 function sanitizeToRoot(html: string): HTMLElement | null {
     ensurePurifyHooks();
-    return purifyInstance.sanitize(html, {
+    return DOMPurify.sanitize(html, {
         RETURN_DOM: true,
         // Keep it permissive for rich content but remove dangerous elements
         ALLOWED_TAGS: [
