@@ -1,5 +1,5 @@
 import DOMPurify from 'dompurify';
-import { GITHUB_ALERT_MARKER_REGEX, HTML_CONSTANTS } from '../constants';
+import { GITHUB_ALERT_MARKER_REGEX } from '../constants';
 import { logger } from '../logger';
 import { convertResourceToBase64, downloadRemoteImageAsBase64 } from './assetProcessor';
 
@@ -209,8 +209,8 @@ function removeJoplinSourceElements(root: HTMLElement): void {
  */
 function replaceWithImageError(element: Element): void {
     const span = element.ownerDocument.createElement('span');
-    span.textContent = HTML_CONSTANTS.IMAGE_LOAD_ERROR;
-    span.style.color = HTML_CONSTANTS.ERROR_COLOR;
+    span.textContent = 'Image failed to load';
+    span.style.color = 'red';
     element.replaceWith(span);
 }
 

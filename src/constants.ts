@@ -71,13 +71,5 @@ export const CONSTANTS = {
     TOAST_DURATION: 3000,
 };
 
-// HTML / rendering related constants
-export const HTML_CONSTANTS = {
-    ERROR_COLOR: 'red',
-    IMAGE_LOAD_ERROR: 'Image failed to load',
-} as const;
-
-export const RESOURCE_ID_REGEX = /^[a-f0-9]{32}$/i;
-
 // Matches a GitHub/Joplin alert marker only at the start of blockquote content.
 export const GITHUB_ALERT_MARKER_REGEX = /^\s*\[![^\]\r\n]+\](?:[ \t]*\r?\n|[ \t]*)/i;

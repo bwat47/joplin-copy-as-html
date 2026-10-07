@@ -10,7 +10,7 @@
  */
 
 import joplin from 'api';
-import { CONSTANTS, RESOURCE_ID_REGEX } from '../constants';
+import { CONSTANTS } from '../constants';
 import { JoplinFileData, JoplinResource } from '../types';
 import * as fs from 'fs/promises';
 import * as path from 'path';
@@ -29,6 +29,9 @@ function extractFileBuffer(fileObj: JoplinFileData): Buffer {
 
     throw new Error('Invalid file buffer format');
 }
+
+// Joplin resource ID: exactly 32 hex characters, e.g. 0123456789abcdef0123456789abcdef
+const RESOURCE_ID_REGEX = /^[a-f0-9]{32}$/i;
 
 /**
  * Validates that a string is a valid Joplin resource ID (32 hex characters).
