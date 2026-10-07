@@ -544,14 +544,7 @@ interface PostProcessOptions {
  * 9. Wrap top-level images in paragraph tags for consistent formatting
  * 10. Convert SVG data URIs to PNG (requires Canvas API)
  */
-export async function postProcessHtml(
-    html: string,
-    opts: PostProcessOptions = {
-        embedImages: true,
-        downloadRemoteImages: false,
-        convertSvgToPng: true,
-    }
-): Promise<string> {
+export async function postProcessHtml(html: string, opts: PostProcessOptions): Promise<string> {
     const root = sanitizeToRoot(html);
     if (!root) return '';
 

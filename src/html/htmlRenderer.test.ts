@@ -1,7 +1,7 @@
 import { processHtmlConversion } from './htmlRenderer';
 import joplin from 'api';
 import type { Mock } from 'vitest';
-import { mockHtmlSettings } from '../testHelpers';
+import type { HtmlOptions } from '../types';
 import * as domPostProcess from './domPostProcess';
 import * as assetProcessor from './assetProcessor';
 
@@ -10,6 +10,16 @@ vi.mock('./assetProcessor');
 
 const mockPostProcessHtml = domPostProcess.postProcessHtml as Mock;
 const mockGetUserStylesheet = assetProcessor.getUserStylesheet as Mock;
+
+function htmlOptions(overrides: Partial<HtmlOptions> = {}): HtmlOptions {
+    return {
+        embedImages: false,
+        exportFullHtml: false,
+        downloadRemoteImages: false,
+        embedSvgAsPng: true,
+        ...overrides,
+    };
+}
 
 describe('processHtmlConversion', () => {
     beforeEach(() => {
@@ -20,8 +30,7 @@ describe('processHtmlConversion', () => {
     });
 
     it('calls renderMarkup and returns processed HTML', async () => {
-        mockHtmlSettings({ embedImages: false });
-        const result = await processHtmlConversion('markdown');
+        const result = await processHtmlConversion('markdown', htmlOptions());
 
         expect(joplin.commands.execute).toHaveBeenCalledWith('renderMarkup', 1, 'markdown', null, { bodyOnly: true });
         expect(mockPostProcessHtml).toHaveBeenCalledWith(
@@ -34,25 +43,17 @@ describe('processHtmlConversion', () => {
     });
 
     it('passes correct options to postProcessHtml', async () => {
-        mockHtmlSettings({
-            embedImages: true,
-            embedSvgAsPng: false, // downloadRemoteImages is usually dependent on settings
-        });
-
-        await processHtmlConversion('md');
-
-        // This test verifies that processHtmlConversion passes the correct options to postProcessHtml based on the settings provided by mockHtmlSettings.
+        await processHtmlConversion('md', htmlOptions({ embedImages: true, embedSvgAsPng: false }));
 
         expect(mockPostProcessHtml).toHaveBeenCalledWith(expect.any(String), {
             embedImages: true,
-            downloadRemoteImages: false, // Default from mockHtmlSettings if not specified
+            downloadRemoteImages: false,
             convertSvgToPng: false,
         });
     });
 
     it('wraps content in full HTML when exportFullHtml is true', async () => {
-        mockHtmlSettings({ exportFullHtml: true });
-        const result = await processHtmlConversion('md');
+        const result = await processHtmlConversion('md', htmlOptions({ exportFullHtml: true }));
 
         expect(mockGetUserStylesheet).toHaveBeenCalled();
         expect(result).toContain('<!DOCTYPE html>');
@@ -61,8 +62,7 @@ describe('processHtmlConversion', () => {
     });
 
     it('does not wrap content when exportFullHtml is false', async () => {
-        mockHtmlSettings({ exportFullHtml: false });
-        const result = await processHtmlConversion('md');
+        const result = await processHtmlConversion('md', htmlOptions());
 
         expect(result).not.toContain('<!DOCTYPE html>');
         expect(result).toBe('<p>Mocked Render</p>');
@@ -70,7 +70,7 @@ describe('processHtmlConversion', () => {
 
     it('handles empty renderMarkup result', async () => {
         (joplin.commands.execute as Mock).mockResolvedValue(null);
-        const result = await processHtmlConversion('md');
+        const result = await processHtmlConversion('md', htmlOptions());
         expect(result).toBe('');
     });
 });

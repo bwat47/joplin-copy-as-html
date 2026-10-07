@@ -8,6 +8,8 @@ vi.mock('./assetProcessor');
 const mockConvertResource = assetProcessor.convertResourceToBase64 as Mock;
 const mockDownloadRemote = assetProcessor.downloadRemoteImageAsBase64 as Mock;
 
+const defaultOpts = { embedImages: true, downloadRemoteImages: false, convertSvgToPng: true };
+
 describe('domPostProcess', () => {
     beforeEach(() => {
         vi.clearAllMocks();
@@ -96,7 +98,7 @@ describe('domPostProcess', () => {
             <div class="joplin-source">raw code</div>
             <pre><code>highlighted code</code></pre>
         `;
-        const out = await postProcessHtml(html);
+        const out = await postProcessHtml(html, defaultOpts);
         expect(out).not.toContain('joplin-source');
         expect(out).not.toContain('raw code');
         expect(out).toContain('highlighted code');
@@ -107,7 +109,7 @@ describe('domPostProcess', () => {
         ['html', '<html class="joplin-source"><body><p>Visible content</p></body></html>'],
         ['head', '<head class="joplin-source"></head><p>Visible content</p>'],
     ])('ignores attributes the input sets on the document <%s> element', async (_tag, html) => {
-        const out = await postProcessHtml(html);
+        const out = await postProcessHtml(html, defaultOpts);
         expect(out).toBe('<p>Visible content</p>');
     });
 
@@ -117,7 +119,7 @@ describe('domPostProcess', () => {
                 <img src="data:image/png;base64," width="1700" height="1536">
             </span>`;
 
-        const out = await postProcessHtml(html);
+        const out = await postProcessHtml(html, defaultOpts);
 
         expect(out).toContain('Image failed to load');
         expect(out).not.toContain('<img');
@@ -126,7 +128,7 @@ describe('domPostProcess', () => {
 
     it('continues to clean Joplin resource anchors', async () => {
         const html = '<p><a href=":/0123456789abcdef0123456789abcdef">Resource</a></p>';
-        const out = await postProcessHtml(html);
+        const out = await postProcessHtml(html, defaultOpts);
         // Anchor should be replaced by its text content
         expect(out).not.toContain('<a ');
         expect(out).toContain('Resource');
@@ -152,7 +154,7 @@ describe('domPostProcess', () => {
             '[!example]',
         ],
     ])('%s', async (_name, html, expectedHtml, removedMarker) => {
-        const out = await postProcessHtml(html);
+        const out = await postProcessHtml(html, defaultOpts);
 
         expect(out).toContain(expectedHtml);
         expect(out).not.toContain(removedMarker);
@@ -243,7 +245,7 @@ describe('domPostProcess', () => {
                 <li><input type="checkbox" checked> Task 1</li>
                 <li><input type="checkbox"> Task 2</li>
             </ul>`;
-        const out = await postProcessHtml(html);
+        const out = await postProcessHtml(html, defaultOpts);
 
         // Should have added disabled attribute
         expect(out).toMatch(/<input[^>]*type="checkbox"[^>]*disabled(="disabled")?[^>]*>/);
