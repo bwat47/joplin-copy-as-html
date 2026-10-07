@@ -69,7 +69,7 @@ export async function convertResourceToBase64(id: string): Promise<string | null
         return null;
     }
     try {
-        const rawResource = await joplin.data.get(['resources', id], { fields: ['id', 'mime'] });
+        const rawResource: unknown = await joplin.data.get(['resources', id], { fields: ['id', 'mime'] });
 
         if (!rawResource) {
             logger.warn(`Resource not found: :/${id}`);
@@ -262,7 +262,7 @@ export async function downloadRemoteImageAsBase64(url: string): Promise<string |
  * the bundled default stylesheet. Used when exporting full HTML documents.
  */
 export async function getUserStylesheet(): Promise<string> {
-    const profileDir = await joplin.settings.globalValue('profileDir');
+    const profileDir: unknown = await joplin.settings.globalValue('profileDir');
     if (typeof profileDir !== 'string' || !profileDir) {
         return defaultStylesheet;
     }

@@ -20,7 +20,7 @@ import { getErrorMessage, showToast } from './utils';
 
 async function getMarkdownSelection(commandLabel: string): Promise<string | null> {
     try {
-        const selection = await joplin.commands.execute('editor.execCommand', { name: 'getSelection' });
+        const selection: unknown = await joplin.commands.execute('editor.execCommand', { name: 'getSelection' });
         if (typeof selection !== 'string') {
             await showToast(`${commandLabel}: This command only works in the Markdown editor.`);
             return null;
@@ -120,7 +120,7 @@ joplin.plugins.register({
             let hasValidSelection: boolean;
             try {
                 // Try to get the current selection - this should only work in markdown editor
-                const selection = await joplin.commands.execute('editor.execCommand', {
+                const selection: unknown = await joplin.commands.execute('editor.execCommand', {
                     name: 'getSelection',
                 });
                 // Only show menu items if selection is a non-empty string
