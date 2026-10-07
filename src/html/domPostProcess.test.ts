@@ -92,6 +92,31 @@ describe('domPostProcess', () => {
         expect(out).not.toContain('ab62d971ef62435ca8e3f9e709ce1255');
     });
 
+    it('strips tags and attributes outside the allowlist', async () => {
+        const html = `
+            <p onclick="alert(1)">Text</p>
+            <img src="x.png" onerror="alert(1)" onload="alert(1)">
+            <script>alert(1)</script>
+            <iframe src="https://example.com"></iframe>
+            <object data="x"></object>
+            <embed src="x">
+            <form><p>Form content</p></form>
+        `;
+        const out = await postProcessHtml(html, defaultOpts);
+        expect(out).not.toMatch(/<(script|iframe|object|embed|form)\b/);
+        expect(out).not.toMatch(/\bon(click|error|load)=/);
+        expect(out).toContain('<p>Text</p>');
+        expect(out).toContain('Form content');
+    });
+
+    it('keeps aria and role attributes', async () => {
+        const html = '<span role="note" aria-label="Label" aria-hidden="true">Text</span>';
+        const out = await postProcessHtml(html, defaultOpts);
+        expect(out).toContain('role="note"');
+        expect(out).toContain('aria-label="Label"');
+        expect(out).toContain('aria-hidden="true"');
+    });
+
     it('removes joplin-source elements (duplicate code block content)', async () => {
         const html = `
             <div class="joplin-source">raw code</div>

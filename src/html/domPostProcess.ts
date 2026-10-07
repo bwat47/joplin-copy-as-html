@@ -132,13 +132,11 @@ function sanitizeToRoot(html: string): HTMLElement | null {
             'datetime',
             'cite',
             'lang',
-            // Accessibility attributes
+            // Accessibility attributes (aria-* is allowed by DOMPurify's default ALLOW_ARIA_ATTR)
             'role',
-            'aria-*',
+            // Expanded state for <details>
             'open',
         ],
-        FORBID_TAGS: ['script', 'iframe', 'object', 'embed', 'form'],
-        FORBID_ATTR: ['onload', 'onerror', 'onclick'], // Remove event handlers
     }) as HTMLElement | null;
 }
 
