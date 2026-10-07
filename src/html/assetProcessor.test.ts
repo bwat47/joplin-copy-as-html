@@ -7,10 +7,6 @@ import { getUserStylesheet } from './assetProcessor';
 vi.mock('fs/promises', () => ({ readFile: vi.fn() }));
 
 describe('getUserStylesheet', () => {
-    beforeEach(() => {
-        vi.mocked(fs.readFile).mockReset();
-    });
-
     it('loads the stylesheet from the profile returned by globalValues', async () => {
         vi.mocked(joplin.settings.globalValues).mockResolvedValue(['/profile']);
         vi.mocked(fs.readFile).mockResolvedValue('body { color: red; }');

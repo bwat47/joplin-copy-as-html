@@ -1,8 +1,9 @@
 /**
- * @fileoverview Utility Functions - Input validation and settings processing
+ * @fileoverview Utility Functions - Settings validation, error messages, and toasts
  *
  * Contains validation functions that ensure user settings conform to expected
- * types and provide sensible defaults for invalid values.
+ * types and provide sensible defaults for invalid values, plus small shared
+ * helpers for extracting error messages and showing toast notifications.
  *
  * The validation functions are defensive programming - they handle cases where:
  * - Settings are corrupted or have unexpected types
@@ -17,48 +18,51 @@ import joplin from 'api';
 import { PlainTextOptions, HtmlOptions } from './types';
 import { logger } from './logger';
 import { ToastType } from 'api/types';
-import { CONSTANTS } from './constants';
+import { DEFAULT_HTML_OPTIONS, DEFAULT_PLAIN_TEXT_OPTIONS } from './constants';
 
 export function validatePlainTextSettings(settings: unknown): PlainTextOptions {
     const s = (settings || {}) as Partial<PlainTextOptions>;
+    const d = DEFAULT_PLAIN_TEXT_OPTIONS;
     return {
-        preserveSuperscript: validateBooleanSetting(s.preserveSuperscript),
-        preserveSubscript: validateBooleanSetting(s.preserveSubscript),
-        preserveEmphasis: validateBooleanSetting(s.preserveEmphasis),
-        preserveBold: validateBooleanSetting(s.preserveBold),
-        preserveHeading: validateBooleanSetting(s.preserveHeading),
-        preserveQuoteMarkers: validateBooleanSetting(s.preserveQuoteMarkers),
-        preserveStrikethrough: validateBooleanSetting(s.preserveStrikethrough),
-        preserveHorizontalRule: validateBooleanSetting(s.preserveHorizontalRule),
-        preserveMark: validateBooleanSetting(s.preserveMark),
-        preserveInsert: validateBooleanSetting(s.preserveInsert),
-        preserveCodeBackticks: validateBooleanSetting(s.preserveCodeBackticks),
-        displayEmojis: validateBooleanSetting(s.displayEmojis, true), // Default to true
-        // Only accept a string value and one of the allowed options.
-        hyperlinkBehavior:
-            typeof s.hyperlinkBehavior === 'string' && ['title', 'url', 'markdown'].includes(s.hyperlinkBehavior)
-                ? s.hyperlinkBehavior
-                : 'title',
-        indentType:
-            typeof s.indentType === 'string' && ['spaces', 'tabs'].includes(s.indentType) ? s.indentType : 'spaces',
-        listSpacing:
-            typeof s.listSpacing === 'string' && ['tight', 'loose'].includes(s.listSpacing) ? s.listSpacing : 'loose',
-        preserveTablePipes: validateBooleanSetting(s.preserveTablePipes),
+        preserveSuperscript: validateBooleanSetting(s.preserveSuperscript, d.preserveSuperscript),
+        preserveSubscript: validateBooleanSetting(s.preserveSubscript, d.preserveSubscript),
+        preserveEmphasis: validateBooleanSetting(s.preserveEmphasis, d.preserveEmphasis),
+        preserveBold: validateBooleanSetting(s.preserveBold, d.preserveBold),
+        preserveHeading: validateBooleanSetting(s.preserveHeading, d.preserveHeading),
+        preserveQuoteMarkers: validateBooleanSetting(s.preserveQuoteMarkers, d.preserveQuoteMarkers),
+        preserveStrikethrough: validateBooleanSetting(s.preserveStrikethrough, d.preserveStrikethrough),
+        preserveHorizontalRule: validateBooleanSetting(s.preserveHorizontalRule, d.preserveHorizontalRule),
+        preserveMark: validateBooleanSetting(s.preserveMark, d.preserveMark),
+        preserveInsert: validateBooleanSetting(s.preserveInsert, d.preserveInsert),
+        preserveCodeBackticks: validateBooleanSetting(s.preserveCodeBackticks, d.preserveCodeBackticks),
+        displayEmojis: validateBooleanSetting(s.displayEmojis, d.displayEmojis),
+        hyperlinkBehavior: validateEnumSetting(s.hyperlinkBehavior, ['title', 'url', 'markdown'], d.hyperlinkBehavior),
+        indentType: validateEnumSetting(s.indentType, ['spaces', 'tabs'], d.indentType),
+        listSpacing: validateEnumSetting(s.listSpacing, ['tight', 'loose'], d.listSpacing),
+        preserveTablePipes: validateBooleanSetting(s.preserveTablePipes, d.preserveTablePipes),
     };
 }
 
 export function validateHtmlSettings(settings: unknown): HtmlOptions {
     const s = (settings || {}) as Partial<HtmlOptions>;
+    const d = DEFAULT_HTML_OPTIONS;
     return {
-        embedImages: validateBooleanSetting(s.embedImages, true),
-        exportFullHtml: validateBooleanSetting(s.exportFullHtml, false),
-        downloadRemoteImages: validateBooleanSetting(s.downloadRemoteImages, false),
-        embedSvgAsPng: validateBooleanSetting(s.embedSvgAsPng, true),
+        embedImages: validateBooleanSetting(s.embedImages, d.embedImages),
+        exportFullHtml: validateBooleanSetting(s.exportFullHtml, d.exportFullHtml),
+        downloadRemoteImages: validateBooleanSetting(s.downloadRemoteImages, d.downloadRemoteImages),
+        embedSvgAsPng: validateBooleanSetting(s.embedSvgAsPng, d.embedSvgAsPng),
     };
 }
 
-export function validateBooleanSetting(setting: unknown, defaultValue = false): boolean {
+export function validateBooleanSetting(setting: unknown, defaultValue: boolean): boolean {
     return typeof setting === 'boolean' ? setting : defaultValue;
+}
+
+/**
+ * Returns `setting` if it is one of the `allowed` values, otherwise `defaultValue`.
+ */
+function validateEnumSetting<T extends string>(setting: unknown, allowed: readonly T[], defaultValue: T): T {
+    return allowed.some((value) => value === setting) ? (setting as T) : defaultValue;
 }
 
 /**
@@ -73,13 +77,9 @@ export function getErrorMessage(error: unknown): string {
  * Wraps the Joplin API to provide error handling and consistent defaults.
  * @param message The message to display
  * @param type The type of toast (Info, Success, Error), defaults to Info
- * @param duration Duration in milliseconds, defaults to constant value
+ * @param duration Duration in milliseconds, defaults to 3 seconds
  */
-export async function showToast(
-    message: string,
-    type: ToastType = ToastType.Info,
-    duration = CONSTANTS.TOAST_DURATION
-): Promise<void> {
+export async function showToast(message: string, type: ToastType = ToastType.Info, duration = 3000): Promise<void> {
     try {
         await joplin.views.dialogs.showToast({ message, type, duration });
     } catch (err) {

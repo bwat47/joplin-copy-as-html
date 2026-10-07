@@ -1,7 +1,5 @@
 // Vitest setup file - automatically loaded before all tests
-// Centralizes the Joplin API mock that was previously duplicated across test files
-
-import { resetAllJoplinMocks } from './testHelpers';
+// Mocks the Joplin API for every test file and resets all mocks before each test
 
 vi.mock('api', () => ({
     __esModule: true,
@@ -10,7 +8,6 @@ vi.mock('api', () => ({
             get: vi.fn(),
         },
         settings: {
-            value: vi.fn(),
             values: vi.fn(),
             globalValues: vi.fn(),
         },
@@ -19,7 +16,6 @@ vi.mock('api', () => ({
             register: vi.fn(),
         },
         clipboard: {
-            writeHtml: vi.fn(),
             writeText: vi.fn(),
             write: vi.fn(),
         },
@@ -38,5 +34,5 @@ vi.mock('api', () => ({
 }));
 
 beforeEach(() => {
-    resetAllJoplinMocks();
+    vi.resetAllMocks();
 });

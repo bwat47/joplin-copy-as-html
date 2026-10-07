@@ -83,7 +83,7 @@ All default to `false` unless noted.
 - `html/domPostProcess.test.ts` tests DOM sanitization, link patching, image wrapping, and the `unwrapRenderedMd` logic.
 - `plainText/plainTextRenderer.test.ts` covers integration scenarios for the plain text pipeline.
 - `utils.test.ts` tests validation helpers and utility functions.
-- Common fixtures live in `testHelpers.ts`; tests avoid real I/O via mocks.
+- `vitestSetup.ts` mocks the Joplin API and resets all mocks before each test; tests avoid real I/O via mocks.
 
 ## Dependencies
 

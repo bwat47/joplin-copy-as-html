@@ -3,17 +3,16 @@ import { validateBooleanSetting, validateHtmlSettings, validatePlainTextSettings
 
 describe('validateBooleanSetting', () => {
     it('should return the boolean value if it is a boolean', () => {
-        expect(validateBooleanSetting(true)).toBe(true);
-        expect(validateBooleanSetting(false)).toBe(false);
+        expect(validateBooleanSetting(true, false)).toBe(true);
+        expect(validateBooleanSetting(false, true)).toBe(false);
     });
 
     it('should return the default value if the setting is not a boolean', () => {
-        // Test with default fallback (false)
-        expect(validateBooleanSetting(undefined)).toBe(false);
-        expect(validateBooleanSetting(null)).toBe(false);
-        expect(validateBooleanSetting('true')).toBe(false);
-        expect(validateBooleanSetting(1)).toBe(false);
-        expect(validateBooleanSetting({})).toBe(false);
+        expect(validateBooleanSetting(undefined, false)).toBe(false);
+        expect(validateBooleanSetting(null, false)).toBe(false);
+        expect(validateBooleanSetting('true', false)).toBe(false);
+        expect(validateBooleanSetting(1, false)).toBe(false);
+        expect(validateBooleanSetting({}, false)).toBe(false);
     });
 
     it('should return the provided default value for non-boolean types', () => {

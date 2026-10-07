@@ -10,12 +10,19 @@
  */
 
 import joplin from 'api';
-import { CONSTANTS, RESOURCE_ID_REGEX } from '../constants';
 import { JoplinFileData, JoplinResource } from '../types';
 import * as fs from 'fs/promises';
 import * as path from 'path';
 import { defaultStylesheet } from '../defaultStylesheet';
 import { logger } from '../logger';
+
+const RESOURCE_FILE_TIMEOUT_MS = 5000;
+const REMOTE_IMAGE_TIMEOUT_MS = 10000;
+const MAX_IMAGE_SIZE_BYTES = 25 * 1024 * 1024;
+const LARGE_IMAGE_WARNING_BYTES = 15 * 1024 * 1024;
+// Generic User-Agent for remote image fetches to improve compatibility
+// while avoiding detailed browser impersonation.
+const REMOTE_IMAGE_USER_AGENT = 'Mozilla/5.0';
 
 /**
  * Extracts a Buffer from a Joplin file object returned by the API.
@@ -30,13 +37,16 @@ function extractFileBuffer(fileObj: JoplinFileData): Buffer {
     throw new Error('Invalid file buffer format');
 }
 
+// Joplin resource ID: exactly 32 hex characters, e.g. 0123456789abcdef0123456789abcdef
+const RESOURCE_ID_REGEX = /^[a-f0-9]{32}$/i;
+
 /**
  * Validates that a string is a valid Joplin resource ID (32 hex characters).
  * @param id The resource ID to validate.
  * @returns True if valid, false otherwise.
  */
 function validateResourceId(id: string): boolean {
-    return typeof id === 'string' && id.length === 32 && RESOURCE_ID_REGEX.test(id);
+    return RESOURCE_ID_REGEX.test(id);
 }
 
 /**
@@ -49,7 +59,7 @@ function formatMB(bytes: number): string {
 }
 
 // Narrow unknown resource objects returned by the Joplin API (runtime validation)
-function isMinimalJoplinResource(obj: unknown): obj is Pick<JoplinResource, 'id' | 'mime'> {
+function isJoplinResource(obj: unknown): obj is JoplinResource {
     return (
         !!obj &&
         typeof (obj as { id?: unknown }).id === 'string' &&
@@ -71,14 +81,9 @@ export async function convertResourceToBase64(id: string): Promise<string | null
     try {
         const rawResource: unknown = await joplin.data.get(['resources', id], { fields: ['id', 'mime'] });
 
-        if (!rawResource) {
-            logger.warn(`Resource not found: :/${id}`);
-            return null;
-        }
-
-        // Validate shape before casting to avoid runtime crashes on unexpected data
-        if (!isMinimalJoplinResource(rawResource)) {
-            logger.warn(`Resource metadata invalid for :/${id}`);
+        // Validate shape before use to avoid runtime crashes on unexpected data
+        if (!isJoplinResource(rawResource)) {
+            logger.warn(`Resource not found or metadata invalid: :/${id}`);
             return null;
         }
 
@@ -93,7 +98,7 @@ export async function convertResourceToBase64(id: string): Promise<string | null
         const timeoutPromise = new Promise<never>((_, reject) => {
             timeoutId = setTimeout(
                 () => reject(new Error('Timeout retrieving resource file')),
-                CONSTANTS.BASE64_TIMEOUT_MS
+                RESOURCE_FILE_TIMEOUT_MS
             );
         });
 
@@ -106,24 +111,18 @@ export async function convertResourceToBase64(id: string): Promise<string | null
             }
         }
 
-        let fileBuffer: Buffer;
-        try {
-            fileBuffer = extractFileBuffer(fileObj);
+        const fileBuffer = extractFileBuffer(fileObj);
 
-            // Check file size limits
-            if (fileBuffer.length > CONSTANTS.MAX_IMAGE_SIZE_BYTES) {
-                logger.warn(
-                    `Resource too large: :/${id} is ${formatMB(fileBuffer.length)} (max ${formatMB(CONSTANTS.MAX_IMAGE_SIZE_BYTES)})`
-                );
-                return null;
-            } else if (fileBuffer.length > CONSTANTS.MAX_IMAGE_SIZE_WARNING) {
-                logger.warn(`Large image detected: Resource :/${id} is ${formatMB(fileBuffer.length)}`);
-            }
-        } catch (err) {
-            const msg = err instanceof Error ? err.message : String(err);
-            logger.error(`Error retrieving resource file :/${id}: ${msg}`);
+        // Check file size limits
+        if (fileBuffer.length > MAX_IMAGE_SIZE_BYTES) {
+            logger.warn(
+                `Resource too large: :/${id} is ${formatMB(fileBuffer.length)} (max ${formatMB(MAX_IMAGE_SIZE_BYTES)})`
+            );
             return null;
+        } else if (fileBuffer.length > LARGE_IMAGE_WARNING_BYTES) {
+            logger.warn(`Large image detected: Resource :/${id} is ${formatMB(fileBuffer.length)}`);
         }
+
         const base64 = fileBuffer.toString('base64');
         return `data:${rawResource.mime};base64,${base64}`;
     } catch (err) {
@@ -152,10 +151,8 @@ function validateRemoteImageHeaders(response: Response, url: string): string | n
 
     const contentLengthHeader = response.headers.get('content-length');
     const declaredSize = contentLengthHeader ? Number(contentLengthHeader) : NaN;
-    if (!Number.isNaN(declaredSize) && declaredSize > CONSTANTS.MAX_IMAGE_SIZE_BYTES) {
-        logger.warn(
-            `Remote image too large ${url}: ${formatMB(declaredSize)} (max ${formatMB(CONSTANTS.MAX_IMAGE_SIZE_BYTES)})`
-        );
+    if (!Number.isNaN(declaredSize) && declaredSize > MAX_IMAGE_SIZE_BYTES) {
+        logger.warn(`Remote image too large ${url}: ${formatMB(declaredSize)} (max ${formatMB(MAX_IMAGE_SIZE_BYTES)})`);
         return null;
     }
 
@@ -182,10 +179,10 @@ async function readRemoteImageBody(
             if (!value) continue;
 
             const chunk = Buffer.from(value);
-            if (totalSize + chunk.length > CONSTANTS.MAX_IMAGE_SIZE_BYTES) {
+            if (totalSize + chunk.length > MAX_IMAGE_SIZE_BYTES) {
                 await reader.cancel();
                 logger.warn(
-                    `Remote image exceeded maximum size during download ${url}: ${formatMB(totalSize + chunk.length)} (max ${formatMB(CONSTANTS.MAX_IMAGE_SIZE_BYTES)})`
+                    `Remote image exceeded maximum size during download ${url}: ${formatMB(totalSize + chunk.length)} (max ${formatMB(MAX_IMAGE_SIZE_BYTES)})`
                 );
                 return null;
             }
@@ -194,7 +191,7 @@ async function readRemoteImageBody(
             chunks.push(chunk);
         }
 
-        if (totalSize > CONSTANTS.MAX_IMAGE_SIZE_WARNING) {
+        if (totalSize > LARGE_IMAGE_WARNING_BYTES) {
             logger.warn(`Large remote image detected: ${url} is ${formatMB(totalSize)}`);
         }
 
@@ -213,12 +210,8 @@ async function readRemoteImageBody(
 export async function downloadRemoteImageAsBase64(url: string): Promise<string | null> {
     const controller = new AbortController();
     // Requires Electron with Chromium 116+ (AbortSignal.timeout/any support)
-    const AbortSignalWithTimeout = AbortSignal as typeof AbortSignal & {
-        timeout(ms: number): AbortSignal;
-        any(signals: AbortSignal[]): AbortSignal;
-    };
-    const timeoutSignal = AbortSignalWithTimeout.timeout(CONSTANTS.REMOTE_TIMEOUT_MS);
-    const combinedSignal = AbortSignalWithTimeout.any([controller.signal, timeoutSignal]);
+    const timeoutSignal = AbortSignal.timeout(REMOTE_IMAGE_TIMEOUT_MS);
+    const combinedSignal = AbortSignal.any([controller.signal, timeoutSignal]);
 
     try {
         const response = await fetch(url, {
@@ -226,7 +219,7 @@ export async function downloadRemoteImageAsBase64(url: string): Promise<string |
             credentials: 'omit',
             referrerPolicy: 'no-referrer',
             headers: {
-                'User-Agent': CONSTANTS.REMOTE_IMAGE_USER_AGENT,
+                'User-Agent': REMOTE_IMAGE_USER_AGENT,
                 Accept: 'image/*',
             },
             signal: combinedSignal,
@@ -251,9 +244,7 @@ export async function downloadRemoteImageAsBase64(url: string): Promise<string |
         logger.error('Failed to download remote image:', url, err);
         return null;
     } finally {
-        if (!controller.signal.aborted) {
-            controller.abort();
-        }
+        controller.abort();
     }
 }
 

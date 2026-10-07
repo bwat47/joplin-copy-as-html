@@ -16,7 +16,7 @@ import remarkParse from 'remark-parse';
 import remarkSupersub from 'remark-supersub';
 import { unified } from 'unified';
 import type { Plugin } from 'unified';
-import { GITHUB_ALERT_MARKER_REGEX, PLAIN_TEXT_CONSTANTS, PLAIN_TEXT_REGEX } from '../constants';
+import { GITHUB_ALERT_MARKER_REGEX } from '../constants';
 import { logger } from '../logger';
 import type { PlainTextOptions } from '../types';
 
@@ -35,6 +35,13 @@ type PlainTextNode = {
 };
 
 const EMOJI_SHORTCODE_PATTERN = /:([+\w-]+):/g;
+const FOOTNOTE_REF_PATTERN = /\[\^([^\]]+)\]/g;
+
+// Output layout
+const MAX_PARAGRAPH_NEWLINES = 2;
+const MIN_COLUMN_WIDTH = 3;
+const SPACES_PER_INDENT = 4;
+const TABLE_CELL_PADDING = 2;
 
 const domParser: DOMParser | null = typeof DOMParser !== 'undefined' ? new DOMParser() : null;
 
@@ -115,9 +122,7 @@ function stripGithubAlertMarkerFromBlockquote(node: PlainTextNode): void {
 function prefixBlockquoteLines(text: string): string {
     return text
         .split('\n')
-        .map((line) =>
-            line ? `${PLAIN_TEXT_CONSTANTS.BLOCKQUOTE_PREFIX} ${line}` : PLAIN_TEXT_CONSTANTS.BLOCKQUOTE_PREFIX
-        )
+        .map((line) => (line ? `> ${line}` : '>'))
         .join('\n');
 }
 
@@ -130,7 +135,6 @@ function htmlFragmentToPlainText(html: string): string {
 
     const doc = domParser.parseFromString(`<body>${html}</body>`, 'text/html');
     const body = doc.body;
-    if (!body) return '';
 
     body.querySelectorAll('br').forEach((br) => {
         br.replaceWith(doc.createTextNode('\n'));
@@ -148,7 +152,7 @@ function isExternalHttpUrl(url: string): boolean {
 }
 
 function normalizeBlockText(text: string): string {
-    return text.replace(/\n{3,}/g, '\n'.repeat(PLAIN_TEXT_CONSTANTS.MAX_PARAGRAPH_NEWLINES)).trim();
+    return text.replace(/\n{3,}/g, '\n'.repeat(MAX_PARAGRAPH_NEWLINES)).trim();
 }
 
 function renderChildrenInline(children: PlainTextNode[] | undefined, options: PlainTextOptions): string {
@@ -206,7 +210,7 @@ function renderCodeBlock(node: PlainTextNode, options: PlainTextOptions): string
 function renderInlineNode(node: PlainTextNode, options: PlainTextOptions): string {
     switch (node.type) {
         case 'text':
-            return (node.value ?? '').replace(PLAIN_TEXT_REGEX.FOOTNOTE_REF, '[$1]').replace(/\u00A0/g, ' ');
+            return (node.value ?? '').replace(FOOTNOTE_REF_PATTERN, '[$1]').replace(/\u00A0/g, ' ');
         case 'inlineCode':
             return renderInlineCode(node.value ?? '', options);
         case 'break':
@@ -246,7 +250,7 @@ function renderInlineNode(node: PlainTextNode, options: PlainTextOptions): strin
 }
 
 function indentUnit(options: PlainTextOptions): string {
-    return options.indentType === 'tabs' ? '\t' : ' '.repeat(PLAIN_TEXT_CONSTANTS.SPACES_PER_INDENT);
+    return options.indentType === 'tabs' ? '\t' : ' '.repeat(SPACES_PER_INDENT);
 }
 
 /**
@@ -297,17 +301,15 @@ function taskMarkerFor(item: PlainTextNode): string {
 
 function renderListNode(node: PlainTextNode, options: PlainTextOptions, depth: number): string {
     const lines: string[] = [];
-    const start = node.start ?? PLAIN_TEXT_CONSTANTS.ORDERED_LIST_START;
-    const indent = indentUnit(options).repeat(Math.max(0, depth));
+    const start = node.start ?? 1;
+    const indent = indentUnit(options).repeat(depth);
+    const ordered = !!node.ordered;
 
     const items = node.children ?? [];
 
     items.forEach((item, index) => {
-        const ordered = !!node.ordered;
         const taskMarker = taskMarkerFor(item);
-        const marker = ordered
-            ? `${start + index}${PLAIN_TEXT_CONSTANTS.ORDERED_SUFFIX}`
-            : PLAIN_TEXT_CONSTANTS.BULLET_PREFIX;
+        const marker = ordered ? `${start + index}. ` : '- ';
         const itemLines = renderListItemContent(item, options, depth);
         const firstLine = itemLines.shift() ?? '';
 
@@ -331,9 +333,7 @@ function renderListNode(node: PlainTextNode, options: PlainTextOptions, depth: n
 function joinTableCells(cells: string[], preservePipes: boolean, plainSeparator: string): string {
     if (!preservePipes) return cells.join(plainSeparator);
 
-    const pipe = PLAIN_TEXT_CONSTANTS.TABLE_PIPE;
-    const cellSeparator = ` ${pipe} `;
-    return `${pipe} ${cells.join(cellSeparator)} ${pipe}`;
+    return `| ${cells.join(' | ')} |`;
 }
 
 function renderTableNode(node: PlainTextNode, options: PlainTextOptions): string {
@@ -351,21 +351,17 @@ function renderTableNode(node: PlainTextNode, options: PlainTextOptions): string
     }
 
     function padCell(cell: string, width: number): string {
-        const pad = width - stringWidth(cell);
-        return `${cell}${' '.repeat(Math.max(0, pad))}`;
+        return `${cell}${' '.repeat(width - stringWidth(cell))}`;
     }
 
+    const cellSeparator = ' '.repeat(TABLE_CELL_PADDING);
     const lines: string[] = [];
     rows.forEach((row, rowIndex) => {
         const paddedCells = row.map((cell, index) => padCell(cell, columnWidths[index] ?? 0));
-        lines.push(
-            joinTableCells(paddedCells, options.preserveTablePipes, ' '.repeat(PLAIN_TEXT_CONSTANTS.TABLE_CELL_PADDING))
-        );
+        lines.push(joinTableCells(paddedCells, options.preserveTablePipes, cellSeparator));
         if (rowIndex === 0 && rows.length > 1) {
-            const separatorCells = columnWidths.map((width) =>
-                '-'.repeat(Math.max(PLAIN_TEXT_CONSTANTS.MIN_COLUMN_WIDTH, width))
-            );
-            lines.push(joinTableCells(separatorCells, options.preserveTablePipes, '  '));
+            const separatorCells = columnWidths.map((width) => '-'.repeat(Math.max(MIN_COLUMN_WIDTH, width)));
+            lines.push(joinTableCells(separatorCells, options.preserveTablePipes, cellSeparator));
         }
     });
 
@@ -379,8 +375,7 @@ function renderBlockNode(node: PlainTextNode, options: PlainTextOptions, depth =
         case 'heading': {
             const text = normalizeBlockText(renderChildrenInline(node.children, options));
             if (!options.preserveHeading) return text;
-            const level = Math.min(Math.max(node.depth ?? 1, 1), 6);
-            return `${PLAIN_TEXT_CONSTANTS.HEADING_PREFIX_CHAR.repeat(level)} ${text}`.trim();
+            return `${'#'.repeat(node.depth ?? 1)} ${text}`.trim();
         }
         case 'blockquote': {
             stripGithubAlertMarkerFromBlockquote(node);
@@ -393,7 +388,7 @@ function renderBlockNode(node: PlainTextNode, options: PlainTextOptions, depth =
         case 'html':
             return htmlFragmentToPlainText(node.value ?? '');
         case 'thematicBreak':
-            return options.preserveHorizontalRule ? PLAIN_TEXT_CONSTANTS.HORIZONTAL_RULE_MARKER : '\u00A0';
+            return options.preserveHorizontalRule ? '---' : '\u00A0';
         case 'list':
             return renderListNode(node, options, depth);
         case 'table':

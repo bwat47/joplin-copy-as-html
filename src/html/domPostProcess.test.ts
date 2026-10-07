@@ -8,9 +8,10 @@ vi.mock('./assetProcessor');
 const mockConvertResource = assetProcessor.convertResourceToBase64 as Mock;
 const mockDownloadRemote = assetProcessor.downloadRemoteImageAsBase64 as Mock;
 
+const defaultOpts = { embedImages: true, downloadRemoteImages: false, convertSvgToPng: true };
+
 describe('domPostProcess', () => {
     beforeEach(() => {
-        vi.clearAllMocks();
         // Default mocks
         mockConvertResource.mockResolvedValue('data:image/png;base64,LOCAL');
         mockDownloadRemote.mockResolvedValue('data:image/png;base64,REMOTE');
@@ -91,12 +92,37 @@ describe('domPostProcess', () => {
         expect(out).not.toContain('ab62d971ef62435ca8e3f9e709ce1255');
     });
 
+    it('strips tags and attributes outside the allowlist', async () => {
+        const html = `
+            <p onclick="alert(1)">Text</p>
+            <img src="x.png" onerror="alert(1)" onload="alert(1)">
+            <script>alert(1)</script>
+            <iframe src="https://example.com"></iframe>
+            <object data="x"></object>
+            <embed src="x">
+            <form><p>Form content</p></form>
+        `;
+        const out = await postProcessHtml(html, defaultOpts);
+        expect(out).not.toMatch(/<(script|iframe|object|embed|form)\b/);
+        expect(out).not.toMatch(/\bon(click|error|load)=/);
+        expect(out).toContain('<p>Text</p>');
+        expect(out).toContain('Form content');
+    });
+
+    it('keeps aria and role attributes', async () => {
+        const html = '<span role="note" aria-label="Label" aria-hidden="true">Text</span>';
+        const out = await postProcessHtml(html, defaultOpts);
+        expect(out).toContain('role="note"');
+        expect(out).toContain('aria-label="Label"');
+        expect(out).toContain('aria-hidden="true"');
+    });
+
     it('removes joplin-source elements (duplicate code block content)', async () => {
         const html = `
             <div class="joplin-source">raw code</div>
             <pre><code>highlighted code</code></pre>
         `;
-        const out = await postProcessHtml(html);
+        const out = await postProcessHtml(html, defaultOpts);
         expect(out).not.toContain('joplin-source');
         expect(out).not.toContain('raw code');
         expect(out).toContain('highlighted code');
@@ -107,7 +133,7 @@ describe('domPostProcess', () => {
         ['html', '<html class="joplin-source"><body><p>Visible content</p></body></html>'],
         ['head', '<head class="joplin-source"></head><p>Visible content</p>'],
     ])('ignores attributes the input sets on the document <%s> element', async (_tag, html) => {
-        const out = await postProcessHtml(html);
+        const out = await postProcessHtml(html, defaultOpts);
         expect(out).toBe('<p>Visible content</p>');
     });
 
@@ -117,7 +143,7 @@ describe('domPostProcess', () => {
                 <img src="data:image/png;base64," width="1700" height="1536">
             </span>`;
 
-        const out = await postProcessHtml(html);
+        const out = await postProcessHtml(html, defaultOpts);
 
         expect(out).toContain('Image failed to load');
         expect(out).not.toContain('<img');
@@ -126,7 +152,7 @@ describe('domPostProcess', () => {
 
     it('continues to clean Joplin resource anchors', async () => {
         const html = '<p><a href=":/0123456789abcdef0123456789abcdef">Resource</a></p>';
-        const out = await postProcessHtml(html);
+        const out = await postProcessHtml(html, defaultOpts);
         // Anchor should be replaced by its text content
         expect(out).not.toContain('<a ');
         expect(out).toContain('Resource');
@@ -152,7 +178,7 @@ describe('domPostProcess', () => {
             '[!example]',
         ],
     ])('%s', async (_name, html, expectedHtml, removedMarker) => {
-        const out = await postProcessHtml(html);
+        const out = await postProcessHtml(html, defaultOpts);
 
         expect(out).toContain(expectedHtml);
         expect(out).not.toContain(removedMarker);
@@ -204,7 +230,6 @@ describe('domPostProcess', () => {
             if (tagName.toLowerCase() === 'canvas') {
                 const canvas = element as unknown as HTMLCanvasElement;
                 (canvas as unknown as { getContext: () => unknown }).getContext = vi.fn().mockReturnValue({
-                    clearRect: vi.fn(),
                     drawImage: vi.fn(),
                 });
                 (canvas as unknown as { toDataURL: () => string }).toDataURL = vi
@@ -243,7 +268,7 @@ describe('domPostProcess', () => {
                 <li><input type="checkbox" checked> Task 1</li>
                 <li><input type="checkbox"> Task 2</li>
             </ul>`;
-        const out = await postProcessHtml(html);
+        const out = await postProcessHtml(html, defaultOpts);
 
         // Should have added disabled attribute
         expect(out).toMatch(/<input[^>]*type="checkbox"[^>]*disabled(="disabled")?[^>]*>/);

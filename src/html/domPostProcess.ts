@@ -1,5 +1,5 @@
 import DOMPurify from 'dompurify';
-import { GITHUB_ALERT_MARKER_REGEX, HTML_CONSTANTS } from '../constants';
+import { GITHUB_ALERT_MARKER_REGEX } from '../constants';
 import { logger } from '../logger';
 import { convertResourceToBase64, downloadRemoteImageAsBase64 } from './assetProcessor';
 
@@ -7,13 +7,12 @@ import { convertResourceToBase64, downloadRemoteImageAsBase64 } from './assetPro
 // Sanitization Configuration
 // ----------------------
 
-const purifyInstance = DOMPurify;
 let purifyHooksInstalled = false;
 
 function ensurePurifyHooks(): void {
     if (purifyHooksInstalled) return;
     // Add security hook to only allow checkbox inputs
-    purifyInstance.addHook('afterSanitizeAttributes', (node) => {
+    DOMPurify.addHook('afterSanitizeAttributes', (node) => {
         if (node.tagName === 'INPUT') {
             const type = node.getAttribute('type')?.toLowerCase();
             if (type !== 'checkbox') node.remove();
@@ -31,7 +30,7 @@ function ensurePurifyHooks(): void {
  */
 function sanitizeToRoot(html: string): HTMLElement | null {
     ensurePurifyHooks();
-    return purifyInstance.sanitize(html, {
+    return DOMPurify.sanitize(html, {
         RETURN_DOM: true,
         // Keep it permissive for rich content but remove dangerous elements
         ALLOWED_TAGS: [
@@ -132,13 +131,11 @@ function sanitizeToRoot(html: string): HTMLElement | null {
             'datetime',
             'cite',
             'lang',
-            // Accessibility attributes
+            // Accessibility attributes (aria-* is allowed by DOMPurify's default ALLOW_ARIA_ATTR)
             'role',
-            'aria-*',
+            // Expanded state for <details>
             'open',
         ],
-        FORBID_TAGS: ['script', 'iframe', 'object', 'embed', 'form'],
-        FORBID_ATTR: ['onload', 'onerror', 'onclick'], // Remove event handlers
     }) as HTMLElement | null;
 }
 
@@ -148,6 +145,15 @@ function sanitizeToRoot(html: string): HTMLElement | null {
 // Helpers take the content root rather than its Document and query only its
 // descendants. Stray <html>/<head>/<body> tags in the input merge their attributes
 // onto the document's structural elements, so those must never be matched.
+
+/**
+ * Checks whether an element sits inside a code block or inline code, where
+ * images are shown as written and must not be modified.
+ * @param element - Element to check
+ */
+function isInsideCode(element: Element): boolean {
+    return !!element.closest('pre, code');
+}
 
 /**
  * Removes non-image Joplin resource links and replaces them with their text content.
@@ -171,7 +177,7 @@ function stripJoplinLinks(root: HTMLElement): void {
 function stripJoplinImages(root: HTMLElement): void {
     const imgs = Array.from(root.querySelectorAll('img'));
     for (const img of imgs) {
-        if (img.closest('pre, code')) continue;
+        if (isInsideCode(img)) continue;
 
         const src = img.getAttribute('src') || '';
         const resourceId = img.getAttribute('data-resource-id');
@@ -198,18 +204,23 @@ function removeJoplinSourceElements(root: HTMLElement): void {
 }
 
 /**
+ * Replaces `element` with a red "Image failed to load" message.
+ * @param element - Element to replace
+ */
+function replaceWithImageError(element: Element): void {
+    const span = element.ownerDocument.createElement('span');
+    span.textContent = 'Image failed to load';
+    span.style.color = 'red';
+    element.replaceWith(span);
+}
+
+/**
  * Replaces Joplin's broken resource placeholders with our custom error message.
  * Joplin renders broken images as a span with class "not-loaded-resource" containing a large placeholder image.
  * @param root - Content root to process
  */
 function replaceBrokenResourceSpans(root: HTMLElement): void {
-    const brokenSpans = root.querySelectorAll('span.not-loaded-resource');
-    brokenSpans.forEach((span) => {
-        const fallback = root.ownerDocument.createElement('span');
-        fallback.textContent = HTML_CONSTANTS.IMAGE_LOAD_ERROR;
-        fallback.style.color = HTML_CONSTANTS.ERROR_COLOR;
-        span.replaceWith(fallback);
-    });
+    root.querySelectorAll('span.not-loaded-resource').forEach(replaceWithImageError);
 }
 
 /**
@@ -225,8 +236,7 @@ async function embedImagesInDom(root: HTMLElement, downloadRemoteImages: boolean
     const jobs: Promise<void>[] = [];
 
     for (const img of images) {
-        // Skip images inside code blocks
-        if (img.closest('pre, code')) continue;
+        if (isInsideCode(img)) continue;
 
         const resourceId = img.getAttribute('data-resource-id');
         const src = img.getAttribute('src') || '';
@@ -239,11 +249,7 @@ async function embedImagesInDom(root: HTMLElement, downloadRemoteImages: boolean
                         img.setAttribute('src', dataUri);
                         logger.debug(`Embedded resource: ${resourceId}`);
                     } else {
-                        // Replace with error placeholder
-                        const span = root.ownerDocument.createElement('span');
-                        span.textContent = HTML_CONSTANTS.IMAGE_LOAD_ERROR;
-                        span.style.color = HTML_CONSTANTS.ERROR_COLOR;
-                        img.replaceWith(span);
+                        replaceWithImageError(img);
                     }
                 })
             );
@@ -369,15 +375,6 @@ function stripGithubAlertMarkers(root: HTMLElement): void {
 }
 
 /**
- * Checks if an element should skip rasterization (e.g., inside code blocks).
- * @param node - Element to check
- * @returns True if rasterization should be skipped
- */
-function shouldSkipRasterization(node: Element): boolean {
-    return !!node.closest('pre, code');
-}
-
-/**
  * Checks if a source is an SVG data URI.
  * @param src - Image source to check
  * @returns True if source is an SVG data URI
@@ -393,13 +390,11 @@ function isSvgDataUri(src: string | null): boolean {
 async function convertSvgImagesToPng(root: HTMLElement): Promise<void> {
     const svgImgs = Array.from(root.querySelectorAll('img'))
         .map((img) => ({ img, src: img.getAttribute('src') }))
-        .filter((item): item is { img: HTMLImageElement; src: string } => {
-            return item.src !== null && isSvgDataUri(item.src);
-        });
+        .filter(
+            (item): item is { img: HTMLImageElement; src: string } => !isInsideCode(item.img) && isSvgDataUri(item.src)
+        );
 
     const jobs = svgImgs.map(async ({ img, src }) => {
-        if (shouldSkipRasterization(img)) return;
-
         try {
             const existingWidth = img.getAttribute('width');
             const existingHeight = img.getAttribute('height');
@@ -442,11 +437,7 @@ async function convertSvgImagesToPng(root: HTMLElement): Promise<void> {
 async function rasterizeSvgDataUriToPng(
     svgDataUri: string
 ): Promise<{ dataUrl: string; originalWidth: number; originalHeight: number } | null> {
-    if (
-        typeof Image === 'undefined' ||
-        typeof document === 'undefined' ||
-        typeof document.createElement !== 'function'
-    ) {
+    if (typeof Image === 'undefined' || typeof document === 'undefined') {
         return null;
     }
 
@@ -470,8 +461,8 @@ async function rasterizeSvgDataUriToPng(
 
                 // Render at 2x scale for sharper output (especially on high-DPI displays)
                 const SCALE_FACTOR = 2;
-                const width = Math.max(1, Math.round(sourceWidth * SCALE_FACTOR));
-                const height = Math.max(1, Math.round(sourceHeight * SCALE_FACTOR));
+                const width = sourceWidth * SCALE_FACTOR;
+                const height = sourceHeight * SCALE_FACTOR;
 
                 const canvas = document.createElement('canvas');
                 canvas.width = width;
@@ -483,20 +474,13 @@ async function rasterizeSvgDataUriToPng(
                     return;
                 }
 
-                ctx.clearRect(0, 0, width, height);
                 ctx.drawImage(img, 0, 0, width, height);
 
-                try {
-                    const dataUrl = canvas.toDataURL('image/png');
-                    resolve({
-                        dataUrl,
-                        originalWidth: sourceWidth,
-                        originalHeight: sourceHeight,
-                    });
-                } catch (dataUrlError) {
-                    logger.debug('Canvas toDataURL failed', dataUrlError);
-                    resolve(null);
-                }
+                resolve({
+                    dataUrl: canvas.toDataURL('image/png'),
+                    originalWidth: sourceWidth,
+                    originalHeight: sourceHeight,
+                });
             } catch (err) {
                 logger.debug('SVG rasterization failed', err);
                 resolve(null);
@@ -538,20 +522,13 @@ interface PostProcessOptions {
  * 3. Replace broken resource placeholders with error messages
  * 4. Strip GitHub alert markers from blockquote content
  * 5. Remove non-image Joplin resource links (:/... or joplin://resource/...)
- * 6. Strip Joplin images if embedding is disabled
- * 7. Embed images (local and remote) as base64 if enabled
- * 8. Disable checkbox inputs
+ * 6. Disable checkbox inputs
+ * 7. Strip Joplin images if embedding is disabled
+ * 8. Embed images (local and remote) as base64 if enabled
  * 9. Wrap top-level images in paragraph tags for consistent formatting
- * 10. Convert SVG data URIs to PNG (requires Canvas API)
+ * 10. Convert SVG data URIs to PNG if enabled (requires Canvas API)
  */
-export async function postProcessHtml(
-    html: string,
-    opts: PostProcessOptions = {
-        embedImages: true,
-        downloadRemoteImages: false,
-        convertSvgToPng: true,
-    }
-): Promise<string> {
+export async function postProcessHtml(html: string, opts: PostProcessOptions): Promise<string> {
     const root = sanitizeToRoot(html);
     if (!root) return '';
 
