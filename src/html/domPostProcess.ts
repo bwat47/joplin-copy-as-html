@@ -476,7 +476,7 @@ async function rasterizeSvgDataUriToPng(
                 const width = Math.max(1, Math.round(sourceWidth * SCALE_FACTOR));
                 const height = Math.max(1, Math.round(sourceHeight * SCALE_FACTOR));
 
-                const canvas = document.createElement('canvas') as HTMLCanvasElement;
+                const canvas = document.createElement('canvas');
                 if (!canvas) {
                     resolve(null);
                     return;

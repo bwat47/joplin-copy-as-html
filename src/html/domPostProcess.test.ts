@@ -184,7 +184,7 @@ describe('domPostProcess', () => {
                     }
                     return;
                 }
-                Promise.resolve().then(() => {
+                queueMicrotask(() => {
                     if (this.onload) {
                         this.onload.call(this, new Event('load'));
                     }
@@ -200,7 +200,7 @@ describe('domPostProcess', () => {
             tagName: string,
             options?: ElementCreationOptions
         ) {
-            const element = originalCreateElement(tagName, options) as HTMLElement;
+            const element = originalCreateElement(tagName, options);
             if (tagName.toLowerCase() === 'canvas') {
                 const canvas = element as unknown as HTMLCanvasElement;
                 (canvas as unknown as { getContext: () => unknown }).getContext = vi.fn().mockReturnValue({
@@ -210,7 +210,7 @@ describe('domPostProcess', () => {
                 (canvas as unknown as { toDataURL: () => string }).toDataURL = vi
                     .fn()
                     .mockReturnValue('data:image/png;base64,TESTPNG');
-                return canvas as unknown as HTMLElement;
+                return canvas;
             }
             return element;
         });
