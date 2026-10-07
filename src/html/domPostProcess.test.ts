@@ -12,7 +12,6 @@ const defaultOpts = { embedImages: true, downloadRemoteImages: false, convertSvg
 
 describe('domPostProcess', () => {
     beforeEach(() => {
-        vi.clearAllMocks();
         // Default mocks
         mockConvertResource.mockResolvedValue('data:image/png;base64,LOCAL');
         mockDownloadRemote.mockResolvedValue('data:image/png;base64,REMOTE');

@@ -8,7 +8,6 @@ export default defineConfig({
         },
     },
     test: {
-        clearMocks: true,
         coverage: {
             reportsDirectory: 'coverage',
         },

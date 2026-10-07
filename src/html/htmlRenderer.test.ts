@@ -23,7 +23,6 @@ function htmlOptions(overrides: Partial<HtmlOptions> = {}): HtmlOptions {
 
 describe('processHtmlConversion', () => {
     beforeEach(() => {
-        vi.clearAllMocks();
         mockPostProcessHtml.mockImplementation((html) => Promise.resolve(html));
         mockGetUserStylesheet.mockResolvedValue('body { color: red; }');
         (joplin.commands.execute as Mock).mockResolvedValue({ html: '<p>Mocked Render</p>' });
