@@ -18,41 +18,43 @@ import joplin from 'api';
 import { PlainTextOptions, HtmlOptions } from './types';
 import { logger } from './logger';
 import { ToastType } from 'api/types';
-import { CONSTANTS } from './constants';
+import { CONSTANTS, DEFAULT_HTML_OPTIONS, DEFAULT_PLAIN_TEXT_OPTIONS } from './constants';
 
 export function validatePlainTextSettings(settings: unknown): PlainTextOptions {
     const s = (settings || {}) as Partial<PlainTextOptions>;
+    const d = DEFAULT_PLAIN_TEXT_OPTIONS;
     return {
-        preserveSuperscript: validateBooleanSetting(s.preserveSuperscript),
-        preserveSubscript: validateBooleanSetting(s.preserveSubscript),
-        preserveEmphasis: validateBooleanSetting(s.preserveEmphasis),
-        preserveBold: validateBooleanSetting(s.preserveBold),
-        preserveHeading: validateBooleanSetting(s.preserveHeading),
-        preserveQuoteMarkers: validateBooleanSetting(s.preserveQuoteMarkers),
-        preserveStrikethrough: validateBooleanSetting(s.preserveStrikethrough),
-        preserveHorizontalRule: validateBooleanSetting(s.preserveHorizontalRule),
-        preserveMark: validateBooleanSetting(s.preserveMark),
-        preserveInsert: validateBooleanSetting(s.preserveInsert),
-        preserveCodeBackticks: validateBooleanSetting(s.preserveCodeBackticks),
-        displayEmojis: validateBooleanSetting(s.displayEmojis, true), // Default to true
-        hyperlinkBehavior: validateEnumSetting(s.hyperlinkBehavior, ['title', 'url', 'markdown'], 'title'),
-        indentType: validateEnumSetting(s.indentType, ['spaces', 'tabs'], 'spaces'),
-        listSpacing: validateEnumSetting(s.listSpacing, ['tight', 'loose'], 'loose'),
-        preserveTablePipes: validateBooleanSetting(s.preserveTablePipes),
+        preserveSuperscript: validateBooleanSetting(s.preserveSuperscript, d.preserveSuperscript),
+        preserveSubscript: validateBooleanSetting(s.preserveSubscript, d.preserveSubscript),
+        preserveEmphasis: validateBooleanSetting(s.preserveEmphasis, d.preserveEmphasis),
+        preserveBold: validateBooleanSetting(s.preserveBold, d.preserveBold),
+        preserveHeading: validateBooleanSetting(s.preserveHeading, d.preserveHeading),
+        preserveQuoteMarkers: validateBooleanSetting(s.preserveQuoteMarkers, d.preserveQuoteMarkers),
+        preserveStrikethrough: validateBooleanSetting(s.preserveStrikethrough, d.preserveStrikethrough),
+        preserveHorizontalRule: validateBooleanSetting(s.preserveHorizontalRule, d.preserveHorizontalRule),
+        preserveMark: validateBooleanSetting(s.preserveMark, d.preserveMark),
+        preserveInsert: validateBooleanSetting(s.preserveInsert, d.preserveInsert),
+        preserveCodeBackticks: validateBooleanSetting(s.preserveCodeBackticks, d.preserveCodeBackticks),
+        displayEmojis: validateBooleanSetting(s.displayEmojis, d.displayEmojis),
+        hyperlinkBehavior: validateEnumSetting(s.hyperlinkBehavior, ['title', 'url', 'markdown'], d.hyperlinkBehavior),
+        indentType: validateEnumSetting(s.indentType, ['spaces', 'tabs'], d.indentType),
+        listSpacing: validateEnumSetting(s.listSpacing, ['tight', 'loose'], d.listSpacing),
+        preserveTablePipes: validateBooleanSetting(s.preserveTablePipes, d.preserveTablePipes),
     };
 }
 
 export function validateHtmlSettings(settings: unknown): HtmlOptions {
     const s = (settings || {}) as Partial<HtmlOptions>;
+    const d = DEFAULT_HTML_OPTIONS;
     return {
-        embedImages: validateBooleanSetting(s.embedImages, true),
-        exportFullHtml: validateBooleanSetting(s.exportFullHtml, false),
-        downloadRemoteImages: validateBooleanSetting(s.downloadRemoteImages, false),
-        embedSvgAsPng: validateBooleanSetting(s.embedSvgAsPng, true),
+        embedImages: validateBooleanSetting(s.embedImages, d.embedImages),
+        exportFullHtml: validateBooleanSetting(s.exportFullHtml, d.exportFullHtml),
+        downloadRemoteImages: validateBooleanSetting(s.downloadRemoteImages, d.downloadRemoteImages),
+        embedSvgAsPng: validateBooleanSetting(s.embedSvgAsPng, d.embedSvgAsPng),
     };
 }
 
-export function validateBooleanSetting(setting: unknown, defaultValue = false): boolean {
+export function validateBooleanSetting(setting: unknown, defaultValue: boolean): boolean {
     return typeof setting === 'boolean' ? setting : defaultValue;
 }
 

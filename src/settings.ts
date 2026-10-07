@@ -7,7 +7,7 @@
 
 import joplin from 'api';
 import { SettingItemType } from 'api/types';
-import { SETTINGS } from './constants';
+import { DEFAULT_HTML_OPTIONS, DEFAULT_PLAIN_TEXT_OPTIONS, SETTINGS } from './constants';
 import { validatePlainTextSettings, validateHtmlSettings } from './utils';
 import type { PlainTextOptions, HtmlOptions } from './types';
 
@@ -24,7 +24,7 @@ export async function registerPluginSettings(): Promise<void> {
 
     await joplin.settings.registerSettings({
         [SETTINGS.EMBED_IMAGES]: {
-            value: true,
+            value: DEFAULT_HTML_OPTIONS.embedImages,
             type: SettingItemType.Bool,
             section: SECTION_ID,
             public: true,
@@ -32,7 +32,7 @@ export async function registerPluginSettings(): Promise<void> {
             description: 'If enabled, images in selection will be embedded as base64 in HTML output.',
         },
         [SETTINGS.EXPORT_FULL_HTML]: {
-            value: false,
+            value: DEFAULT_HTML_OPTIONS.exportFullHtml,
             type: SettingItemType.Bool,
             section: SECTION_ID,
             public: true,
@@ -41,7 +41,7 @@ export async function registerPluginSettings(): Promise<void> {
                 'If enabled, exported HTML will be a full document with your custom stylesheet (copy-as-html-user.css in your profile folder).',
         },
         [SETTINGS.DOWNLOAD_REMOTE_IMAGES]: {
-            value: false,
+            value: DEFAULT_HTML_OPTIONS.downloadRemoteImages,
             type: SettingItemType.Bool,
             section: SECTION_ID,
             public: true,
@@ -50,7 +50,7 @@ export async function registerPluginSettings(): Promise<void> {
                 'If enabled (along with "Embed images as base64"), remote HTTP/HTTPS images will be downloaded and embedded as base64. If un-checked, the resulting document may contain links to external resources.',
         },
         [SETTINGS.EMBED_SVG_AS_PNG]: {
-            value: true,
+            value: DEFAULT_HTML_OPTIONS.embedSvgAsPng,
             type: SettingItemType.Bool,
             section: SECTION_ID,
             public: true,
@@ -59,7 +59,7 @@ export async function registerPluginSettings(): Promise<void> {
                 'If enabled, embedded SVG images will be rasterized as PNG to improve compatibility with applications that cannot display inline SVG.',
         },
         [SETTINGS.PRESERVE_SUPERSCRIPT]: {
-            value: false,
+            value: DEFAULT_PLAIN_TEXT_OPTIONS.preserveSuperscript,
             type: SettingItemType.Bool,
             section: SECTION_ID,
             public: true,
@@ -68,7 +68,7 @@ export async function registerPluginSettings(): Promise<void> {
             description: 'If enabled, superscript markers will be preserved in plain text output.',
         },
         [SETTINGS.PRESERVE_SUBSCRIPT]: {
-            value: false,
+            value: DEFAULT_PLAIN_TEXT_OPTIONS.preserveSubscript,
             type: SettingItemType.Bool,
             section: SECTION_ID,
             public: true,
@@ -77,7 +77,7 @@ export async function registerPluginSettings(): Promise<void> {
             description: 'If enabled, subscript markers will be preserved in plain text output.',
         },
         [SETTINGS.PRESERVE_EMPHASIS]: {
-            value: false,
+            value: DEFAULT_PLAIN_TEXT_OPTIONS.preserveEmphasis,
             type: SettingItemType.Bool,
             section: SECTION_ID,
             public: true,
@@ -86,7 +86,7 @@ export async function registerPluginSettings(): Promise<void> {
             description: 'If enabled, emphasis markers will be preserved in plain text output.',
         },
         [SETTINGS.PRESERVE_BOLD]: {
-            value: false,
+            value: DEFAULT_PLAIN_TEXT_OPTIONS.preserveBold,
             type: SettingItemType.Bool,
             section: SECTION_ID,
             public: true,
@@ -95,7 +95,7 @@ export async function registerPluginSettings(): Promise<void> {
             description: 'If enabled, bold markers will be preserved in plain text output.',
         },
         [SETTINGS.PRESERVE_HEADING]: {
-            value: false,
+            value: DEFAULT_PLAIN_TEXT_OPTIONS.preserveHeading,
             type: SettingItemType.Bool,
             section: SECTION_ID,
             public: true,
@@ -104,7 +104,7 @@ export async function registerPluginSettings(): Promise<void> {
             description: 'If enabled, heading markers will be preserved in plain text output.',
         },
         [SETTINGS.PRESERVE_QUOTE_MARKERS]: {
-            value: false,
+            value: DEFAULT_PLAIN_TEXT_OPTIONS.preserveQuoteMarkers,
             type: SettingItemType.Bool,
             section: SECTION_ID,
             public: true,
@@ -113,7 +113,7 @@ export async function registerPluginSettings(): Promise<void> {
             description: 'If enabled, blockquote markers will be preserved in plain text output.',
         },
         [SETTINGS.PRESERVE_STRIKETHROUGH]: {
-            value: false,
+            value: DEFAULT_PLAIN_TEXT_OPTIONS.preserveStrikethrough,
             type: SettingItemType.Bool,
             section: SECTION_ID,
             public: true,
@@ -122,7 +122,7 @@ export async function registerPluginSettings(): Promise<void> {
             description: 'If enabled, strikethrough markers will be preserved in plain text output.',
         },
         [SETTINGS.PRESERVE_HORIZONTAL_RULE]: {
-            value: false,
+            value: DEFAULT_PLAIN_TEXT_OPTIONS.preserveHorizontalRule,
             type: SettingItemType.Bool,
             section: SECTION_ID,
             public: true,
@@ -131,7 +131,7 @@ export async function registerPluginSettings(): Promise<void> {
             description: 'If enabled, horizontal rules will be preserved in plain text output.',
         },
         [SETTINGS.PRESERVE_MARK]: {
-            value: false,
+            value: DEFAULT_PLAIN_TEXT_OPTIONS.preserveMark,
             type: SettingItemType.Bool,
             section: SECTION_ID,
             public: true,
@@ -140,7 +140,7 @@ export async function registerPluginSettings(): Promise<void> {
             description: 'If enabled, highlight markers will be preserved in plain text output.',
         },
         [SETTINGS.PRESERVE_INSERT]: {
-            value: false,
+            value: DEFAULT_PLAIN_TEXT_OPTIONS.preserveInsert,
             type: SettingItemType.Bool,
             section: SECTION_ID,
             public: true,
@@ -149,7 +149,7 @@ export async function registerPluginSettings(): Promise<void> {
             description: 'If enabled, insert markers will be preserved in plain text output.',
         },
         [SETTINGS.PRESERVE_CODE_BACKTICKS]: {
-            value: false,
+            value: DEFAULT_PLAIN_TEXT_OPTIONS.preserveCodeBackticks,
             type: SettingItemType.Bool,
             section: SECTION_ID,
             public: true,
@@ -158,7 +158,7 @@ export async function registerPluginSettings(): Promise<void> {
             description: 'If enabled, inline code and code block backticks will be preserved in plain text output.',
         },
         [SETTINGS.HYPERLINK_BEHAVIOR]: {
-            value: 'title',
+            value: DEFAULT_PLAIN_TEXT_OPTIONS.hyperlinkBehavior,
             type: SettingItemType.String,
             isEnum: true,
             options: {
@@ -172,7 +172,7 @@ export async function registerPluginSettings(): Promise<void> {
             description: 'How external HTTP/HTTPS links should appear in plain text output.',
         },
         [SETTINGS.INDENT_TYPE]: {
-            value: 'spaces',
+            value: DEFAULT_PLAIN_TEXT_OPTIONS.indentType,
             type: SettingItemType.String,
             isEnum: true,
             options: {
@@ -185,7 +185,7 @@ export async function registerPluginSettings(): Promise<void> {
             description: 'How nested lists should be indented in plain text output.',
         },
         [SETTINGS.LIST_SPACING]: {
-            value: 'loose',
+            value: DEFAULT_PLAIN_TEXT_OPTIONS.listSpacing,
             type: SettingItemType.String,
             isEnum: true,
             options: {
@@ -198,7 +198,7 @@ export async function registerPluginSettings(): Promise<void> {
             description: 'Whether plain text lists should include blank lines between list items.',
         },
         [SETTINGS.DISPLAY_EMOJIS]: {
-            value: true,
+            value: DEFAULT_PLAIN_TEXT_OPTIONS.displayEmojis,
             type: SettingItemType.Bool,
             section: SECTION_ID,
             public: true,
@@ -206,7 +206,7 @@ export async function registerPluginSettings(): Promise<void> {
             description: 'If enabled, emojis will be displayed in the plain text output.',
         },
         [SETTINGS.PRESERVE_TABLE_PIPES]: {
-            value: false,
+            value: DEFAULT_PLAIN_TEXT_OPTIONS.preserveTablePipes,
             type: SettingItemType.Bool,
             section: SECTION_ID,
             public: true,

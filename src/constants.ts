@@ -6,6 +6,8 @@
  *
  */
 
+import type { HtmlOptions, PlainTextOptions } from './types';
+
 export const SETTINGS = {
     EMBED_IMAGES: 'embedImages',
     EXPORT_FULL_HTML: 'exportFullHtml',
@@ -27,6 +29,34 @@ export const SETTINGS = {
     INDENT_TYPE: 'indentType',
     LIST_SPACING: 'listSpacing',
     PRESERVE_TABLE_PIPES: 'preserveTablePipes',
+};
+
+/** Default HTML conversion options, used when registering settings and as validation fallbacks. */
+export const DEFAULT_HTML_OPTIONS: HtmlOptions = {
+    embedImages: true,
+    exportFullHtml: false,
+    downloadRemoteImages: false,
+    embedSvgAsPng: true,
+};
+
+/** Default plain text conversion options, used when registering settings and as validation fallbacks. */
+export const DEFAULT_PLAIN_TEXT_OPTIONS: PlainTextOptions = {
+    preserveSuperscript: false,
+    preserveSubscript: false,
+    preserveEmphasis: false,
+    preserveBold: false,
+    preserveHeading: false,
+    preserveQuoteMarkers: false,
+    preserveStrikethrough: false,
+    preserveHorizontalRule: false,
+    preserveMark: false,
+    preserveInsert: false,
+    preserveCodeBackticks: false,
+    displayEmojis: true,
+    hyperlinkBehavior: 'title',
+    indentType: 'spaces',
+    listSpacing: 'loose',
+    preserveTablePipes: false,
 };
 
 // Asset processing limits and UI timing
