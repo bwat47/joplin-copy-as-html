@@ -18,6 +18,9 @@ import { logger } from './logger';
 import { registerPluginSettings, loadHtmlSettings, loadPlainTextSettings } from './settings';
 import { getErrorMessage, showToast } from './utils';
 
+const COPY_AS_HTML_COMMAND = { name: 'copyAsHtml', label: 'Copy selection as HTML' };
+const COPY_AS_PLAIN_TEXT_COMMAND = { name: 'copyAsPlainText', label: 'Copy selection as Plain Text' };
+
 async function getMarkdownSelection(commandLabel: string): Promise<string | null> {
     try {
         const selection: unknown = await joplin.commands.execute('editor.execCommand', { name: 'getSelection' });
@@ -72,16 +75,14 @@ async function copySelectionAsPlainText(): Promise<void> {
 async function registerCopyCommands(): Promise<void> {
     // Register main HTML copy command FIRST to avoid keyboard shortcut bug
     await joplin.commands.register({
-        name: 'copyAsHtml',
-        label: 'Copy selection as HTML',
+        ...COPY_AS_HTML_COMMAND,
         iconName: 'fas fa-copy',
         execute: copySelectionAsHtml,
     });
 
     // Register plain text copy command
     await joplin.commands.register({
-        name: 'copyAsPlainText',
-        label: 'Copy selection as Plain Text',
+        ...COPY_AS_PLAIN_TEXT_COMMAND,
         iconName: 'fas fa-copy',
         execute: copySelectionAsPlainText,
     });
@@ -89,14 +90,19 @@ async function registerCopyCommands(): Promise<void> {
 
 async function registerKeyboardShortcuts(): Promise<void> {
     // Register keyboard shortcut for HTML copy (Edit menu as fallback)
-    await joplin.views.menuItems.create('copyAsHtmlShortcut', 'copyAsHtml', MenuItemLocation.Edit, {
+    await joplin.views.menuItems.create('copyAsHtmlShortcut', COPY_AS_HTML_COMMAND.name, MenuItemLocation.Edit, {
         accelerator: 'Ctrl+Shift+C',
     });
 
     // Register keyboard shortcut for plain text copy (Edit menu as fallback)
-    await joplin.views.menuItems.create('copyAsPlainTextShortcut', 'copyAsPlainText', MenuItemLocation.Edit, {
-        accelerator: 'Ctrl+Alt+C',
-    });
+    await joplin.views.menuItems.create(
+        'copyAsPlainTextShortcut',
+        COPY_AS_PLAIN_TEXT_COMMAND.name,
+        MenuItemLocation.Edit,
+        {
+            accelerator: 'Ctrl+Alt+C',
+        }
+    );
 }
 
 function registerEditorContextMenu(): void {
@@ -125,24 +131,10 @@ function registerEditorContextMenu(): void {
 
         // Only add our commands to the context menu if there's a valid selection
         if (hasValidSelection) {
-            // Check if our commands are already in the menu to avoid duplicates
-            const hasHtmlCommand = contextMenu.items.some((item) => item.commandName === 'copyAsHtml');
-            const hasPlainTextCommand = contextMenu.items.some((item) => item.commandName === 'copyAsPlainText');
-            const itemsToAdd: MenuItem[] = [];
-
-            if (!hasHtmlCommand) {
-                itemsToAdd.push({
-                    commandName: 'copyAsHtml',
-                    label: 'Copy selection as HTML',
-                });
-            }
-
-            if (!hasPlainTextCommand) {
-                itemsToAdd.push({
-                    commandName: 'copyAsPlainText',
-                    label: 'Copy selection as Plain Text',
-                });
-            }
+            // Skip commands already in the menu to avoid duplicates
+            const itemsToAdd: MenuItem[] = [COPY_AS_HTML_COMMAND, COPY_AS_PLAIN_TEXT_COMMAND]
+                .filter((command) => !contextMenu.items.some((item) => item.commandName === command.name))
+                .map((command) => ({ commandName: command.name, label: command.label }));
 
             if (itemsToAdd.length > 0) {
                 contextMenu.items.push({ type: 'separator' });
