@@ -130,7 +130,6 @@ function htmlFragmentToPlainText(html: string): string {
 
     const doc = domParser.parseFromString(`<body>${html}</body>`, 'text/html');
     const body = doc.body;
-    if (!body) return '';
 
     body.querySelectorAll('br').forEach((br) => {
         br.replaceWith(doc.createTextNode('\n'));
@@ -298,12 +297,12 @@ function taskMarkerFor(item: PlainTextNode): string {
 function renderListNode(node: PlainTextNode, options: PlainTextOptions, depth: number): string {
     const lines: string[] = [];
     const start = node.start ?? PLAIN_TEXT_CONSTANTS.ORDERED_LIST_START;
-    const indent = indentUnit(options).repeat(Math.max(0, depth));
+    const indent = indentUnit(options).repeat(depth);
+    const ordered = !!node.ordered;
 
     const items = node.children ?? [];
 
     items.forEach((item, index) => {
-        const ordered = !!node.ordered;
         const taskMarker = taskMarkerFor(item);
         const marker = ordered
             ? `${start + index}${PLAIN_TEXT_CONSTANTS.ORDERED_SUFFIX}`
@@ -351,8 +350,7 @@ function renderTableNode(node: PlainTextNode, options: PlainTextOptions): string
     }
 
     function padCell(cell: string, width: number): string {
-        const pad = width - stringWidth(cell);
-        return `${cell}${' '.repeat(Math.max(0, pad))}`;
+        return `${cell}${' '.repeat(width - stringWidth(cell))}`;
     }
 
     const lines: string[] = [];
@@ -379,8 +377,7 @@ function renderBlockNode(node: PlainTextNode, options: PlainTextOptions, depth =
         case 'heading': {
             const text = normalizeBlockText(renderChildrenInline(node.children, options));
             if (!options.preserveHeading) return text;
-            const level = Math.min(Math.max(node.depth ?? 1, 1), 6);
-            return `${PLAIN_TEXT_CONSTANTS.HEADING_PREFIX_CHAR.repeat(level)} ${text}`.trim();
+            return `${PLAIN_TEXT_CONSTANTS.HEADING_PREFIX_CHAR.repeat(node.depth ?? 1)} ${text}`.trim();
         }
         case 'blockquote': {
             stripGithubAlertMarkerFromBlockquote(node);
