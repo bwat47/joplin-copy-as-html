@@ -1,142 +1,91 @@
 # Joplin Copy as HTML
 
-> [!note]
-> This plugin was created entirely with AI tools.
+Copy selected Markdown from Joplin as formatted HTML or readable plain text. Paste into apps such as Outlook and Gmail, with optional image embedding and customizable plain text output.
 
-This plugin allows you to copy selected text in the markdown editor as either HTML or structured plain text.
+![Copying selected Markdown from Joplin and pasting it as formatted text](https://github.com/user-attachments/assets/a46ef4fe-b54a-485d-81ca-62700fecf022)
 
-The primary use case is copying text from Joplin and pasting formatted text into other apps that support HTML formatting (e.g. pasting text into an Outlook email). A plain text fallback is provided for scenarios where you need to paste text into an application that supports neither HTML formatting nor markdown.
+## Usage
 
-![copy-as-html-gif](https://github.com/user-attachments/assets/a46ef4fe-b54a-485d-81ca-62700fecf022)
+1. Select text in Joplin's **Markdown editor**.
+2. Right-click the selection or open the **Edit** menu and choose one of the commands below.
+3. Paste into the destination app.
 
-## Copy as HTML
+| Command                      | Default shortcut |
+| ---------------------------- | ---------------- |
+| Copy selection as HTML       | `Ctrl+Shift+C`   |
+| Copy selection as Plain Text | `Ctrl+Alt+C`     |
 
-"Copy selection as HTML" is provided as a right click context menu option and as a keyboard shortcut (ctrl + shift + c by default).
+**Copy selection as HTML** puts both formatted HTML and a plain text fallback on the clipboard. The destination app determines which format to use. **Copy selection as Plain Text** copies only plain text.
 
-This will populate the clipboard's text/html category with the HTML formatted text.
+The [plain text options](#plain-text-options) apply to both the plain text command and the HTML command's fallback.
 
-> [!NOTE]
-> In Joplin 3.5.4 and newer, it will populate both text/html and text/plain (allowing you to paste either formatted or plain text).
+Configure the plugin in Joplin's settings under **Copy as HTML**.
 
-### Embed images as base64
+## HTML options
 
-By default, the plugin will embed any images as base64 in the text/html output, allowing you paste text + images into external applications. However, this can be disabled in the plugin's settings.
+### Images and drawings
 
-This will work with both markdown image embeds and the html `<img>` embeds that you get when resizing images via joplin's rich text editor.
+Local Joplin images are embedded as base64 by default, allowing you to paste text and images together. Both Markdown images and HTML `<img>` tags are supported.
 
-### Download and embed remote images as base64
+| Setting                          | Default | Behavior                                                                                                                                      |
+| -------------------------------- | ------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| Embed images as base64           | On      | Embeds local Joplin images in the HTML. Turning this off removes local Joplin images from the output.                                         |
+| Download and embed remote images | Off     | Downloads and embeds remote HTTP/HTTPS images when image embedding is enabled. Otherwise, remote images remain linked to their original URLs. |
+| Convert SVG images to PNG        | On      | Converts embedded SVG images to PNG for compatibility with editors and email clients.                                                         |
 
-If you enable this option (along with "Embed images as base64"), remote image embeds will be downloaded and embedded as base64 (making the images viewable without internet access).
+Successfully embedded remote images can be viewed without internet access. If a download fails, the original image URL is retained.
 
-### Export as fragment or full HTML document
+Drawings from Freehand Drawing, Excalidraw, and Drawio are supported when stored as Joplin image resources (embedded like any other image resource).
 
-When you copy text from Joplin's markdown viewer (or export the note to HTML), there is a lot of styling applied which can sometimes cause issues pasting text into other editors (e.g. if you copy from the markdown viewer, your joplin theme's background color may be pasted).
+### HTML fragment or full document
 
-#### HTML Fragment
+- **Default:** Copies an HTML fragment without an added stylesheet. The destination app determines its appearance.
+- **Export as full HTML document:** Wraps the content in a full HTML document with the [bundled stylesheet](src/defaultStylesheet.ts) or your custom CSS.
 
-By default, the plugin will populate the clipboard with an HTML fragment, e.g:
+To use custom CSS, create `copy-as-html-user.css` in your Joplin profile directory. Open **Help > Open profile directory** to locate it. The custom stylesheet replaces the bundled stylesheet and is used only when **Export as full HTML document** is enabled.
 
-```html
-<html>
-    <body>
-        <!--StartFragment-->
-        <h2>Test Heading</h2>
-        <p>Test paragraph 1</p>
-        <p>Test paragraph 2</p>
-        <!--EndFragment-->
-    </body>
-</html>
-```
+### Markdown rendering
 
-This is similar to what you get when copying from Joplin's TinyMCE rich text editor (semantic markup, no css styling). Any styling will be determined by the application you're pasting the text into.
+HTML output follows Joplin's Markdown rendering settings, including options such as footnotes, highlighting, and tables.
 
-#### Full HTML Document
-
-Optionally, you can enable the setting "Export as full HTML document".
-
-This will wrap the HTML fragment in a full HTML document with CSS styling. A default (minimal) css [stylesheet](https://github.com/bwat47/joplin-copy-as-html/blob/main/src/defaultStylesheet.ts) is provided. The default stylesheet is only used if no custom stylesheet is provided and the "Export as full HTML document" setting is enabled.
-
-To use your own stylesheet, create a file called `copy-as-html-user.css` in your Joplin profile directory. To locate your Joplin profile directory, open Joplin and click Help | Open profile directory.
-
-### Optional markdown syntax
-
-The plugin will adhere to Joplin's settings for whether or not to render:
+<details>
+<summary>Supported optional Markdown settings</summary>
 
 - Soft Breaks
 - Typographer
 - Linkify
-- ==mark==
+- Highlight (`==mark==`)
 - Footnotes
 - Table of Contents
-- ~sub~
-- ^sup^
+- Subscript (`~sub~`)
+- Superscript (`^sup^`)
 - Deflist
 - Abbreviation
 - Markdown Emoji
-- ++Insert++
+- Insert (`++Insert++`)
 - Multimarkdown Table
 
-> [!note]
-> Mermaid/Math are not supported, they will render as plain text.
+</details>
 
-### Freehand Drawing/Excalidraw/Drawio
+## Plain text options
 
-These plugins embed the drawings as joplin image resources (svg), and the plugin will embed them as base64 as it does other images.
+Plain text output removes Markdown formatting markers and images while preserving paragraphs, list markers, nested list indentation, readable tables, footnotes, and link text. It parses Markdown independently of Joplin's HTML rendering settings.
 
-SVG images may have compatibility issues with certain editors/email clients, so by default the plugin will convert svg images to png when embedding images, however this can be disabled in the plugin settings.
+| Setting                       | Default    | Options                                                                                                             |
+| ----------------------------- | ---------- | ------------------------------------------------------------------------------------------------------------------- |
+| Plain text hyperlink behavior | Link Title | Keep link text, show the URL, or preserve Markdown link formatting. Applies to Markdown links with HTTP/HTTPS URLs. |
+| List indentation type         | 4 Spaces   | Indent nested lists with four spaces or tabs.                                                                       |
+| List spacing                  | Loose      | Loose adds blank lines between list items; Tight omits them.                                                        |
+| Display emojis                | On         | Converts emoji shortcodes such as `:white_check_mark:` to Unicode (✅).                                             |
+| Preserve table pipes          | Off        | Retains Markdown pipe separators in tables.                                                                         |
 
-## Copy as Plain Text
+You can also preserve superscript, subscript, emphasis, bold, heading, quote, strikethrough, highlight, and insert markers, horizontal rules, and code backticks. These options are off by default and appear when you enable **Show advanced settings** in the plugin's settings section.
 
-"Copy selection as Plain Text" is provided as a right click context menu option and as a keyboard shortcut (ctrl + alt + c by default).
+## Limitations
 
-This command parses the selected Markdown and renders it as normalized paste-friendly plain text. By default it removes all markdown formatting markers and image embeds, while preserving document structure such as paragraphs, list leaders, nested list indentation, tables (optimized for plain text readability), footnotes, and link text. However, the plain text output can be customized to retain specific markdown formatting (see below).
+- Commands work on selected text in the Markdown editor. They do not work in the rich text editor or Markdown viewer.
+- Mermaid diagrams and math are not rendered; they are copied as plain text.
+- HTML styling and embedded image support depend on the destination app.
 
-### Customizing plain text output
-
-The following options are provided to preserve specific markdown formatting markers in the `text/plain` output when desired:
-
-- Preserve superscript markers
-
-- Preserve subscript markers
-
-- Preserve emphasis markers
-
-- Preserve bold markers
-
-- Preserve heading markers
-
-- Preserve quote markers
-
-- Preserve strikethrough markers
-
-- Preserve horizontal rules
-
-- Preserve highlight markers
-
-- Preserve insert markers
-
-- Preserve code backticks
-
-- Preserve table pipes
-
-The following options are provided for external hyperlinks (only affects markdown links with `http`/`https` URLs):
-
-- Title - Displays link title only (default).
-
-- URL - Displays link URL only.
-
-- Markdown Format - Displays full markdown link formatting with title and URL.
-
-The following options are provided for indentation style:
-
-- Tabs
-- (4) Spaces (default)
-
-The following options are provided for list spacing:
-
-- Tight - No blank lines between list items.
-- Loose - Adds blank lines between list items (default).
-
-### Markdown emoji
-
-Copy as Plain Text supports markdown emoji shortcodes, so emoji such as :white_check_mark: can be rendered as Unicode in the plain text output. This can be disabled via the Display emojis setting.
+> [!NOTE]
+> This plugin was created entirely with AI tools.
