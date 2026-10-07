@@ -36,7 +36,7 @@ async function getMarkdownSelection(commandLabel: string): Promise<string | null
     }
 }
 
-joplin.plugins.register({
+void joplin.plugins.register({
     onStart: async function () {
         // Register main HTML copy command FIRST to avoid keyboard shortcut bug
         await joplin.commands.register({
