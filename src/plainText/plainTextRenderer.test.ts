@@ -1,7 +1,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { convertMarkdownToPlainText } from './plainTextRenderer';
-import { PlainTextOptions } from '../types';
+import type { PlainTextOptions } from '../types';
 
 // A default set of options to satisfy the PlainTextOptions type.
 // We can override specific properties for each test.

@@ -7,7 +7,7 @@
  */
 
 import joplin from 'api';
-import { PlainTextOptions, HtmlOptions } from './types';
+import type { PlainTextOptions, HtmlOptions } from './types';
 import { logger } from './logger';
 import { ToastType } from 'api/types';
 import { DEFAULT_HTML_OPTIONS, DEFAULT_PLAIN_TEXT_OPTIONS } from './constants';

@@ -7,7 +7,7 @@
  */
 
 import joplin from 'api';
-import { HtmlOptions } from '../types';
+import type { HtmlOptions } from '../types';
 import { getUserStylesheet } from './assetProcessor';
 import { postProcessHtml } from './domPostProcess';
 import { logger } from '../logger';

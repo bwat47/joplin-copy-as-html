@@ -10,7 +10,7 @@
  */
 
 import joplin from 'api';
-import { JoplinFileData, JoplinResource } from '../types';
+import type { JoplinFileData, JoplinResource } from '../types';
 import * as fs from 'fs/promises';
 import * as path from 'path';
 import { defaultStylesheet } from '../defaultStylesheet';
