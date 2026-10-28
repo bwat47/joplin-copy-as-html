@@ -20,9 +20,6 @@ const RESOURCE_FILE_TIMEOUT_MS = 5000;
 const REMOTE_IMAGE_TIMEOUT_MS = 10000;
 const MAX_IMAGE_SIZE_BYTES = 25 * 1024 * 1024;
 const LARGE_IMAGE_WARNING_BYTES = 15 * 1024 * 1024;
-// Generic User-Agent for remote image fetches to improve compatibility
-// while avoiding detailed browser impersonation.
-const REMOTE_IMAGE_USER_AGENT = 'Mozilla/5.0';
 
 /**
  * Extracts a Buffer from a Joplin file object returned by the API.
@@ -219,7 +216,6 @@ export async function downloadRemoteImageAsBase64(url: string): Promise<string |
             credentials: 'omit',
             referrerPolicy: 'no-referrer',
             headers: {
-                'User-Agent': REMOTE_IMAGE_USER_AGENT,
                 Accept: 'image/*',
             },
             signal: combinedSignal,
