@@ -2,6 +2,7 @@ import joplin from 'api';
 import * as fs from 'fs/promises';
 import * as path from 'path';
 import { defaultStylesheet } from '../defaultStylesheet';
+import { logger } from '../logger';
 import { convertResourceToBase64, downloadRemoteImageAsBase64, getUserStylesheet } from './assetProcessor';
 
 vi.mock('fs/promises', () => ({ readFile: vi.fn() }));
@@ -137,10 +138,22 @@ describe('getUserStylesheet', () => {
         expect(fs.readFile).not.toHaveBeenCalled();
     });
 
-    it('uses the default stylesheet when the user stylesheet cannot be read', async () => {
+    it('silently uses the default stylesheet when the user stylesheet does not exist', async () => {
         vi.mocked(joplin.settings.globalValues).mockResolvedValue(['/profile']);
-        vi.mocked(fs.readFile).mockRejectedValue(new Error('File not found'));
+        vi.mocked(fs.readFile).mockRejectedValue(Object.assign(new Error('File not found'), { code: 'ENOENT' }));
+        const warn = vi.spyOn(logger, 'warn').mockImplementation(() => {});
 
         expect(await getUserStylesheet()).toBe(defaultStylesheet);
+        expect(warn).not.toHaveBeenCalled();
+    });
+
+    it('warns and uses the default stylesheet when the user stylesheet cannot be read', async () => {
+        vi.mocked(joplin.settings.globalValues).mockResolvedValue(['/profile']);
+        const error = Object.assign(new Error('Permission denied'), { code: 'EACCES' });
+        vi.mocked(fs.readFile).mockRejectedValue(error);
+        const warn = vi.spyOn(logger, 'warn').mockImplementation(() => {});
+
+        expect(await getUserStylesheet()).toBe(defaultStylesheet);
+        expect(warn).toHaveBeenCalledWith(expect.stringContaining('copy-as-html-user.css'), error);
     });
 });

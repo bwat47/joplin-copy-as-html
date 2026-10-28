@@ -287,7 +287,11 @@ export async function getUserStylesheet(): Promise<string> {
     const cssPath = path.join(profileDir, 'copy-as-html-user.css');
     try {
         return await fs.readFile(cssPath, 'utf8');
-    } catch {
+    } catch (err) {
+        // A missing file is the normal case; anything else (e.g. permissions, file locks) is worth surfacing
+        if ((err as NodeJS.ErrnoException)?.code !== 'ENOENT') {
+            logger.warn(`Failed to read user stylesheet ${cssPath}, using default stylesheet:`, err);
+        }
         return defaultStylesheet;
     }
 }
