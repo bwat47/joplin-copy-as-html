@@ -13,6 +13,7 @@ import joplin from 'api';
 import type { JoplinFileData, JoplinResource } from '../types';
 import * as fs from 'fs/promises';
 import * as path from 'path';
+import { MIMEType } from 'util';
 import { defaultStylesheet } from '../defaultStylesheet';
 import { logger } from '../logger';
 
@@ -85,8 +86,9 @@ export async function convertResourceToBase64(id: string): Promise<string | null
             return null;
         }
 
-        if (!rawResource.mime.toLowerCase().startsWith('image/')) {
-            logger.warn(`Resource is not an image: :/${id} (${rawResource.mime})`);
+        const mimeType = normalizeImageMimeType(rawResource.mime);
+        if (!mimeType) {
+            logger.warn(`Resource is not a valid image type: :/${id} (${rawResource.mime})`);
             return null;
         }
 
@@ -121,9 +123,30 @@ export async function convertResourceToBase64(id: string): Promise<string | null
 
         const fileBuffer = extractFileBuffer(fileObj);
         const base64 = fileBuffer.toString('base64');
-        return `data:${rawResource.mime};base64,${base64}`;
+        return `data:${mimeType};base64,${base64}`;
     } catch (err) {
         logger.error(`Failed to convert resource :/${id} to base64:`, err);
+        return null;
+    }
+}
+
+// Data URI-safe image subtype, e.g. png, svg+xml, vnd.microsoft.icon.
+// Valid MIME subtypes may also contain characters like '#' or '%', which would break a data URI.
+const SAFE_IMAGE_SUBTYPE_REGEX = /^[a-z0-9.+-]+$/;
+
+/**
+ * Parses an image MIME type and reduces it to a lowercase type/subtype for a data URI, dropping parameters.
+ * For example, IMAGE/SVG+XML; charset="utf-8" becomes image/svg+xml.
+ * @param mimeType A Content-Type header or stored resource MIME type.
+ * @returns The normalized image MIME type, or null if missing, malformed, or not an image.
+ */
+function normalizeImageMimeType(mimeType: string | null): string | null {
+    if (!mimeType) return null;
+
+    try {
+        const mime = new MIMEType(mimeType);
+        return mime.type === 'image' && SAFE_IMAGE_SUBTYPE_REGEX.test(mime.subtype) ? mime.essence : null;
+    } catch {
         return null;
     }
 }
@@ -132,7 +155,7 @@ export async function convertResourceToBase64(id: string): Promise<string | null
  * Validates a remote image response's status, Content-Type and declared Content-Length.
  * @param response The fetch response to validate.
  * @param url The requested URL (for logging).
- * @returns The raw Content-Type header, or null if the response should be rejected.
+ * @returns A data URI-safe Content-Type, or null if the response should be rejected.
  */
 function validateRemoteImageHeaders(response: Response, url: string): string | null {
     if (!response.ok) {
@@ -141,8 +164,9 @@ function validateRemoteImageHeaders(response: Response, url: string): string | n
     }
 
     const contentType = response.headers.get('content-type');
-    if (!contentType?.toLowerCase().startsWith('image/')) {
-        logger.warn(`Remote content is not an image ${url} (Content-Type: ${contentType})`);
+    const normalizedContentType = normalizeImageMimeType(contentType);
+    if (!normalizedContentType) {
+        logger.warn(`Remote content is not a valid image type ${url} (Content-Type: ${contentType})`);
         return null;
     }
 
@@ -153,7 +177,7 @@ function validateRemoteImageHeaders(response: Response, url: string): string | n
         return null;
     }
 
-    return contentType;
+    return normalizedContentType;
 }
 
 /**
