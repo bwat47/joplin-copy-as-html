@@ -16,7 +16,6 @@ import { logger } from '../logger';
 const RESOURCE_FILE_TIMEOUT_MS = 5000;
 const REMOTE_IMAGE_TIMEOUT_MS = 10000;
 const MAX_IMAGE_SIZE_BYTES = 25 * 1024 * 1024;
-const LARGE_IMAGE_WARNING_BYTES = 15 * 1024 * 1024;
 
 /**
  * Extracts a Buffer from a Joplin file object returned by the API.
@@ -51,7 +50,6 @@ function validateResourceId(id: string): boolean {
 function formatMB(bytes: number): string {
     return `${Math.round(bytes / 1024 / 1024)}MB`;
 }
-
 /**
  * Rejects if a promise does not settle within the given time.
  * The underlying operation is not cancelled; its result is ignored after the timeout.
@@ -115,8 +113,6 @@ export async function convertResourceToBase64(id: string): Promise<string | null
         if (size > MAX_IMAGE_SIZE_BYTES) {
             logger.warn(`Resource too large: :/${id} is ${formatMB(size)} (max ${formatMB(MAX_IMAGE_SIZE_BYTES)})`);
             return null;
-        } else if (size > LARGE_IMAGE_WARNING_BYTES) {
-            logger.warn(`Large image detected: Resource :/${id} is ${formatMB(size)}`);
         }
 
         const fileObj = (await withTimeout(
@@ -214,10 +210,6 @@ async function readRemoteImageBody(
 
             totalSize += chunk.length;
             chunks.push(chunk);
-        }
-
-        if (totalSize > LARGE_IMAGE_WARNING_BYTES) {
-            logger.warn(`Large remote image detected: ${url} is ${formatMB(totalSize)}`);
         }
 
         return Buffer.concat(chunks);
