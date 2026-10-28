@@ -18,7 +18,7 @@
 - `src/logger.ts` – centralized logging utility.
 - `src/constants.ts` / `src/types.ts` – shared configuration, string constants, and TypeScript contracts.
 - `src/utils.ts` – validation helpers, toast messaging wrapper.
-- `src/html/` – HTML renderer pipeline (`htmlRenderer.ts`, `htmlRenderer.test.ts`, `assetProcessor.ts`, `domPostProcess.ts`, `domPostProcess.test.ts`).
+- `src/html/` – HTML renderer pipeline (`htmlRenderer.ts`, `htmlRenderer.test.ts`, `assetProcessor.ts`, `stylesheet.ts`, `domPostProcess.ts`, `domPostProcess.test.ts`).
 - `src/plainText/` – plain text pipeline (`plainTextRenderer.ts`, `plainTextRenderer.test.ts`).
 - Tests live beside source (`*.test.ts`). `tests/` directory is unused.
 
@@ -80,6 +80,7 @@ All default to `false` unless noted.
 
 - `html/htmlRenderer.test.ts` exercises HTML conversion, DOM sanitization, and image embedding flows.
 - `html/assetProcessor.test.ts` tests resource embedding, remote image downloading, and base64 conversion.
+- `html/stylesheet.ts` loads custom CSS for full HTML exports, falling back to the bundled stylesheet; `html/stylesheet.test.ts` covers loading and fallback behavior.
 - `html/domPostProcess.test.ts` tests DOM sanitization, link patching, image wrapping, and the `unwrapRenderedMd` logic.
 - `plainText/plainTextRenderer.test.ts` covers integration scenarios for the plain text pipeline.
 - `utils.test.ts` tests validation helpers and utility functions.

@@ -5,16 +5,12 @@
  * Responsibilities:
  * - Joplin resource to base64 conversion
  * - Remote image download to base64 (with Content-Type validation)
- * - Filesystem access for user stylesheets
  * - Error handling and utility functions for assets
  */
 
 import joplin from 'api';
 import type { JoplinFileData, JoplinResource } from '../types';
-import * as fs from 'fs/promises';
-import * as path from 'path';
 import { MIMEType } from 'util';
-import { defaultStylesheet } from '../defaultStylesheet';
 import { logger } from '../logger';
 
 const RESOURCE_FILE_TIMEOUT_MS = 5000;
@@ -271,27 +267,5 @@ export async function downloadRemoteImageAsBase64(url: string): Promise<string |
     } catch (err) {
         logger.error('Failed to download remote image:', url, err);
         return null;
-    }
-}
-
-/**
- * Loads the user stylesheet from the profile directory if present; otherwise returns
- * the bundled default stylesheet. Used when exporting full HTML documents.
- */
-export async function getUserStylesheet(): Promise<string> {
-    const values: unknown[] = await joplin.settings.globalValues(['profileDir']);
-    const [profileDir] = values;
-    if (typeof profileDir !== 'string' || !profileDir) {
-        return defaultStylesheet;
-    }
-    const cssPath = path.join(profileDir, 'copy-as-html-user.css');
-    try {
-        return await fs.readFile(cssPath, 'utf8');
-    } catch (err) {
-        // A missing file is the normal case; anything else (e.g. permissions, file locks) is worth surfacing
-        if ((err as NodeJS.ErrnoException)?.code !== 'ENOENT') {
-            logger.warn(`Failed to read user stylesheet ${cssPath}, using default stylesheet:`, err);
-        }
-        return defaultStylesheet;
     }
 }

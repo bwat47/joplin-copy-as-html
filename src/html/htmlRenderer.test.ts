@@ -3,13 +3,13 @@ import joplin from 'api';
 import type { Mock } from 'vitest';
 import type { HtmlOptions } from '../types';
 import * as domPostProcess from './domPostProcess';
-import * as assetProcessor from './assetProcessor';
+import * as stylesheet from './stylesheet';
 
 vi.mock('./domPostProcess');
-vi.mock('./assetProcessor');
+vi.mock('./stylesheet');
 
 const mockPostProcessHtml = domPostProcess.postProcessHtml as Mock;
-const mockGetUserStylesheet = assetProcessor.getUserStylesheet as Mock;
+const mockGetUserStylesheet = stylesheet.getUserStylesheet as Mock;
 
 function htmlOptions(overrides: Partial<HtmlOptions> = {}): HtmlOptions {
     return {
