@@ -76,12 +76,32 @@ describe('downloadRemoteImageAsBase64 Content-Type handling', () => {
                 headers: contentType === null ? {} : { 'Content-Type': contentType },
             });
             const getReader = vi.spyOn(response.body!, 'getReader');
+            const cancel = vi.spyOn(response.body!, 'cancel');
             vi.stubGlobal('fetch', vi.fn().mockResolvedValue(response));
 
             expect(await downloadRemoteImageAsBase64(url)).toBeNull();
             expect(getReader).not.toHaveBeenCalled();
+            expect(cancel).toHaveBeenCalledOnce();
         }
     );
+
+    it('ignores cancellation failures on a rejected response', async () => {
+        const body = new ReadableStream({ start: (controller) => controller.error(new Error('stream failed')) });
+        vi.stubGlobal(
+            'fetch',
+            vi.fn().mockResolvedValue(new Response(body, { headers: { 'Content-Type': 'text/html' } }))
+        );
+        const onUnhandled = vi.fn();
+        process.on('unhandledRejection', onUnhandled);
+
+        try {
+            expect(await downloadRemoteImageAsBase64(url)).toBeNull();
+            await new Promise((resolve) => setTimeout(resolve, 0));
+            expect(onUnhandled).not.toHaveBeenCalled();
+        } finally {
+            process.off('unhandledRejection', onUnhandled);
+        }
+    });
 });
 
 describe('getUserStylesheet', () => {

@@ -229,11 +229,6 @@ async function readRemoteImageBody(
  * @returns data:image/* base64 URI or null on failure
  */
 export async function downloadRemoteImageAsBase64(url: string): Promise<string | null> {
-    const controller = new AbortController();
-    // Requires Electron with Chromium 116+ (AbortSignal.timeout/any support)
-    const timeoutSignal = AbortSignal.timeout(REMOTE_IMAGE_TIMEOUT_MS);
-    const combinedSignal = AbortSignal.any([controller.signal, timeoutSignal]);
-
     try {
         const response = await fetch(url, {
             // Avoid leaking cookies/referrer in Electron/Hybrid environments
@@ -242,11 +237,16 @@ export async function downloadRemoteImageAsBase64(url: string): Promise<string |
             headers: {
                 Accept: 'image/*',
             },
-            signal: combinedSignal,
+            signal: AbortSignal.timeout(REMOTE_IMAGE_TIMEOUT_MS),
         });
 
         const contentType = validateRemoteImageHeaders(response, url);
-        if (!contentType) return null;
+        if (!contentType) {
+            // Release the connection instead of leaving the unread body open.
+            // Cancellation failures are irrelevant once the response is rejected.
+            void response.body?.cancel().catch(() => undefined);
+            return null;
+        }
 
         // Streaming path for Chromium/Electron environments
         const reader = response.body?.getReader();
@@ -263,8 +263,6 @@ export async function downloadRemoteImageAsBase64(url: string): Promise<string |
     } catch (err) {
         logger.error('Failed to download remote image:', url, err);
         return null;
-    } finally {
-        controller.abort();
     }
 }
 
