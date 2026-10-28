@@ -71,7 +71,11 @@ async function withTimeout<T>(promise: Promise<T>, ms: number, message: string):
     }
 }
 
-// Narrow unknown resource objects returned by the Joplin API (runtime validation)
+/**
+ * Narrows unknown resource metadata returned by the Joplin API (runtime validation).
+ * @param obj The value returned by the resource metadata request.
+ * @returns True if it has a string id and mime, and a numeric or missing size.
+ */
 function isJoplinResource(obj: unknown): obj is JoplinResource {
     return (
         !!obj &&
