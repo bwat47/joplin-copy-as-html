@@ -39,6 +39,8 @@ export interface PlainTextOptions {
 export interface JoplinResource {
     id: string;
     mime: string;
+    /** File size in bytes; may be missing or non-positive for legacy resources. */
+    size?: number;
 }
 
 export interface JoplinFileData {

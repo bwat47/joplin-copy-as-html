@@ -63,7 +63,8 @@ function isJoplinResource(obj: unknown): obj is JoplinResource {
     return (
         !!obj &&
         typeof (obj as { id?: unknown }).id === 'string' &&
-        typeof (obj as { mime?: unknown }).mime === 'string'
+        typeof (obj as { mime?: unknown }).mime === 'string' &&
+        ['number', 'undefined'].includes(typeof (obj as { size?: unknown }).size)
     );
 }
 
@@ -79,7 +80,7 @@ export async function convertResourceToBase64(id: string): Promise<string | null
         return null;
     }
     try {
-        const rawResource: unknown = await joplin.data.get(['resources', id], { fields: ['id', 'mime'] });
+        const rawResource: unknown = await joplin.data.get(['resources', id], { fields: ['id', 'mime', 'size'] });
 
         // Validate shape before use to avoid runtime crashes on unexpected data
         if (!isJoplinResource(rawResource)) {
@@ -90,6 +91,16 @@ export async function convertResourceToBase64(id: string): Promise<string | null
         if (!rawResource.mime.toLowerCase().startsWith('image/')) {
             logger.warn(`Resource is not an image: :/${id} (${rawResource.mime})`);
             return null;
+        }
+
+        // Check size limits from metadata before loading the file.
+        // Missing or non-positive sizes (legacy resources) are treated as unknown and allowed.
+        const size = rawResource.size ?? 0;
+        if (size > MAX_IMAGE_SIZE_BYTES) {
+            logger.warn(`Resource too large: :/${id} is ${formatMB(size)} (max ${formatMB(MAX_IMAGE_SIZE_BYTES)})`);
+            return null;
+        } else if (size > LARGE_IMAGE_WARNING_BYTES) {
+            logger.warn(`Large image detected: Resource :/${id} is ${formatMB(size)}`);
         }
 
         // Fetch resource file with timeout
@@ -112,17 +123,6 @@ export async function convertResourceToBase64(id: string): Promise<string | null
         }
 
         const fileBuffer = extractFileBuffer(fileObj);
-
-        // Check file size limits
-        if (fileBuffer.length > MAX_IMAGE_SIZE_BYTES) {
-            logger.warn(
-                `Resource too large: :/${id} is ${formatMB(fileBuffer.length)} (max ${formatMB(MAX_IMAGE_SIZE_BYTES)})`
-            );
-            return null;
-        } else if (fileBuffer.length > LARGE_IMAGE_WARNING_BYTES) {
-            logger.warn(`Large image detected: Resource :/${id} is ${formatMB(fileBuffer.length)}`);
-        }
-
         const base64 = fileBuffer.toString('base64');
         return `data:${rawResource.mime};base64,${base64}`;
     } catch (err) {
