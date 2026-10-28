@@ -37,6 +37,22 @@ describe('convertResourceToBase64', () => {
         expect(joplin.data.get).toHaveBeenCalledTimes(1);
     });
 
+    it('returns null when the resource file does not load in time', async () => {
+        vi.useFakeTimers();
+        try {
+            vi.mocked(joplin.data.get).mockImplementation((path: string[]) =>
+                path.includes('file') ? new Promise(() => {}) : Promise.resolve({ id, mime: 'image/png', size: 11 })
+            );
+
+            const result = convertResourceToBase64(id);
+            await vi.advanceTimersByTimeAsync(5000);
+
+            expect(await result).toBeNull();
+        } finally {
+            vi.useRealTimers();
+        }
+    });
+
     it.each([undefined, -1])('allows a resource with unknown size %s', async (size) => {
         mockResource({ mime: 'image/png', size });
 
