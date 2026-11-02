@@ -21,7 +21,8 @@ export async function getUserStylesheet(): Promise<string> {
         return await fs.readFile(cssPath, 'utf8');
     } catch (err) {
         // A missing file is the normal case; anything else (e.g. permissions, file locks) is worth surfacing
-        if (!(hasProperty(err, 'code') && err.code === 'ENOENT')) {
+        const isMissingFile = hasProperty(err, 'code') && err.code === 'ENOENT';
+        if (!isMissingFile) {
             logger.warn(`Failed to read user stylesheet ${cssPath}, using default stylesheet:`, err);
         }
         return defaultStylesheet;
