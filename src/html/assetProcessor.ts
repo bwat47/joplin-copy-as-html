@@ -13,8 +13,7 @@ const MAX_IMAGE_SIZE_BYTES = 25 * 1024 * 1024;
  * Desktop Joplin returns `{ body: Buffer | Uint8Array }`.
  */
 function extractFileBuffer(fileObj: unknown): Buffer {
-    const data =
-        typeof fileObj === 'object' && fileObj !== null && 'body' in fileObj ? (fileObj.body ?? fileObj) : fileObj;
+    const data = typeof fileObj === 'object' && fileObj !== null && 'body' in fileObj ? fileObj.body : fileObj;
 
     if (Buffer.isBuffer(data)) return data;
     if (data instanceof Uint8Array) return Buffer.from(data);
