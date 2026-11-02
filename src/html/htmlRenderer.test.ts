@@ -68,9 +68,12 @@ describe('processHtmlConversion', () => {
         expect(result).toBe('<p>Mocked Render</p>');
     });
 
-    it('handles empty renderMarkup result', async () => {
-        (joplin.commands.execute as Mock).mockResolvedValue(null);
-        const result = await processHtmlConversion('md', htmlOptions());
-        expect(result).toBe('');
-    });
+    it.each([null, undefined, {}, { html: null }, { html: 42 }, 'invalid'])(
+        'handles invalid renderMarkup result: %s',
+        async (rendered) => {
+            (joplin.commands.execute as Mock).mockResolvedValue(rendered);
+            const result = await processHtmlConversion('md', htmlOptions());
+            expect(result).toBe('');
+        }
+    );
 });

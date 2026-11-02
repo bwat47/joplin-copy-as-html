@@ -2,7 +2,8 @@ import { MIMEType } from 'util';
 
 import joplin from 'api';
 import { logger } from '../logger';
-import type { JoplinFileData, JoplinResource } from '../types';
+import type { JoplinResource } from '../types';
+import { hasProperty } from '../utils';
 
 const RESOURCE_FILE_TIMEOUT_MS = 5000;
 const REMOTE_IMAGE_TIMEOUT_MS = 10000;
@@ -12,8 +13,8 @@ const MAX_IMAGE_SIZE_BYTES = 25 * 1024 * 1024;
  * Extracts a Buffer from a Joplin file object returned by the API.
  * Desktop Joplin returns `{ body: Buffer | Uint8Array }`.
  */
-function extractFileBuffer(fileObj: JoplinFileData): Buffer {
-    const data = fileObj?.body ?? fileObj;
+function extractFileBuffer(fileObj: unknown): Buffer {
+    const data = hasProperty(fileObj, 'body') ? fileObj.body : fileObj;
 
     if (Buffer.isBuffer(data)) return data;
     if (data instanceof Uint8Array) return Buffer.from(data);
@@ -110,11 +111,11 @@ export async function convertResourceToBase64(id: string): Promise<string | null
             return null;
         }
 
-        const fileObj = (await withTimeout(
+        const fileObj: unknown = await withTimeout(
             joplin.data.get(['resources', id, 'file']),
             RESOURCE_FILE_TIMEOUT_MS,
             'Timeout retrieving resource file'
-        )) as JoplinFileData;
+        );
 
         const fileBuffer = extractFileBuffer(fileObj);
         const base64 = fileBuffer.toString('base64');
@@ -192,7 +193,6 @@ async function readRemoteImageBody(
         for (;;) {
             const { done, value } = await reader.read();
             if (done) break;
-            if (!value) continue;
 
             const chunk = Buffer.from(value);
             if (totalSize + chunk.length > MAX_IMAGE_SIZE_BYTES) {

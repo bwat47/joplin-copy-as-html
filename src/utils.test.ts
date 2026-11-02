@@ -1,5 +1,6 @@
 // src/utils.test.ts
-import { validateBooleanSetting, validateHtmlSettings, validatePlainTextSettings } from './utils';
+import { DEFAULT_HTML_OPTIONS, DEFAULT_PLAIN_TEXT_OPTIONS } from './constants';
+import { hasProperty, validateBooleanSetting, validateHtmlSettings, validatePlainTextSettings } from './utils';
 
 describe('validateBooleanSetting', () => {
     it('should return the boolean value if it is a boolean', () => {
@@ -66,6 +67,10 @@ describe('validatePlainTextSettings', () => {
         expect(validatedNull.preserveTablePipes).toBe(false);
         expect(validatedNull.preserveCodeBackticks).toBe(false);
         expect(validatedNull.preserveQuoteMarkers).toBe(false);
+    });
+
+    it.each(['invalid', 42, true])('should return default values for non-object settings: %s', (settings) => {
+        expect(validatePlainTextSettings(settings)).toEqual(DEFAULT_PLAIN_TEXT_OPTIONS);
     });
 });
 
@@ -135,5 +140,21 @@ describe('validateHtmlSettings', () => {
             downloadRemoteImages: false,
             embedSvgAsPng: true,
         });
+    });
+
+    it.each(['invalid', 42, true])('should return default values for non-object settings: %s', (settings) => {
+        expect(validateHtmlSettings(settings)).toEqual(DEFAULT_HTML_OPTIONS);
+    });
+});
+
+describe('hasProperty', () => {
+    it('returns true for objects that have the key', () => {
+        expect(hasProperty({ code: 'ENOENT' }, 'code')).toBe(true);
+        expect(hasProperty({ code: undefined }, 'code')).toBe(true);
+        expect(hasProperty(new Error('x'), 'message')).toBe(true);
+    });
+
+    it.each([null, undefined, 'code', 42, {}, { other: 1 }])('returns false for %s', (value) => {
+        expect(hasProperty(value, 'code')).toBe(false);
     });
 });

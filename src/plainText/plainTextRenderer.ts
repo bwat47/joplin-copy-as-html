@@ -17,11 +17,11 @@ type PlainTextNode = {
     type: string;
     value?: string;
     identifier?: string;
-    label?: string;
+    label?: string | null;
     url?: string;
     depth?: number;
-    ordered?: boolean;
-    start?: number;
+    ordered?: boolean | null;
+    start?: number | null;
     checked?: boolean | null;
     lang?: string | null;
     children?: PlainTextNode[];
@@ -57,7 +57,7 @@ function createRemarkProcessor(displayEmojis: boolean) {
 
 const stripEmojiShortcodes: Plugin<[], Root> = () => {
     return (tree: Root): void => {
-        walkTextNodes(tree as unknown as PlainTextNode, (node) => {
+        walkTextNodes(tree, (node) => {
             node.value = (node.value ?? '').replace(EMOJI_SHORTCODE_PATTERN, (match, key: string) => {
                 return nodeEmoji.has(key) ? '' : match;
             });
@@ -133,7 +133,7 @@ function htmlFragmentToPlainText(html: string): string {
         br.replaceWith(doc.createTextNode('\n'));
     });
 
-    const text = body.textContent ?? '';
+    const text = body.textContent;
     return text
         .replace(/\u00A0/g, ' ')
         .replace(/\n[\t ]+/g, '\n')
@@ -428,6 +428,6 @@ function renderBlocks(nodes: PlainTextNode[], options: PlainTextOptions, depth =
 export function convertMarkdownToPlainText(markdown: string, options: PlainTextOptions): string {
     const processor = createRemarkProcessor(options.displayEmojis);
     const parsed = processor.parse(markdown);
-    const tree = processor.runSync(parsed) as PlainTextNode;
+    const tree: PlainTextNode = processor.runSync(parsed);
     return renderBlocks(tree.children ?? [], options);
 }
