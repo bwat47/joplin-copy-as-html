@@ -1,4 +1,5 @@
 // src/utils.test.ts
+import { DEFAULT_HTML_OPTIONS, DEFAULT_PLAIN_TEXT_OPTIONS } from './constants';
 import { hasProperty, validateBooleanSetting, validateHtmlSettings, validatePlainTextSettings } from './utils';
 
 describe('validateBooleanSetting', () => {
@@ -66,6 +67,10 @@ describe('validatePlainTextSettings', () => {
         expect(validatedNull.preserveTablePipes).toBe(false);
         expect(validatedNull.preserveCodeBackticks).toBe(false);
         expect(validatedNull.preserveQuoteMarkers).toBe(false);
+    });
+
+    it.each(['invalid', 42, true])('should return default values for non-object settings: %s', (settings) => {
+        expect(validatePlainTextSettings(settings)).toEqual(DEFAULT_PLAIN_TEXT_OPTIONS);
     });
 });
 
@@ -135,6 +140,10 @@ describe('validateHtmlSettings', () => {
             downloadRemoteImages: false,
             embedSvgAsPng: true,
         });
+    });
+
+    it.each(['invalid', 42, true])('should return default values for non-object settings: %s', (settings) => {
+        expect(validateHtmlSettings(settings)).toEqual(DEFAULT_HTML_OPTIONS);
     });
 });
 

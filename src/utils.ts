@@ -9,7 +9,7 @@ import type { HtmlOptions, PlainTextOptions } from './types';
  * values with the corresponding defaults without coercing their types.
  */
 export function validatePlainTextSettings(settings: unknown): PlainTextOptions {
-    const s = (settings || {}) as Partial<PlainTextOptions>;
+    const s: Partial<Record<keyof PlainTextOptions, unknown>> = isRecord(settings) ? settings : {};
     const d = DEFAULT_PLAIN_TEXT_OPTIONS;
     return {
         preserveSuperscript: validateBooleanSetting(s.preserveSuperscript, d.preserveSuperscript),
@@ -36,7 +36,7 @@ export function validatePlainTextSettings(settings: unknown): PlainTextOptions {
  * values with the corresponding defaults.
  */
 export function validateHtmlSettings(settings: unknown): HtmlOptions {
-    const s = (settings || {}) as Partial<HtmlOptions>;
+    const s: Partial<Record<keyof HtmlOptions, unknown>> = isRecord(settings) ? settings : {};
     const d = DEFAULT_HTML_OPTIONS;
     return {
         embedImages: validateBooleanSetting(s.embedImages, d.embedImages),
@@ -58,10 +58,17 @@ function validateEnumSetting<T extends string>(setting: unknown, allowed: readon
 }
 
 /**
+ * Narrows an unknown value to a non-null object whose properties can be read as `unknown`.
+ */
+function isRecord(value: unknown): value is Record<PropertyKey, unknown> {
+    return typeof value === 'object' && value !== null;
+}
+
+/**
  * Narrows an unknown value to a non-null object that has `key`, so the property can be read safely.
  */
 export function hasProperty<K extends PropertyKey>(value: unknown, key: K): value is Record<K, unknown> {
-    return typeof value === 'object' && value !== null && key in value;
+    return isRecord(value) && key in value;
 }
 
 /**
