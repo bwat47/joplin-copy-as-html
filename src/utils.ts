@@ -58,6 +58,13 @@ function validateEnumSetting<T extends string>(setting: unknown, allowed: readon
 }
 
 /**
+ * Narrows an unknown value to a non-null object that has `key`, so the property can be read safely.
+ */
+export function hasProperty<K extends PropertyKey>(value: unknown, key: K): value is Record<K, unknown> {
+    return typeof value === 'object' && value !== null && key in value;
+}
+
+/**
  * Safely extracts a readable message from an unknown error value.
  */
 export function getErrorMessage(error: unknown): string {

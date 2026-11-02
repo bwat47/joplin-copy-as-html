@@ -1,5 +1,5 @@
 // src/utils.test.ts
-import { validateBooleanSetting, validateHtmlSettings, validatePlainTextSettings } from './utils';
+import { hasProperty, validateBooleanSetting, validateHtmlSettings, validatePlainTextSettings } from './utils';
 
 describe('validateBooleanSetting', () => {
     it('should return the boolean value if it is a boolean', () => {
@@ -135,5 +135,17 @@ describe('validateHtmlSettings', () => {
             downloadRemoteImages: false,
             embedSvgAsPng: true,
         });
+    });
+});
+
+describe('hasProperty', () => {
+    it('returns true for objects that have the key', () => {
+        expect(hasProperty({ code: 'ENOENT' }, 'code')).toBe(true);
+        expect(hasProperty({ code: undefined }, 'code')).toBe(true);
+        expect(hasProperty(new Error('x'), 'message')).toBe(true);
+    });
+
+    it.each([null, undefined, 'code', 42, {}, { other: 1 }])('returns false for %s', (value) => {
+        expect(hasProperty(value, 'code')).toBe(false);
     });
 });

@@ -3,6 +3,7 @@ import { MIMEType } from 'util';
 import joplin from 'api';
 import { logger } from '../logger';
 import type { JoplinResource } from '../types';
+import { hasProperty } from '../utils';
 
 const RESOURCE_FILE_TIMEOUT_MS = 5000;
 const REMOTE_IMAGE_TIMEOUT_MS = 10000;
@@ -13,7 +14,7 @@ const MAX_IMAGE_SIZE_BYTES = 25 * 1024 * 1024;
  * Desktop Joplin returns `{ body: Buffer | Uint8Array }`.
  */
 function extractFileBuffer(fileObj: unknown): Buffer {
-    const data = typeof fileObj === 'object' && fileObj !== null && 'body' in fileObj ? fileObj.body : fileObj;
+    const data = hasProperty(fileObj, 'body') ? fileObj.body : fileObj;
 
     if (Buffer.isBuffer(data)) return data;
     if (data instanceof Uint8Array) return Buffer.from(data);

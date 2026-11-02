@@ -1,6 +1,7 @@
 import joplin from 'api';
 import { logger } from '../logger';
 import type { HtmlOptions } from '../types';
+import { hasProperty } from '../utils';
 import { postProcessHtml } from './domPostProcess';
 import { getUserStylesheet } from './stylesheet';
 
@@ -30,10 +31,7 @@ export async function processHtmlConversion(selection: string, options: HtmlOpti
         null, // rendererOptions (unused)
         { bodyOnly: true } // renderOptions
     );
-    const rawHtml =
-        typeof rendered === 'object' && rendered !== null && 'html' in rendered && typeof rendered.html === 'string'
-            ? rendered.html
-            : '';
+    const rawHtml = hasProperty(rendered, 'html') && typeof rendered.html === 'string' ? rendered.html : '';
 
     if (!rawHtml) {
         logger.warn('renderMarkup returned empty result');
