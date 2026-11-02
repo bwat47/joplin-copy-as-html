@@ -30,7 +30,3 @@ export interface JoplinResource {
     /** File size in bytes; may be missing or non-positive for legacy resources. */
     size?: number;
 }
-
-export interface JoplinFileData {
-    body?: Buffer | Uint8Array;
-}

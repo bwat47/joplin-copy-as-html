@@ -20,7 +20,7 @@ export async function getUserStylesheet(): Promise<string> {
         return await fs.readFile(cssPath, 'utf8');
     } catch (err) {
         // A missing file is the normal case; anything else (e.g. permissions, file locks) is worth surfacing
-        if ((err as NodeJS.ErrnoException)?.code !== 'ENOENT') {
+        if (!(typeof err === 'object' && err !== null && 'code' in err && err.code === 'ENOENT')) {
             logger.warn(`Failed to read user stylesheet ${cssPath}, using default stylesheet:`, err);
         }
         return defaultStylesheet;

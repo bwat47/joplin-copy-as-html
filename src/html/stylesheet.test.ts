@@ -43,4 +43,13 @@ describe('getUserStylesheet', () => {
         expect(await getUserStylesheet()).toBe(defaultStylesheet);
         expect(warn).toHaveBeenCalledWith(expect.stringContaining('copy-as-html-user.css'), error);
     });
+
+    it.each([null, undefined, 'read failed'])('handles unexpected rejection values: %s', async (error) => {
+        vi.mocked(joplin.settings.globalValues).mockResolvedValue(['/profile']);
+        vi.mocked(fs.readFile).mockRejectedValue(error);
+        const warn = vi.spyOn(logger, 'warn').mockImplementation(() => {});
+
+        expect(await getUserStylesheet()).toBe(defaultStylesheet);
+        expect(warn).toHaveBeenCalledWith(expect.stringContaining('copy-as-html-user.css'), error);
+    });
 });

@@ -166,7 +166,7 @@ function stripJoplinLinks(root: HTMLElement): void {
         // Don't modify links that contain images
         if (link.querySelector('img')) return;
 
-        const text = link.textContent?.trim() || 'Resource';
+        const text = link.textContent.trim() || 'Resource';
         link.replaceWith(root.ownerDocument.createTextNode(text));
     });
 }
@@ -344,7 +344,7 @@ function removeLeadingEmptyNodes(element: Element): void {
  */
 function removeIfEmptyParagraph(element: Element): void {
     if (element.tagName !== 'P') return;
-    if (element.textContent?.trim()) return;
+    if (element.textContent.trim()) return;
     if (element.querySelector('img,input,table,ul,ol,pre,code')) return;
 
     element.remove();

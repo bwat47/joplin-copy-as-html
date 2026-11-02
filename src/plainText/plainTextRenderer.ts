@@ -133,7 +133,7 @@ function htmlFragmentToPlainText(html: string): string {
         br.replaceWith(doc.createTextNode('\n'));
     });
 
-    const text = body.textContent ?? '';
+    const text = body.textContent;
     return text
         .replace(/\u00A0/g, ' ')
         .replace(/\n[\t ]+/g, '\n')

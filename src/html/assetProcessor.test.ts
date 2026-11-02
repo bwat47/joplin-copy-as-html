@@ -48,6 +48,26 @@ describe('convertResourceToBase64', () => {
         }
     });
 
+    it.each([
+        Buffer.from('image bytes'),
+        new Uint8Array(Buffer.from('image bytes')),
+        { body: new Uint8Array(Buffer.from('image bytes')) },
+    ])('accepts supported file response formats: %s', async (file) => {
+        vi.mocked(joplin.data.get).mockImplementation((path: string[]) =>
+            Promise.resolve(path.includes('file') ? file : { id, mime: 'image/png' })
+        );
+
+        expect(await convertResourceToBase64(id)).toBe('data:image/png;base64,aW1hZ2UgYnl0ZXM=');
+    });
+
+    it.each([null, undefined, {}, { body: 'invalid' }])('rejects invalid file responses: %s', async (file) => {
+        vi.mocked(joplin.data.get).mockImplementation((path: string[]) =>
+            Promise.resolve(path.includes('file') ? file : { id, mime: 'image/png' })
+        );
+
+        expect(await convertResourceToBase64(id)).toBeNull();
+    });
+
     it.each([undefined, -1])('allows a resource with unknown size %s', async (size) => {
         mockResource({ mime: 'image/png', size });
 
