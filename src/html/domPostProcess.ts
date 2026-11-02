@@ -31,7 +31,7 @@ function ensurePurifyHooks(): void {
  */
 function sanitizeToRoot(html: string): HTMLElement | null {
     ensurePurifyHooks();
-    return DOMPurify.sanitize(html, {
+    const root = DOMPurify.sanitize(html, {
         RETURN_DOM: true,
         // Keep it permissive for rich content but remove dangerous elements
         ALLOWED_TAGS: [
@@ -137,7 +137,9 @@ function sanitizeToRoot(html: string): HTMLElement | null {
             // Expanded state for <details>
             'open',
         ],
-    }) as HTMLElement | null;
+    });
+    // Typed as Node, but DOMPurify returns null when it cannot create a document
+    return root instanceof HTMLElement ? root : null;
 }
 
 // ----------------------
