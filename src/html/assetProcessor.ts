@@ -1,7 +1,8 @@
-import joplin from 'api';
-import type { JoplinFileData, JoplinResource } from '../types';
 import { MIMEType } from 'util';
+
+import joplin from 'api';
 import { logger } from '../logger';
+import type { JoplinFileData, JoplinResource } from '../types';
 
 const RESOURCE_FILE_TIMEOUT_MS = 5000;
 const REMOTE_IMAGE_TIMEOUT_MS = 10000;

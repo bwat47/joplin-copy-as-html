@@ -1,14 +1,14 @@
 import type { Root } from 'mdast';
 import * as nodeEmoji from 'node-emoji';
-import stringWidth from 'string-width';
 import remarkEmoji from 'remark-emoji';
 import remarkFlexibleMarkers from 'remark-flexible-markers';
 import remarkGfm from 'remark-gfm';
 import remarkIns from 'remark-ins';
 import remarkParse from 'remark-parse';
 import remarkSupersub from 'remark-supersub';
-import { unified } from 'unified';
-import type { Plugin } from 'unified';
+import stringWidth from 'string-width';
+import { unified, type Plugin } from 'unified';
+
 import { GITHUB_ALERT_MARKER_REGEX } from '../constants';
 import { logger } from '../logger';
 import type { PlainTextOptions } from '../types';

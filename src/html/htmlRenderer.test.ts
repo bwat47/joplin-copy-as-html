@@ -1,8 +1,9 @@
-import { processHtmlConversion } from './htmlRenderer';
-import joplin from 'api';
 import type { Mock } from 'vitest';
+
+import joplin from 'api';
 import type { HtmlOptions } from '../types';
 import * as domPostProcess from './domPostProcess';
+import { processHtmlConversion } from './htmlRenderer';
 import * as stylesheet from './stylesheet';
 
 vi.mock('./domPostProcess');

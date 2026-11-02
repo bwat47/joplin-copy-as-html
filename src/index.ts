@@ -1,9 +1,9 @@
 import joplin from 'api';
-import { ToastType, MenuItemLocation, type MenuItem } from 'api/types';
+import { MenuItemLocation, ToastType, type MenuItem } from 'api/types';
 import { processHtmlConversion } from './html/htmlRenderer';
-import { convertMarkdownToPlainText } from './plainText/plainTextRenderer';
 import { logger } from './logger';
-import { registerPluginSettings, loadHtmlSettings, loadPlainTextSettings } from './settings';
+import { convertMarkdownToPlainText } from './plainText/plainTextRenderer';
+import { loadHtmlSettings, loadPlainTextSettings, registerPluginSettings } from './settings';
 import { getErrorMessage, showToast } from './utils';
 
 const COPY_AS_HTML_COMMAND = { name: 'copyAsHtml', label: 'Copy selection as HTML' };

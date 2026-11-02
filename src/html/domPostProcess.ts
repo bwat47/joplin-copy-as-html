@@ -1,4 +1,5 @@
 import DOMPurify from 'dompurify';
+
 import { GITHUB_ALERT_MARKER_REGEX } from '../constants';
 import { logger } from '../logger';
 import { convertResourceToBase64, downloadRemoteImageAsBase64 } from './assetProcessor';

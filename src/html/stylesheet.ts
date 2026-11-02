@@ -1,6 +1,7 @@
-import joplin from 'api';
 import * as fs from 'fs/promises';
 import * as path from 'path';
+
+import joplin from 'api';
 import { defaultStylesheet } from '../defaultStylesheet';
 import { logger } from '../logger';
 

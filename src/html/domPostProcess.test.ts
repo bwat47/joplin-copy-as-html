@@ -1,6 +1,7 @@
-import { postProcessHtml } from './domPostProcess';
-import * as assetProcessor from './assetProcessor';
 import type { Mock } from 'vitest';
+
+import * as assetProcessor from './assetProcessor';
+import { postProcessHtml } from './domPostProcess';
 
 // Mock the assetProcessor module
 vi.mock('./assetProcessor');

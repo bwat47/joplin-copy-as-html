@@ -1,8 +1,8 @@
 import joplin from 'api';
-import type { PlainTextOptions, HtmlOptions } from './types';
-import { logger } from './logger';
 import { ToastType } from 'api/types';
 import { DEFAULT_HTML_OPTIONS, DEFAULT_PLAIN_TEXT_OPTIONS } from './constants';
+import { logger } from './logger';
+import type { HtmlOptions, PlainTextOptions } from './types';
 
 /**
  * Builds plain text options from saved settings, replacing missing or invalid

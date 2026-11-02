@@ -1,8 +1,8 @@
 import joplin from 'api';
 import { SettingItemType } from 'api/types';
 import { DEFAULT_HTML_OPTIONS, DEFAULT_PLAIN_TEXT_OPTIONS, SETTINGS } from './constants';
-import { validatePlainTextSettings, validateHtmlSettings } from './utils';
-import type { PlainTextOptions, HtmlOptions } from './types';
+import type { HtmlOptions, PlainTextOptions } from './types';
+import { validateHtmlSettings, validatePlainTextSettings } from './utils';
 
 const SECTION_ID = 'copyAsHtml';
 

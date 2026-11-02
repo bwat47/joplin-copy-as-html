@@ -1,8 +1,8 @@
 import joplin from 'api';
-import type { HtmlOptions } from '../types';
-import { getUserStylesheet } from './stylesheet';
-import { postProcessHtml } from './domPostProcess';
 import { logger } from '../logger';
+import type { HtmlOptions } from '../types';
+import { postProcessHtml } from './domPostProcess';
+import { getUserStylesheet } from './stylesheet';
 
 // Joplin markup types (matching internal enum)
 const MarkupLanguage = {
