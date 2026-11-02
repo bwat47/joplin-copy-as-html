@@ -1,17 +1,13 @@
-/**
- * @fileoverview Utility Functions - Settings validation, error messages, and toasts
- *
- * Contains validation functions that ensure user settings conform to expected
- * types and provide sensible defaults for invalid values, plus small shared
- * helpers for extracting error messages and showing toast notifications.
- */
-
 import joplin from 'api';
 import type { PlainTextOptions, HtmlOptions } from './types';
 import { logger } from './logger';
 import { ToastType } from 'api/types';
 import { DEFAULT_HTML_OPTIONS, DEFAULT_PLAIN_TEXT_OPTIONS } from './constants';
 
+/**
+ * Builds plain text options from saved settings, replacing missing or invalid
+ * values with the corresponding defaults without coercing their types.
+ */
 export function validatePlainTextSettings(settings: unknown): PlainTextOptions {
     const s = (settings || {}) as Partial<PlainTextOptions>;
     const d = DEFAULT_PLAIN_TEXT_OPTIONS;
@@ -35,6 +31,10 @@ export function validatePlainTextSettings(settings: unknown): PlainTextOptions {
     };
 }
 
+/**
+ * Builds HTML options from saved settings, replacing missing or non-boolean
+ * values with the corresponding defaults.
+ */
 export function validateHtmlSettings(settings: unknown): HtmlOptions {
     const s = (settings || {}) as Partial<HtmlOptions>;
     const d = DEFAULT_HTML_OPTIONS;
@@ -67,9 +67,9 @@ export function getErrorMessage(error: unknown): string {
 /**
  * Displays a toast notification in Joplin.
  * Wraps the Joplin API to provide error handling and consistent defaults.
- * @param message The message to display
- * @param type The type of toast (Info, Success, Error), defaults to Info
- * @param duration Duration in milliseconds, defaults to 3 seconds
+ * @param message - The message to display
+ * @param type - The type of toast (Info, Success, Error), defaults to Info
+ * @param duration - Duration in milliseconds, defaults to 3 seconds
  */
 export async function showToast(message: string, type: ToastType = ToastType.Info, duration = 3000): Promise<void> {
     try {

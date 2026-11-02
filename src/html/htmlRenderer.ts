@@ -1,11 +1,3 @@
-/**
- * @fileoverview HTML Renderer - Converts markdown to clean, portable HTML
- *
- * This module orchestrates the conversion of Joplin markdown to portable HTML.
- * It uses Joplin's built-in `renderMarkup` command (available in Joplin 3.2+)
- * and post-processes the result to handle sanitization and image embedding.
- */
-
 import joplin from 'api';
 import type { HtmlOptions } from '../types';
 import { getUserStylesheet } from './stylesheet';
@@ -19,11 +11,11 @@ const MarkupLanguage = {
 };
 
 /**
- * Converts a markdown selection to processed HTML.
- * This includes embedding images as base64, preserving image dimensions,
- * and cleaning the final HTML for portability.
- * @param selection The markdown string selected by the user.
- * @param options HTML processing options, including embedImages and exportFullHtml settings.
+ * Renders Markdown through Joplin's `renderMarkup` command (requires Joplin 3.2+),
+ * then sanitizes the HTML and processes images according to the supplied options.
+ * Full document exports include the user stylesheet or the bundled default.
+ * @param selection - The markdown string selected by the user.
+ * @param options - HTML processing options, including embedImages and exportFullHtml settings.
  * @returns A promise that resolves to the final HTML string (either a fragment or a full document).
  */
 export async function processHtmlConversion(selection: string, options: HtmlOptions): Promise<string> {

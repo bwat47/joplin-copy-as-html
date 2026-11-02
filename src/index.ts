@@ -1,15 +1,3 @@
-/**
- * @fileoverview Main plugin entry point for Joplin Copy as HTML
- *
- * Registers commands and settings for copying markdown selections as HTML or plain text.
- * Provides two main features:
- * - Copy as HTML: Converts markdown to clean HTML with embedded images
- * - Copy as Plain Text: Strips markdown formatting while preserving structure
- *
- * The plugin respects Joplin's global markdown settings and provides additional
- * customization options for plain text output formatting.
- */
-
 import joplin from 'api';
 import { ToastType, MenuItemLocation, type MenuItem } from 'api/types';
 import { processHtmlConversion } from './html/htmlRenderer';
@@ -35,6 +23,10 @@ async function readEditorSelection(): Promise<string | null> {
     }
 }
 
+/**
+ * Returns a non-empty Markdown editor selection, or null after showing a toast
+ * explaining why the command cannot proceed.
+ */
 async function getMarkdownSelection(commandLabel: string): Promise<string | null> {
     const selection = await readEditorSelection();
     if (selection === null) {
@@ -48,6 +40,7 @@ async function getMarkdownSelection(commandLabel: string): Promise<string | null
     return selection;
 }
 
+/** Copies both HTML and a plain text fallback, using each format's saved settings. */
 async function copySelectionAsHtml(): Promise<void> {
     try {
         const selection = await getMarkdownSelection('Copy as HTML');

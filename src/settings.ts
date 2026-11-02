@@ -1,10 +1,3 @@
-/**
- * @fileoverview Settings registration and loading for Copy as HTML plugin
- *
- * Centralizes all plugin settings definitions and provides helper functions
- * to register settings with Joplin and load validated configuration values.
- */
-
 import joplin from 'api';
 import { SettingItemType } from 'api/types';
 import { DEFAULT_HTML_OPTIONS, DEFAULT_PLAIN_TEXT_OPTIONS, SETTINGS } from './constants';

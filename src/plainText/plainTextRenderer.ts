@@ -1,10 +1,3 @@
-/**
- * @fileoverview Remark-based plain text renderer.
- *
- * Parses Markdown to mdast, then renders the AST directly to paste-friendly
- * plain text with the plugin's preservation settings.
- */
-
 import type { Root } from 'mdast';
 import * as nodeEmoji from 'node-emoji';
 import stringWidth from 'string-width';
@@ -425,9 +418,11 @@ function renderBlocks(nodes: PlainTextNode[], options: PlainTextOptions, depth =
 }
 
 /**
- * Converts markdown to plain text using the provided options.
- * @param markdown The markdown string to convert.
- * @param options The plain text rendering options.
+ * Parses Markdown to mdast with remark, then renders the tree directly to plain
+ * text using the supplied preservation and layout options, independently of
+ * Joplin's Markdown renderer settings.
+ * @param markdown - The markdown string to convert.
+ * @param options - The plain text rendering options.
  * @returns The resulting plain text string.
  */
 export function convertMarkdownToPlainText(markdown: string, options: PlainTextOptions): string {

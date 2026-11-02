@@ -5,6 +5,7 @@ import { defineConfig } from 'eslint/config';
 import tseslint from 'typescript-eslint';
 import vitest from '@vitest/eslint-plugin';
 import sonarjs from 'eslint-plugin-sonarjs';
+import tsdoc from 'eslint-plugin-tsdoc';
 import prettier from 'eslint-config-prettier';
 import globals from 'globals';
 
@@ -20,6 +21,9 @@ export default defineConfig([
     {
         files: ['**/*.{ts,tsx,mts,cts}'],
         extends: [tseslint.configs.recommendedTypeChecked],
+        plugins: {
+            tsdoc,
+        },
         languageOptions: {
             parserOptions: {
                 projectService: true,
@@ -30,6 +34,7 @@ export default defineConfig([
             },
         },
         rules: {
+            'tsdoc/syntax': 'error',
             'sonarjs/dompurify-unsafe-config': 'off',
             '@typescript-eslint/consistent-type-imports': ['error', { fixStyle: 'inline-type-imports' }],
             '@typescript-eslint/consistent-type-exports': ['error', { fixMixedExportsWithInlineTypeSpecifier: true }],

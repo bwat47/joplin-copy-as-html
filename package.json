@@ -30,6 +30,7 @@
         "eslint": "^10.12.0",
         "eslint-config-prettier": "^10.1.8",
         "eslint-plugin-sonarjs": "^4.2.2",
+        "eslint-plugin-tsdoc": "^0.5.4",
         "fs-extra": "^11.3.2",
         "glob": "^8.0.3",
         "globals": "^14.0.0",
@@ -39,7 +40,7 @@
         "tar": "^7.5.7",
         "ts-loader": "^9.5.7",
         "typescript": "^6.0.3",
-        "typescript-eslint": "^8.71.1",
+        "typescript-eslint": "8.72.1",
         "vitest": "^5.0.0",
         "webpack": "^5.103.0",
         "webpack-cli": "^6.0.1"
@@ -55,5 +56,10 @@
         "remark-supersub": "^1.0.0",
         "string-width": "^8.3.0",
         "unified": "^11.0.5"
+    },
+    "overrides": {
+        "eslint-plugin-tsdoc": {
+            "@typescript-eslint/utils": "8.72.1"
+        }
     }
 }

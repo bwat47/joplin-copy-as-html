@@ -1,5 +1,5 @@
 /**
- * @fileoverview Shared Constants - Setting keys, setting defaults, and shared patterns
+ * Shared Constants - Setting keys, setting defaults, and shared patterns
  *
  * Holds values used by more than one module. Values used by a single module
  * live in that module.

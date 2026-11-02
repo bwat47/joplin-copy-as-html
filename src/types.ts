@@ -1,15 +1,3 @@
-/**
- * @fileoverview Type Definitions - Interfaces and types for plugin data structures
- *
- * Defines TypeScript interfaces for all data structures used across the plugin:
- *
- * - Configuration interfaces (HtmlOptions, PlainTextOptions)
- * - Joplin API types (JoplinResource, JoplinFileData)
- *
- * These types provide compile-time safety and serve as documentation for the
- * expected structure of data flowing through the plugin's processing pipeline.
- */
-
 export interface HtmlOptions {
     embedImages: boolean;
     exportFullHtml: boolean;
