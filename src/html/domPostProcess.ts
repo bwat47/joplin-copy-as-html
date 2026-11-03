@@ -15,7 +15,8 @@ import { sanitizeToRoot } from './sanitizer';
 // ----------------------
 // DOM Cleanup Helpers
 // ----------------------
-// Helpers take the content root rather than its Document; see domHelpers.ts.
+// Helpers take the content root rather than its Document and query only its
+// descendants, so stray <html>/<head>/<body> attributes in the input are never matched.
 
 /**
  * Removes non-image Joplin resource links and replaces them with their text content.
