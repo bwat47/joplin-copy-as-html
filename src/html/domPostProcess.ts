@@ -1,4 +1,5 @@
 import DOMPurify from 'dompurify';
+import { render as renderMermaid } from 'pele';
 
 import { GITHUB_ALERT_MARKER_REGEX } from '../constants';
 import { logger } from '../logger';
@@ -204,6 +205,31 @@ function removeJoplinSourceElements(root: HTMLElement): void {
         logger.debug(`Removing ${sourceElements.length} joplin-source elements`);
         sourceElements.forEach((el) => el.remove());
     }
+}
+
+/**
+ * Renders Mermaid diagrams to SVG images.
+ * renderMarkup leaves diagrams as `<pre class="mermaid">` source inside a
+ * `.joplin-editable` wrapper, since Joplin renders them client-side in the viewer.
+ * Each diagram that pele can render replaces its wrapper with an SVG data URI
+ * image; diagrams that fail to render stay as code blocks.
+ * @param root - Content root to process
+ */
+function renderMermaidDiagrams(root: HTMLElement): void {
+    root.querySelectorAll('pre.mermaid').forEach((pre) => {
+        let svg: string;
+        try {
+            svg = renderMermaid(pre.textContent).svg;
+        } catch (err) {
+            logger.warn('Mermaid diagram could not be rendered', err);
+            return;
+        }
+
+        const img = root.ownerDocument.createElement('img');
+        img.setAttribute('src', `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`);
+        img.setAttribute('alt', 'Mermaid diagram');
+        (pre.closest('.joplin-editable') ?? pre).replaceWith(img);
+    });
 }
 
 /**
@@ -526,10 +552,11 @@ interface PostProcessOptions {
  * 4. Strip GitHub alert markers from blockquote content
  * 5. Remove non-image Joplin resource links (:/... or joplin://resource/...)
  * 6. Disable checkbox inputs
- * 7. Strip Joplin images if embedding is disabled
- * 8. Embed images (local and remote) as base64 if enabled
- * 9. Wrap top-level images in paragraph tags for consistent formatting
- * 10. Convert SVG data URIs to PNG if enabled (requires Canvas API)
+ * 7. Render Mermaid diagrams to SVG data URI images
+ * 8. Strip Joplin images if embedding is disabled
+ * 9. Embed images (local and remote) as base64 if enabled
+ * 10. Wrap top-level images in paragraph tags for consistent formatting
+ * 11. Convert SVG data URIs to PNG if enabled (requires Canvas API)
  */
 export async function postProcessHtml(html: string, opts: PostProcessOptions): Promise<string> {
     const root = sanitizeToRoot(html);
@@ -541,6 +568,7 @@ export async function postProcessHtml(html: string, opts: PostProcessOptions): P
     stripGithubAlertMarkers(root);
     stripJoplinLinks(root);
     disableCheckboxes(root);
+    renderMermaidDiagrams(root);
 
     if (!opts.embedImages) {
         stripJoplinImages(root);
