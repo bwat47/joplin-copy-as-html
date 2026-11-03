@@ -84,7 +84,8 @@ You can also preserve superscript, subscript, emphasis, bold, heading, quote, st
 ## Limitations
 
 - Commands work on selected text in the Markdown editor. They do not work in the rich text editor or Markdown viewer.
-- Mermaid diagrams and math are not rendered; they are copied as plain text.
+- Math is not rendered; it is copied as plain text.
+- Mermaid diagrams are rendered as images with [Pele](https://github.com/obsidianmd/pele) when copying as HTML, so they may look different from Joplin's viewer. Diagrams Pele cannot render are copied as code. Plain text copies keep the diagram source.
 - HTML styling and embedded image support depend on the destination app.
 
 > [!NOTE]

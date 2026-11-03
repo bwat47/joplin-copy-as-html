@@ -41,6 +41,7 @@ The HTML renderer leverages Joplin's native `renderMarkup` command to ensure the
     - **Structure Cleanup**: Remove duplicate `.joplin-source` elements (used for the Rich Text Editor).
     - **Resource Handling**: Replace broken resource placeholders with clear error messages.
     - **Link Cleanup**: Strip internal Joplin resource links (unless they contain images).
+    - **Mermaid Diagrams**: `renderMarkup` leaves diagrams as `pre.mermaid` source (Joplin renders them client-side in the viewer). Render each with `pele` and replace its `.joplin-editable` wrapper with an SVG data URI image. Diagrams that fail to render stay as code blocks.
     - **Image Embedding**: Traverse the DOM to find images.
         - If `embedImages` is on: Convert local Joplin resources and (optionally) remote images to Base64.
         - If `embedImages` is off: Strip local Joplin images entirely.

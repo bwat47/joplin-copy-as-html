@@ -263,6 +263,33 @@ describe('domPostProcess', () => {
         }
     });
 
+    describe('mermaid diagrams', () => {
+        // Matches renderMarkup output for a mermaid code block
+        const mermaidHtml = (source: string) =>
+            `<h2>Diagram</h2><div class="joplin-editable"><pre class="mermaid">${source}</pre></div>`;
+        const opts = { embedImages: true, downloadRemoteImages: false, convertSvgToPng: false };
+
+        it('replaces the diagram block with a top-level SVG image', async () => {
+            const out = await postProcessHtml(mermaidHtml('graph TD;\n    A--&gt;B;\n    A--&gt;C;'), opts);
+
+            expect(out).not.toContain('class="mermaid"');
+            expect(out).not.toContain('joplin-editable');
+            expect(out).toMatch(/<p><img src="data:image\/svg\+xml;charset=utf-8,[^"]+" alt="Mermaid diagram"><\/p>/);
+
+            const src = new DOMParser().parseFromString(out, 'text/html').querySelector('img')?.getAttribute('src');
+            const svg = decodeURIComponent(src?.split(',')[1] ?? '');
+            expect(svg).toMatch(/^<svg[^>]*class="pele pele-flowchart"/);
+            expect(svg).toContain('data-id="L_A_B_0"');
+        });
+
+        it('leaves the source as a code block when the diagram cannot be rendered', async () => {
+            const out = await postProcessHtml(mermaidHtml('notADiagram\n    A--&gt;B;'), opts);
+
+            expect(out).toContain('<pre class="mermaid">notADiagram\n    A--&gt;B;</pre>');
+            expect(out).not.toContain('<img');
+        });
+    });
+
     it('disables checkbox inputs (read-only)', async () => {
         const html = `
             <ul>
