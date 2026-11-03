@@ -45,11 +45,14 @@ describe('processHtmlConversion', () => {
     it('passes correct options to postProcessHtml', async () => {
         await processHtmlConversion('md', htmlOptions({ embedImages: true, embedSvgAsPng: false }));
 
-        expect(mockPostProcessHtml).toHaveBeenCalledWith(expect.any(String), {
-            embedImages: true,
-            downloadRemoteImages: false,
-            convertSvgToPng: false,
-        });
+        expect(mockPostProcessHtml).toHaveBeenCalledWith(
+            expect.any(String),
+            expect.objectContaining({
+                embedImages: true,
+                downloadRemoteImages: false,
+                embedSvgAsPng: false,
+            })
+        );
     });
 
     it('wraps content in full HTML when exportFullHtml is true', async () => {

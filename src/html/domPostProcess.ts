@@ -1,5 +1,6 @@
 import { GITHUB_ALERT_MARKER_REGEX } from '../constants';
 import { logger } from '../logger';
+import type { HtmlOptions } from '../types';
 import { renderAbcNotation } from './abcRenderer';
 import {
     convertSvgImagesToPng,
@@ -152,11 +153,8 @@ function stripGithubAlertMarkers(root: HTMLElement): void {
 // Main Orchestrator
 // ----------------------
 
-interface PostProcessOptions {
-    embedImages: boolean;
-    downloadRemoteImages: boolean;
-    convertSvgToPng: boolean;
-}
+/** The HTML options that affect post-processing. */
+export type PostProcessOptions = Pick<HtmlOptions, 'embedImages' | 'downloadRemoteImages' | 'embedSvgAsPng'>;
 
 /**
  * Post-processes rendered HTML with sanitization, resource cleanup, and image processing.
@@ -207,7 +205,7 @@ export async function postProcessHtml(html: string, opts: PostProcessOptions): P
 
     wrapTopLevelImages(root);
 
-    if (opts.convertSvgToPng) {
+    if (opts.embedSvgAsPng) {
         await convertSvgImagesToPng(root);
     }
 

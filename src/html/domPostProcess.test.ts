@@ -9,7 +9,7 @@ vi.mock('./assetProcessor');
 const mockConvertResource = assetProcessor.convertResourceToBase64 as Mock;
 const mockDownloadRemote = assetProcessor.downloadRemoteImageAsBase64 as Mock;
 
-const defaultOpts = { embedImages: true, downloadRemoteImages: false, convertSvgToPng: true };
+const defaultOpts = { embedImages: true, downloadRemoteImages: false, embedSvgAsPng: true };
 
 describe('domPostProcess', () => {
     beforeEach(() => {
@@ -23,7 +23,7 @@ describe('domPostProcess', () => {
         const out = await postProcessHtml(html, {
             embedImages: true,
             downloadRemoteImages: false,
-            convertSvgToPng: false,
+            embedSvgAsPng: false,
         });
 
         expect(mockConvertResource).toHaveBeenCalledWith('12345');
@@ -35,7 +35,7 @@ describe('domPostProcess', () => {
         const out = await postProcessHtml(html, {
             embedImages: true,
             downloadRemoteImages: true,
-            convertSvgToPng: false,
+            embedSvgAsPng: false,
         });
 
         expect(mockDownloadRemote).toHaveBeenCalledWith('https://example.com/img.png');
@@ -47,7 +47,7 @@ describe('domPostProcess', () => {
         const out = await postProcessHtml(html, {
             embedImages: true,
             downloadRemoteImages: false,
-            convertSvgToPng: false,
+            embedSvgAsPng: false,
         });
 
         expect(mockDownloadRemote).not.toHaveBeenCalled();
@@ -61,7 +61,7 @@ describe('domPostProcess', () => {
         const out = await postProcessHtml(html, {
             embedImages: true,
             downloadRemoteImages: false,
-            convertSvgToPng: false,
+            embedSvgAsPng: false,
         });
 
         expect(out).toContain('Image failed to load');
@@ -73,7 +73,7 @@ describe('domPostProcess', () => {
         const out = await postProcessHtml(html, {
             embedImages: false,
             downloadRemoteImages: false,
-            convertSvgToPng: false,
+            embedSvgAsPng: false,
         });
 
         expect(out).not.toContain('<img');
@@ -86,7 +86,7 @@ describe('domPostProcess', () => {
         const out = await postProcessHtml(html, {
             embedImages: false,
             downloadRemoteImages: false,
-            convertSvgToPng: false,
+            embedSvgAsPng: false,
         });
 
         expect(out).not.toContain('<img');
@@ -190,7 +190,7 @@ describe('domPostProcess', () => {
         const out = await postProcessHtml(html, {
             embedImages: false,
             downloadRemoteImages: false,
-            convertSvgToPng: false,
+            embedSvgAsPng: false,
         });
         // Should wrap each top-level <img> in its own <p>
         expect(out).toMatch(/<p>\s*<img[^>]*src="https:\/\/x\/a\.png"[^>]*>\s*<\/p>/);
@@ -249,7 +249,7 @@ describe('domPostProcess', () => {
             const out = await postProcessHtml(html, {
                 embedImages: true, // Needed to trigger processing loop
                 downloadRemoteImages: false,
-                convertSvgToPng: true,
+                embedSvgAsPng: true,
             });
             expect(out).toContain('data:image/png;base64,TESTPNG');
             expect(out).not.toContain('image/svg+xml');
@@ -267,7 +267,7 @@ describe('domPostProcess', () => {
         // Matches renderMarkup output for a mermaid code block
         const mermaidHtml = (source: string) =>
             `<h2>Diagram</h2><div class="joplin-editable"><pre class="mermaid">${source}</pre></div>`;
-        const opts = { embedImages: true, downloadRemoteImages: false, convertSvgToPng: false };
+        const opts = { embedImages: true, downloadRemoteImages: false, embedSvgAsPng: false };
 
         it('replaces the diagram block with a top-level SVG image', async () => {
             const out = await postProcessHtml(mermaidHtml('graph TD;\n    A--&gt;B;\n    A--&gt;C;'), opts);
@@ -295,7 +295,7 @@ describe('domPostProcess', () => {
         const abcHtml = (source: string, options = '{}') =>
             `<h2>Tune</h2><div class="joplin-editable joplin-abc-notation"><pre class="joplin-source" hidden data-abc-options="${options}" data-joplin-language="abc">${source}</pre><pre class="joplin-rendered joplin-abc-notation-rendered">${source}</pre></div>`;
         const tune = "X:1\nT: Cooley's\nM: 4/4\nL: 1/8\nK: G\n|:D2|EB{c}BA B2 EB|";
-        const opts = { embedImages: true, downloadRemoteImages: false, convertSvgToPng: false };
+        const opts = { embedImages: true, downloadRemoteImages: false, embedSvgAsPng: false };
         const decodeSvgs = (out: string) =>
             Array.from(new DOMParser().parseFromString(out, 'text/html').querySelectorAll('img')).map((img) =>
                 decodeURIComponent(img.getAttribute('src')?.split(',')[1] ?? '')
@@ -376,7 +376,7 @@ describe('domPostProcess', () => {
             `<div class="joplin-editable"><pre class="joplin-source" hidden data-joplin-language="katex" data-joplin-source-open="$$&#10;" data-joplin-source-close="&#10;$$&#10;">${tex}</pre><span class="katex-display"><span class="katex"><span class="katex-html" aria-hidden="true">rendered</span></span></span></div>`;
         const inlineMath = (tex: string) =>
             `<p>Before <span class="joplin-editable"><span class="joplin-source" hidden data-joplin-language="katex" data-joplin-source-open="$" data-joplin-source-close="$">${tex}</span><span class="katex"><span class="katex-html" aria-hidden="true">rendered</span></span></span> after</p>`;
-        const opts = { embedImages: true, downloadRemoteImages: false, convertSvgToPng: false };
+        const opts = { embedImages: true, downloadRemoteImages: false, embedSvgAsPng: false };
 
         it('replaces display math with a centered SVG image', async () => {
             const out = await postProcessHtml(displayMath('f(x) = \\int_{-\\infty}^\\infty x\\,dx'), opts);
