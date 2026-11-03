@@ -4,6 +4,7 @@ import { render as renderMermaid } from 'pele';
 import { GITHUB_ALERT_MARKER_REGEX } from '../constants';
 import { logger } from '../logger';
 import { convertResourceToBase64, downloadRemoteImageAsBase64 } from './assetProcessor';
+import { renderTexToSvg } from './texRenderer';
 
 // ----------------------
 // Sanitization Configuration
@@ -226,10 +227,64 @@ function renderMermaidDiagrams(root: HTMLElement): void {
         }
 
         const img = root.ownerDocument.createElement('img');
-        img.setAttribute('src', `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`);
+        img.setAttribute('src', svgToDataUri(svg));
         img.setAttribute('alt', 'Mermaid diagram');
         (pre.closest('.joplin-editable') ?? pre).replaceWith(img);
     });
+}
+
+/**
+ * Renders KaTeX math to SVG images.
+ * renderMarkup outputs KaTeX HTML, which needs KaTeX's stylesheet and fonts to
+ * display correctly. Each `.joplin-editable` wrapper also holds the TeX source in
+ * a `.joplin-source` element, so this must run before those are removed.
+ * Math that MathJax cannot render is replaced with its source as code.
+ * @param root - Content root to process
+ */
+function renderMath(root: HTMLElement): void {
+    root.querySelectorAll('.joplin-editable').forEach((editable) => {
+        if (!editable.querySelector('.katex')) return;
+        const tex = editable.querySelector('.joplin-source')?.textContent ?? '';
+        const display = !!editable.querySelector('.katex-display');
+        const doc = root.ownerDocument;
+
+        let replacement: HTMLElement;
+        try {
+            const { svg, width, height, verticalAlign } = renderTexToSvg(tex, display);
+            const img = doc.createElement('img');
+            img.setAttribute('src', svgToDataUri(svg));
+            img.setAttribute('alt', tex);
+            img.setAttribute('width', String(width));
+            img.setAttribute('height', String(height));
+            img.style.verticalAlign = `${verticalAlign}px`;
+            if (display) {
+                replacement = doc.createElement('p');
+                replacement.style.textAlign = 'center';
+                replacement.appendChild(img);
+            } else {
+                replacement = img;
+            }
+        } catch (err) {
+            logger.warn('Math could not be rendered', err);
+            const code = doc.createElement('code');
+            code.textContent = display ? `$$\n${tex}\n$$` : `$${tex}$`;
+            if (display) {
+                replacement = doc.createElement('pre');
+                replacement.appendChild(code);
+            } else {
+                replacement = code;
+            }
+        }
+        editable.replaceWith(replacement);
+    });
+}
+
+/**
+ * Encodes SVG markup as a data URI.
+ * @param svg - SVG markup
+ */
+function svgToDataUri(svg: string): string {
+    return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
 }
 
 /**
@@ -547,22 +602,24 @@ interface PostProcessOptions {
  * @remarks
  * Processing pipeline:
  * 1. Sanitize HTML with DOMPurify (removes scripts, dangerous attributes)
- * 2. Remove duplicate joplin-source elements from code blocks
- * 3. Replace broken resource placeholders with error messages
- * 4. Strip GitHub alert markers from blockquote content
- * 5. Remove non-image Joplin resource links (:/... or joplin://resource/...)
- * 6. Disable checkbox inputs
- * 7. Render Mermaid diagrams to SVG data URI images
- * 8. Strip Joplin images if embedding is disabled
- * 9. Embed images (local and remote) as base64 if enabled
- * 10. Wrap top-level images in paragraph tags for consistent formatting
- * 11. Convert SVG data URIs to PNG if enabled (requires Canvas API)
+ * 2. Render KaTeX math to SVG data URI images (needs the joplin-source elements)
+ * 3. Remove duplicate joplin-source elements from code blocks
+ * 4. Replace broken resource placeholders with error messages
+ * 5. Strip GitHub alert markers from blockquote content
+ * 6. Remove non-image Joplin resource links (:/... or joplin://resource/...)
+ * 7. Disable checkbox inputs
+ * 8. Render Mermaid diagrams to SVG data URI images
+ * 9. Strip Joplin images if embedding is disabled
+ * 10. Embed images (local and remote) as base64 if enabled
+ * 11. Wrap top-level images in paragraph tags for consistent formatting
+ * 12. Convert SVG data URIs to PNG if enabled (requires Canvas API)
  */
 export async function postProcessHtml(html: string, opts: PostProcessOptions): Promise<string> {
     const root = sanitizeToRoot(html);
     if (!root) return '';
 
     // Pipeline of transformations
+    renderMath(root);
     removeJoplinSourceElements(root);
     replaceBrokenResourceSpans(root);
     stripGithubAlertMarkers(root);

@@ -18,7 +18,8 @@
 - `src/logger.ts` – centralized logging utility.
 - `src/constants.ts` / `src/types.ts` – shared configuration, string constants, and TypeScript contracts.
 - `src/utils.ts` – validation helpers, toast messaging wrapper.
-- `src/html/` – HTML renderer pipeline (`htmlRenderer.ts`, `htmlRenderer.test.ts`, `assetProcessor.ts`, `stylesheet.ts`, `domPostProcess.ts`, `domPostProcess.test.ts`).
+- `src/html/` – HTML renderer pipeline (`htmlRenderer.ts`, `htmlRenderer.test.ts`, `assetProcessor.ts`, `stylesheet.ts`, `domPostProcess.ts`, `domPostProcess.test.ts`, `texRenderer.ts`, `texRenderer.test.ts`).
+    - `texRenderer.ts` uses MathJax's TeX font, which has no dynamically loaded font files. `webpack.config.override.js` points MathJax's `#default-font` import at the same font so the unused default font isn't bundled.
 - `src/plainText/` – plain text pipeline (`plainTextRenderer.ts`, `plainTextRenderer.test.ts`).
 - Tests live beside source (`*.test.ts`). `tests/` directory is unused.
 
@@ -38,6 +39,7 @@ The HTML renderer leverages Joplin's native `renderMarkup` command to ensure the
 1. **Rendering**: Call `joplin.commands.execute('renderMarkup', ...)` to convert Markdown to HTML.
 2. **Post-Processing** (`html/domPostProcess.ts`):
     - **Sanitization**: Clean HTML using DOMPurify.
+    - **Math**: `renderMarkup` outputs KaTeX HTML, which only displays correctly with KaTeX's stylesheet and fonts. Read the TeX source from each `.joplin-editable` wrapper's `.joplin-source` element, render it with MathJax (`html/texRenderer.ts`), and replace the wrapper with an SVG data URI image. Display math is centered; inline math is aligned to the text baseline. Math that fails to render becomes its source as code. Runs before the `.joplin-source` cleanup.
     - **Structure Cleanup**: Remove duplicate `.joplin-source` elements (used for the Rich Text Editor).
     - **Resource Handling**: Replace broken resource placeholders with clear error messages.
     - **Link Cleanup**: Strip internal Joplin resource links (unless they contain images).
