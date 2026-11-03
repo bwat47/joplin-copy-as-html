@@ -103,7 +103,7 @@ All default to `false` unless noted.
 - `html/texRenderer.test.ts` tests TeX to SVG conversion.
 - `plainText/plainTextRenderer.test.ts` covers integration scenarios for the plain text pipeline.
 - `utils.test.ts` tests validation helpers and utility functions.
-- `vitestSetup.ts` mocks the Joplin API and resets all mocks before each test; tests avoid real I/O via mocks.
+- `testUtils/vitestSetup.ts` mocks the Joplin API and resets all mocks before each test; tests avoid real I/O via mocks.
 
 ## Dependencies
 
