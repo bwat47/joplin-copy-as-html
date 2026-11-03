@@ -1,121 +1,27 @@
 import type { Mock } from 'vitest';
 
 import * as assetProcessor from './assetProcessor';
-import { postProcessHtml } from './domPostProcess';
+import { postProcessHtml, type PostProcessOptions } from './domPostProcess';
 
-// Mock the assetProcessor module
 vi.mock('./assetProcessor');
 
 const mockConvertResource = assetProcessor.convertResourceToBase64 as Mock;
-const mockDownloadRemote = assetProcessor.downloadRemoteImageAsBase64 as Mock;
 
-const defaultOpts = { embedImages: true, downloadRemoteImages: false, convertSvgToPng: true };
+const defaultOpts: PostProcessOptions = { embedImages: true, downloadRemoteImages: false, embedSvgAsPng: true };
+const noSvgConversion: PostProcessOptions = { ...defaultOpts, embedSvgAsPng: false };
+
+// Matches renderMarkup output for a mermaid code block, including the source kept for the Rich Text Editor
+const mermaidHtml = (source: string) =>
+    `<div class="joplin-editable"><pre class="joplin-source" data-joplin-language="mermaid">${source}</pre><pre class="mermaid">${source}</pre></div>`;
 
 describe('domPostProcess', () => {
     beforeEach(() => {
-        // Default mocks
         mockConvertResource.mockResolvedValue('data:image/png;base64,LOCAL');
-        mockDownloadRemote.mockResolvedValue('data:image/png;base64,REMOTE');
     });
 
-    it('embeds local Joplin resources when embedImages is true', async () => {
-        const html = '<img data-resource-id="12345" src=":/12345" alt="local">';
-        const out = await postProcessHtml(html, {
-            embedImages: true,
-            downloadRemoteImages: false,
-            convertSvgToPng: false,
-        });
-
-        expect(mockConvertResource).toHaveBeenCalledWith('12345');
-        expect(out).toContain('src="data:image/png;base64,LOCAL"');
-    });
-
-    it('embeds remote images when downloadRemoteImages is true', async () => {
-        const html = '<img src="https://example.com/img.png" alt="remote">';
-        const out = await postProcessHtml(html, {
-            embedImages: true,
-            downloadRemoteImages: true,
-            convertSvgToPng: false,
-        });
-
-        expect(mockDownloadRemote).toHaveBeenCalledWith('https://example.com/img.png');
-        expect(out).toContain('src="data:image/png;base64,REMOTE"');
-    });
-
-    it('does NOT embed remote images when downloadRemoteImages is false', async () => {
-        const html = '<img src="https://example.com/img.png" alt="remote">';
-        const out = await postProcessHtml(html, {
-            embedImages: true,
-            downloadRemoteImages: false,
-            convertSvgToPng: false,
-        });
-
-        expect(mockDownloadRemote).not.toHaveBeenCalled();
-        expect(out).toContain('src="https://example.com/img.png"');
-    });
-
-    it('replaces failed local images with error message', async () => {
-        mockConvertResource.mockResolvedValue(null);
-        const html = '<img data-resource-id="fail" src=":/fail">';
-
-        const out = await postProcessHtml(html, {
-            embedImages: true,
-            downloadRemoteImages: false,
-            convertSvgToPng: false,
-        });
-
-        expect(out).toContain('Image failed to load');
-        expect(out).not.toContain('<img');
-    });
-
-    it('removes Joplin resources when embedImages is false', async () => {
-        const html = '<img data-resource-id="123" src=":/123">';
-        const out = await postProcessHtml(html, {
-            embedImages: false,
-            downloadRemoteImages: false,
-            convertSvgToPng: false,
-        });
-
-        expect(out).not.toContain('<img');
-        expect(out).not.toContain(':/123');
-    });
-
-    it('removes Joplin resources by data-resource-id when embedImages is false', async () => {
-        // simulating renderMarkup output where src might be processed or missing, but data-resource-id is present
-        const html = '<img data-resource-id="ab62d971ef62435ca8e3f9e709ce1255" alt="roadmap" class="jop-noMdConv">';
-        const out = await postProcessHtml(html, {
-            embedImages: false,
-            downloadRemoteImages: false,
-            convertSvgToPng: false,
-        });
-
-        expect(out).not.toContain('<img');
-        expect(out).not.toContain('ab62d971ef62435ca8e3f9e709ce1255');
-    });
-
-    it('strips tags and attributes outside the allowlist', async () => {
-        const html = `
-            <p onclick="alert(1)">Text</p>
-            <img src="x.png" onerror="alert(1)" onload="alert(1)">
-            <script>alert(1)</script>
-            <iframe src="https://example.com"></iframe>
-            <object data="x"></object>
-            <embed src="x">
-            <form><p>Form content</p></form>
-        `;
-        const out = await postProcessHtml(html, defaultOpts);
-        expect(out).not.toMatch(/<(script|iframe|object|embed|form)\b/);
-        expect(out).not.toMatch(/\bon(click|error|load)=/);
-        expect(out).toContain('<p>Text</p>');
-        expect(out).toContain('Form content');
-    });
-
-    it('keeps aria and role attributes', async () => {
-        const html = '<span role="note" aria-label="Label" aria-hidden="true">Text</span>';
-        const out = await postProcessHtml(html, defaultOpts);
-        expect(out).toContain('role="note"');
-        expect(out).toContain('aria-label="Label"');
-        expect(out).toContain('aria-hidden="true"');
+    it('sanitizes the input', async () => {
+        const out = await postProcessHtml('<p onclick="alert(1)">Text</p><script>alert(1)</script>', defaultOpts);
+        expect(out).toBe('<p>Text</p>');
     });
 
     it('removes joplin-source elements (duplicate code block content)', async () => {
@@ -136,19 +42,6 @@ describe('domPostProcess', () => {
     ])('ignores attributes the input sets on the document <%s> element', async (_tag, html) => {
         const out = await postProcessHtml(html, defaultOpts);
         expect(out).toBe('<p>Visible content</p>');
-    });
-
-    it('replaces Joplin broken resource spans with error message', async () => {
-        const html = `
-            <span class="not-loaded-resource" data-resource-id="c188011f98504be1b60bb72ccd7c2cea">
-                <img src="data:image/png;base64," width="1700" height="1536">
-            </span>`;
-
-        const out = await postProcessHtml(html, defaultOpts);
-
-        expect(out).toContain('Image failed to load');
-        expect(out).not.toContain('<img');
-        expect(out).not.toContain('not-loaded-resource');
     });
 
     it('continues to clean Joplin resource anchors', async () => {
@@ -185,236 +78,6 @@ describe('domPostProcess', () => {
         expect(out).not.toContain(removedMarker);
     });
 
-    it('wraps top-level raw HTML images in separate paragraph blocks', async () => {
-        const html = '<img src="https://x/a.png" alt="a">\n\n<img src="https://x/b.png" alt="b">';
-        const out = await postProcessHtml(html, {
-            embedImages: false,
-            downloadRemoteImages: false,
-            convertSvgToPng: false,
-        });
-        // Should wrap each top-level <img> in its own <p>
-        expect(out).toMatch(/<p>\s*<img[^>]*src="https:\/\/x\/a\.png"[^>]*>\s*<\/p>/);
-        expect(out).toMatch(/<p>\s*<img[^>]*src="https:\/\/x\/b\.png"[^>]*>\s*<\/p>/);
-    });
-
-    it('converts SVG image sources to PNG data URIs when enabled', async () => {
-        const originalImage = (globalThis as { Image?: typeof Image }).Image;
-        class FakeImage {
-            public onload: ((this: FakeImage, ev: Event) => unknown) | null = null;
-            public onerror: ((this: FakeImage, ev: Event) => unknown) | null = null;
-            public naturalWidth = 24;
-            public naturalHeight = 24;
-            set src(value: string) {
-                if (!value.startsWith('data:image/svg+xml')) {
-                    if (this.onerror) {
-                        this.onerror.call(this, new Event('error'));
-                    }
-                    return;
-                }
-                queueMicrotask(() => {
-                    if (this.onload) {
-                        this.onload.call(this, new Event('load'));
-                    }
-                });
-            }
-        }
-
-        (globalThis as unknown as { Image: typeof Image }).Image = FakeImage as unknown as typeof Image;
-
-        const originalCreateElement = document.createElement.bind(document);
-        const createElementSpy = vi.spyOn(document, 'createElement').mockImplementation(function (
-            this: Document,
-            tagName: string,
-            options?: ElementCreationOptions
-        ) {
-            const element = originalCreateElement(tagName, options);
-            if (tagName.toLowerCase() === 'canvas') {
-                const canvas = element as unknown as HTMLCanvasElement;
-                (canvas as unknown as { getContext: () => unknown }).getContext = vi.fn().mockReturnValue({
-                    drawImage: vi.fn(),
-                });
-                (canvas as unknown as { toDataURL: () => string }).toDataURL = vi
-                    .fn()
-                    .mockReturnValue('data:image/png;base64,TESTPNG');
-                return canvas;
-            }
-            return element;
-        });
-
-        const svgMarkup = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"></svg>';
-        const svgBase64 = Buffer.from(svgMarkup, 'utf8').toString('base64');
-        const html = `<p><img src="data:image/svg+xml;base64,${svgBase64}" alt="icon"></p>`;
-
-        try {
-            const out = await postProcessHtml(html, {
-                embedImages: true, // Needed to trigger processing loop
-                downloadRemoteImages: false,
-                convertSvgToPng: true,
-            });
-            expect(out).toContain('data:image/png;base64,TESTPNG');
-            expect(out).not.toContain('image/svg+xml');
-        } finally {
-            createElementSpy.mockRestore();
-            if (originalImage) {
-                (globalThis as unknown as { Image: typeof Image }).Image = originalImage;
-            } else {
-                delete (globalThis as unknown as { Image?: typeof Image }).Image;
-            }
-        }
-    });
-
-    describe('mermaid diagrams', () => {
-        // Matches renderMarkup output for a mermaid code block
-        const mermaidHtml = (source: string) =>
-            `<h2>Diagram</h2><div class="joplin-editable"><pre class="mermaid">${source}</pre></div>`;
-        const opts = { embedImages: true, downloadRemoteImages: false, convertSvgToPng: false };
-
-        it('replaces the diagram block with a top-level SVG image', async () => {
-            const out = await postProcessHtml(mermaidHtml('graph TD;\n    A--&gt;B;\n    A--&gt;C;'), opts);
-
-            expect(out).not.toContain('class="mermaid"');
-            expect(out).not.toContain('joplin-editable');
-            expect(out).toMatch(/<p><img src="data:image\/svg\+xml;charset=utf-8,[^"]+" alt="Mermaid diagram"><\/p>/);
-
-            const src = new DOMParser().parseFromString(out, 'text/html').querySelector('img')?.getAttribute('src');
-            const svg = decodeURIComponent(src?.split(',')[1] ?? '');
-            expect(svg).toMatch(/^<svg[^>]*class="pele pele-flowchart"/);
-            expect(svg).toContain('data-id="L_A_B_0"');
-        });
-
-        it('leaves the source as a code block when the diagram cannot be rendered', async () => {
-            const out = await postProcessHtml(mermaidHtml('notADiagram\n    A--&gt;B;'), opts);
-
-            expect(out).toContain('<pre class="mermaid">notADiagram\n    A--&gt;B;</pre>');
-            expect(out).not.toContain('<img');
-        });
-    });
-
-    describe('abc notation', () => {
-        // Matches renderMarkup output for an abc code block
-        const abcHtml = (source: string, options = '{}') =>
-            `<h2>Tune</h2><div class="joplin-editable joplin-abc-notation"><pre class="joplin-source" hidden data-abc-options="${options}" data-joplin-language="abc">${source}</pre><pre class="joplin-rendered joplin-abc-notation-rendered">${source}</pre></div>`;
-        const tune = "X:1\nT: Cooley's\nM: 4/4\nL: 1/8\nK: G\n|:D2|EB{c}BA B2 EB|";
-        const opts = { embedImages: true, downloadRemoteImages: false, convertSvgToPng: false };
-        const decodeSvgs = (out: string) =>
-            Array.from(new DOMParser().parseFromString(out, 'text/html').querySelectorAll('img')).map((img) =>
-                decodeURIComponent(img.getAttribute('src')?.split(',')[1] ?? '')
-            );
-
-        it('replaces the tune block with a top-level SVG image', async () => {
-            const out = await postProcessHtml(abcHtml(tune), opts);
-
-            expect(out).not.toContain('joplin-abc-notation');
-            expect(out).not.toContain('joplin-source');
-            expect(out).toMatch(
-                /<p><img src="data:image\/svg\+xml;charset=utf-8,[^"]+" alt="Sheet Music for &quot;Cooley's&quot;"><\/p>/
-            );
-
-            const [svg] = decodeSvgs(out);
-            expect(svg).toMatch(
-                /^<svg xmlns="http:\/\/www\.w3\.org\/2000\/svg"[^>]* width="\d+(\.\d+)?" height="\d+(\.\d+)?"/
-            );
-            expect(document.body.children).toHaveLength(0);
-        });
-
-        it('applies abcjs options but keeps a fixed size', async () => {
-            const out = await postProcessHtml(
-                abcHtml(tune, '{&quot;staffwidth&quot;:300,&quot;responsive&quot;:&quot;resize&quot;}'),
-                opts
-            );
-
-            const [svg] = decodeSvgs(out);
-            expect(svg).toMatch(/^<svg[^>]* width="330"/);
-        });
-
-        it('leaves the source as a code block when the options are invalid', async () => {
-            const out = await postProcessHtml(abcHtml(tune, 'not json'), opts);
-
-            expect(out).toContain('<pre class="joplin-rendered joplin-abc-notation-rendered">X:1');
-            expect(out).not.toContain('<img');
-            expect(document.body.children).toHaveLength(0);
-        });
-
-        it('keeps the complete score when oneSvgPerLine is requested', async () => {
-            const source = `${tune}\nGABc d2 cB|`;
-            const normal = decodeSvgs(await postProcessHtml(abcHtml(source), opts));
-            const split = decodeSvgs(await postProcessHtml(abcHtml(source, '{&quot;oneSvgPerLine&quot;:true}'), opts));
-
-            expect(split).toHaveLength(1);
-            expect(split).toEqual(normal);
-            expect(document.body.children).toHaveLength(0);
-        });
-
-        it.each([
-            ['smaller', tune, '{&quot;scale&quot;:0.5}', 0.5, 770],
-            ['larger', tune, '{&quot;scale&quot;:2}', 2, 770],
-            ['custom width', tune, '{&quot;scale&quot;:0.5,&quot;staffwidth&quot;:300}', 0.5, 330],
-            ['ABC scale directive', tune.replace('K: G', '%%scale 0.5\nK: G'), '{}', 0.5, 770],
-        ])(
-            'exports %s scores with scaled dimensions and an untransformed viewport',
-            async (_name, source, options, scale, expectedWidth) => {
-                const [markup] = decodeSvgs(await postProcessHtml(abcHtml(source, options), opts));
-                const svg = new DOMParser().parseFromString(markup ?? '', 'image/svg+xml').documentElement;
-                const width = Number(svg.getAttribute('width'));
-                const height = Number(svg.getAttribute('height'));
-                const viewBox = svg.getAttribute('viewBox')?.split(' ').map(Number);
-
-                expect(width).toBeCloseTo(expectedWidth);
-                expect(height).toBeGreaterThan(0);
-                expect(viewBox?.[2]).toBeCloseTo(width / scale);
-                expect(viewBox?.[3]).toBeCloseTo(height / scale);
-                expect(svg.getAttribute('style')).not.toMatch(/(?:^|;)\s*(?:-webkit-|-ms-)?transform:/);
-                expect(svg.querySelectorAll('path').length).toBeGreaterThan(0);
-                expect(document.body.children).toHaveLength(0);
-            }
-        );
-    });
-
-    describe('math', () => {
-        // Match renderMarkup output for KaTeX math, with the KaTeX HTML trimmed
-        const displayMath = (tex: string) =>
-            `<div class="joplin-editable"><pre class="joplin-source" hidden data-joplin-language="katex" data-joplin-source-open="$$&#10;" data-joplin-source-close="&#10;$$&#10;">${tex}</pre><span class="katex-display"><span class="katex"><span class="katex-html" aria-hidden="true">rendered</span></span></span></div>`;
-        const inlineMath = (tex: string) =>
-            `<p>Before <span class="joplin-editable"><span class="joplin-source" hidden data-joplin-language="katex" data-joplin-source-open="$" data-joplin-source-close="$">${tex}</span><span class="katex"><span class="katex-html" aria-hidden="true">rendered</span></span></span> after</p>`;
-        const opts = { embedImages: true, downloadRemoteImages: false, convertSvgToPng: false };
-
-        it('replaces display math with a centered SVG image', async () => {
-            const out = await postProcessHtml(displayMath('f(x) = \\int_{-\\infty}^\\infty x\\,dx'), opts);
-
-            expect(out).not.toContain('katex');
-            expect(out).not.toContain('joplin-source');
-            expect(out).toMatch(
-                /^<p style="text-align: center;"><img src="data:image\/svg\+xml;charset=utf-8,[^"]+" alt="f\(x\) = \\int_\{-\\infty\}\^\\infty x\\,dx" width="[\d.]+" height="[\d.]+" style="vertical-align: -[\d.]+px;"><\/p>$/
-            );
-        });
-
-        it('replaces inline math with an image in the surrounding text', async () => {
-            const out = await postProcessHtml(inlineMath('x^2'), opts);
-
-            expect(out).toMatch(/^<p>Before <img src="data:image\/svg\+xml;[^"]+" alt="x\^2"[^>]*> after<\/p>$/);
-        });
-
-        it('renders tagged display math instead of falling back to source', async () => {
-            const tex = String.raw`E = mc^2 \tag{1}`;
-            const out = await postProcessHtml(displayMath(tex), opts);
-            const root = new DOMParser().parseFromString(out, 'text/html');
-            const img = root.querySelector('p > img');
-
-            expect(img?.getAttribute('alt')).toBe(tex);
-            expect(img?.getAttribute('src')).toMatch(/^data:image\/svg\+xml;/);
-            expect(root.querySelector('pre, code, .katex, .joplin-source')).toBeNull();
-        });
-
-        it.each([
-            ['display', displayMath('\\notAMacro{x}'), '<pre><code>$$\n\\notAMacro{x}\n$$</code></pre>'],
-            ['inline', inlineMath('x^{2'), '<p>Before <code>$x^{2$</code> after</p>'],
-        ])('replaces %s math that cannot be rendered with its source', async (_name, html, expected) => {
-            const out = await postProcessHtml(html, opts);
-
-            expect(out).toBe(expected);
-        });
-    });
-
     it('disables checkbox inputs (read-only)', async () => {
         const html = `
             <ul>
@@ -425,9 +88,69 @@ describe('domPostProcess', () => {
 
         // Should have added disabled attribute
         expect(out).toMatch(/<input[^>]*type="checkbox"[^>]*disabled(="disabled")?[^>]*>/);
-        expect(out).toContain('disabled');
         // Count occurrences
         const disabledCount = (out.match(/disabled/g) || []).length;
         expect(disabledCount).toBeGreaterThanOrEqual(2);
+    });
+
+    it('wraps top-level raw HTML images in separate paragraph blocks', async () => {
+        const html = '<img src="https://x/a.png" alt="a">\n\n<img src="https://x/b.png" alt="b">';
+        const out = await postProcessHtml(html, { ...noSvgConversion, embedImages: false });
+        // Should wrap each top-level <img> in its own <p>
+        expect(out).toMatch(/<p>\s*<img[^>]*src="https:\/\/x\/a\.png"[^>]*>\s*<\/p>/);
+        expect(out).toMatch(/<p>\s*<img[^>]*src="https:\/\/x\/b\.png"[^>]*>\s*<\/p>/);
+    });
+
+    describe('image options', () => {
+        it('embeds Joplin resources when embedImages is true', async () => {
+            const out = await postProcessHtml('<img data-resource-id="12345" src=":/12345">', noSvgConversion);
+
+            expect(mockConvertResource).toHaveBeenCalledWith('12345');
+            expect(out).toBe('<p><img data-resource-id="12345" src="data:image/png;base64,LOCAL"></p>');
+        });
+
+        it('removes Joplin resources when embedImages is false', async () => {
+            const out = await postProcessHtml('<img data-resource-id="123" src=":/123">', {
+                ...noSvgConversion,
+                embedImages: false,
+            });
+
+            expect(mockConvertResource).not.toHaveBeenCalled();
+            expect(out).toBe('');
+        });
+
+        it('leaves SVG images when embedSvgAsPng is false', async () => {
+            const src = 'data:image/svg+xml;charset=utf-8,%3Csvg%3E%3C%2Fsvg%3E';
+            const out = await postProcessHtml(`<p><img src="${src}"></p>`, noSvgConversion);
+
+            expect(out).toBe(`<p><img src="${src}"></p>`);
+        });
+    });
+
+    describe('rich content', () => {
+        // Rich content is rendered to images that the later steps wrap at the top level
+        it.each([
+            [
+                'math',
+                '<div class="joplin-editable"><pre class="joplin-source" hidden>x^2</pre><span class="katex-display"><span class="katex">rendered</span></span></div>',
+            ],
+            [
+                'ABC notation',
+                '<div class="joplin-editable joplin-abc-notation"><pre class="joplin-source" hidden data-abc-options="{}">X:1\nK: G\nGABc|</pre><pre class="joplin-abc-notation-rendered">X:1\nK: G\nGABc|</pre></div>',
+            ],
+            ['Mermaid', mermaidHtml('graph TD;\n    A--&gt;B;')],
+        ])('renders %s to a top-level SVG image', async (_name, html) => {
+            const out = await postProcessHtml(html, noSvgConversion);
+
+            expect(out).toMatch(/^<p[^>]*><img src="data:image\/svg\+xml;charset=utf-8,[^"]+"[^>]*><\/p>$/);
+        });
+
+        it('keeps a Mermaid diagram that fails to render as a code block without its source', async () => {
+            const out = await postProcessHtml(mermaidHtml('notADiagram\n    A--&gt;B;'), noSvgConversion);
+
+            expect(out).toBe(
+                '<div class="joplin-editable"><pre class="mermaid">notADiagram\n    A--&gt;B;</pre></div>'
+            );
+        });
     });
 });

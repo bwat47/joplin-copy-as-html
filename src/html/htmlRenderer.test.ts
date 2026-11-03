@@ -42,14 +42,11 @@ describe('processHtmlConversion', () => {
         expect(result).toBe('<p>Mocked Render</p>');
     });
 
-    it('passes correct options to postProcessHtml', async () => {
-        await processHtmlConversion('md', htmlOptions({ embedImages: true, embedSvgAsPng: false }));
+    it('passes the HTML options through to postProcessHtml', async () => {
+        const options = htmlOptions({ embedImages: true, embedSvgAsPng: false });
+        await processHtmlConversion('md', options);
 
-        expect(mockPostProcessHtml).toHaveBeenCalledWith(expect.any(String), {
-            embedImages: true,
-            downloadRemoteImages: false,
-            convertSvgToPng: false,
-        });
+        expect(mockPostProcessHtml).toHaveBeenCalledWith(expect.any(String), options);
     });
 
     it('wraps content in full HTML when exportFullHtml is true', async () => {

@@ -38,11 +38,7 @@ export async function processHtmlConversion(selection: string, options: HtmlOpti
     }
 
     // 2. DOM pass: sanitize, normalize, and handle all processing (images, links, etc.)
-    const html = await postProcessHtml(rawHtml, {
-        embedImages: options.embedImages,
-        downloadRemoteImages: options.downloadRemoteImages,
-        convertSvgToPng: options.embedSvgAsPng,
-    });
+    const html = await postProcessHtml(rawHtml, options);
 
     let fragment = html.trim();
 
