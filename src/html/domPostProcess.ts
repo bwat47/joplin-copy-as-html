@@ -309,6 +309,8 @@ function renderAbcNotation(root: HTMLElement): void {
                 const options = optionsJson ? (JSON.parse(optionsJson) as AbcVisualParams) : {};
                 // Responsive output has no fixed size, which images need
                 delete options.responsive;
+                // Export the whole score in one image, including every music system.
+                options.oneSvgPerLine = false;
                 container.replaceChildren();
                 renderAbc(container, rendered.textContent, options);
                 svg = container.querySelector('svg');

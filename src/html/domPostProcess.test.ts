@@ -334,6 +334,16 @@ describe('domPostProcess', () => {
             expect(out).not.toContain('<img');
             expect(document.body.children).toHaveLength(0);
         });
+
+        it('keeps the complete score when oneSvgPerLine is requested', async () => {
+            const source = `${tune}\nGABc d2 cB|`;
+            const normal = decodeSvgs(await postProcessHtml(abcHtml(source), opts));
+            const split = decodeSvgs(await postProcessHtml(abcHtml(source, '{&quot;oneSvgPerLine&quot;:true}'), opts));
+
+            expect(split).toHaveLength(1);
+            expect(split).toEqual(normal);
+            expect(document.body.children).toHaveLength(0);
+        });
     });
 
     describe('math', () => {
