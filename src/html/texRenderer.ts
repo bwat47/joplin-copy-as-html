@@ -36,19 +36,21 @@ interface Converter {
     ex: number;
 }
 
-let converter: Converter | null = null;
+let adaptor: LiteAdaptor | null = null;
 
 /**
- * Creates the MathJax document on first use.
+ * Creates a fresh MathJax document for each expression so macro definitions and
+ * equation labels cannot leak into later renders, including after a TeX error.
+ * Only the DOM adaptor and handler registration are shared.
  * Uses the TeX font, which has the same glyph style as KaTeX and needs no
  * dynamically loaded font files, so it works inside the bundled plugin.
  */
-function getConverter(): Converter {
-    if (converter) return converter;
-
-    MathJaxTexFont.addExtension(MathJaxMhchemFontExtension);
-    const adaptor = liteAdaptor();
-    RegisterHTMLHandler(adaptor);
+function createConverter(): Converter {
+    if (!adaptor) {
+        MathJaxTexFont.addExtension(MathJaxMhchemFontExtension);
+        adaptor = liteAdaptor();
+        RegisterHTMLHandler(adaptor);
+    }
     // fontCache 'none' draws every glyph as a path, so the SVG needs no fonts or shared <defs>
     const outputJax = new SVG({ fontData: MathJaxTexFont, fontCache: 'none', linebreaks: { inline: false } });
     const doc = mathjax.document('', {
@@ -63,8 +65,7 @@ function getConverter(): Converter {
     });
     // Match conversion metrics to the final pixel size so responsive SVG transforms
     // and the fixed viewport use the same scale.
-    converter = { adaptor, doc, ex: EM_PX * outputJax.font.params.x_height };
-    return converter;
+    return { adaptor, doc, ex: EM_PX * outputJax.font.params.x_height };
 }
 
 /**
@@ -89,7 +90,7 @@ function exValue(value: string | undefined): number {
  * @throws Error when the TeX is invalid or uses unsupported commands
  */
 export function renderTexToSvg(tex: string, display: boolean): TexSvg {
-    const { adaptor, doc, ex } = getConverter();
+    const { adaptor, doc, ex } = createConverter();
     const container = doc.convert(tex, { display, em: EM_PX, ex }) as LiteElement;
     const svg = adaptor.firstChild(container);
     if (!(svg instanceof LiteElement) || svg.kind !== 'svg') throw new Error('MathJax did not return an SVG');

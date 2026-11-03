@@ -1,6 +1,25 @@
 import { renderTexToSvg } from './texRenderer';
 
 describe('renderTexToSvg', () => {
+    it.each([false, true])('isolates macro definitions between renders (display: %s)', (display) => {
+        const tex = String.raw`\sin x`;
+        const original = renderTexToSvg(tex, display);
+
+        const redefined = renderTexToSvg(String.raw`\renewcommand{\sin}{Z}\sin x`, display);
+
+        expect(redefined.width).not.toBe(original.width);
+        expect(renderTexToSvg(tex, display)).toEqual(original);
+    });
+
+    it('discards macro definitions from a failed render', () => {
+        const tex = String.raw`\cos x`;
+        const original = renderTexToSvg(tex, false);
+
+        expect(() => renderTexToSvg(String.raw`\renewcommand{\cos}{Z}\notAMacro`, false)).toThrow();
+
+        expect(renderTexToSvg(tex, false)).toEqual(original);
+    });
+
     it('renders inline math as a standalone SVG sized in px', () => {
         const result = renderTexToSvg('x^2', false);
 
