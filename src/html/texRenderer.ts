@@ -82,6 +82,29 @@ function exValue(value: string | undefined): number {
     return number;
 }
 
+/** Makes MathJax's table border styles self-contained in the exported SVG. */
+function inlineTableBorderStyles(adaptor: LiteAdaptor, svg: LiteElement): void {
+    const borders = [...adaptor.tags(svg, 'line'), ...adaptor.tags(svg, 'rect')];
+    for (const border of borders) {
+        if (!adaptor.hasAttribute(border, 'data-line') && !adaptor.hasAttribute(border, 'data-frame')) continue;
+
+        // MathJax's SVG mtable stylesheet supplies these defaults. Without it,
+        // borders inherit stroke-width="0" and frames inherit a solid fill.
+        adaptor.setAttribute(border, 'stroke-width', '70');
+        adaptor.setAttribute(border, 'fill', 'none');
+        if (adaptor.hasClass(border, 'mjx-dashed')) {
+            if (!adaptor.hasAttribute(border, 'stroke-dasharray')) {
+                adaptor.setAttribute(border, 'stroke-dasharray', '140');
+            }
+        } else if (adaptor.hasClass(border, 'mjx-dotted')) {
+            adaptor.setAttribute(border, 'stroke-linecap', 'round');
+            if (!adaptor.hasAttribute(border, 'stroke-dasharray')) {
+                adaptor.setAttribute(border, 'stroke-dasharray', '0,140');
+            }
+        }
+    }
+}
+
 /**
  * Renders TeX to a standalone SVG sized in px.
  * @param tex - TeX source without delimiters
@@ -128,6 +151,7 @@ export function renderTexToSvg(tex: string, display: boolean): TexSvg {
     adaptor.setAttribute(svg, 'width', String(width));
     adaptor.setAttribute(svg, 'height', String(height));
     adaptor.removeAttribute(svg, 'style');
+    inlineTableBorderStyles(adaptor, svg);
 
     return { svg: adaptor.serializeXML(svg), width, height, verticalAlign: toPx(verticalAlignEx * unitsPerEx) };
 }

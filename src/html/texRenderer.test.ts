@@ -44,6 +44,35 @@ describe('renderTexToSvg', () => {
         expect(renderTexToSvg(String.raw`\int_0^1 f(x)\,dx`, true).verticalAlign).toBeLessThan(0);
     });
 
+    it.each(['', String.raw`\tag{1}`])('keeps bordered arrays visible without external CSS (tag: %s)', (tag) => {
+        const tex = String.raw`\begin{array}{|c|c|}\hline a&b\\\hline c&d\\\hline\end{array}` + tag;
+        const result = renderTexToSvg(tex, true);
+        const svg = new DOMParser().parseFromString(result.svg, 'image/svg+xml').documentElement;
+        const borders = svg.querySelectorAll('line[data-line], rect[data-frame]');
+
+        expect(svg.querySelectorAll('path')).not.toHaveLength(0);
+        expect(svg.querySelector('line[data-line="v"]')).not.toBeNull();
+        expect(svg.querySelector('line[data-line="h"]')).not.toBeNull();
+        expect(svg.querySelector('rect[data-frame]')).not.toBeNull();
+        for (const border of borders) {
+            expect(Number(border.getAttribute('stroke-width'))).toBeGreaterThan(0);
+            expect(border.getAttribute('fill')).toBe('none');
+        }
+    });
+
+    it('preserves dashed array rules without external CSS', () => {
+        const tex = String.raw`\begin{array}{c:c}a&b\\\hdashline c&d\end{array}`;
+        const result = renderTexToSvg(tex, true);
+        const svg = new DOMParser().parseFromString(result.svg, 'image/svg+xml').documentElement;
+        const borders = svg.querySelectorAll('line[data-line]');
+
+        expect(borders).toHaveLength(2);
+        for (const border of borders) {
+            expect(Number(border.getAttribute('stroke-width'))).toBeGreaterThan(0);
+            expect(border.getAttribute('stroke-dasharray')).toBe('140');
+        }
+    });
+
     it.each([false, true])('renders math with a unitless zero baseline offset (display: %s)', (display) => {
         const result = renderTexToSvg(String.raw`\rule{1cm}{1cm}`, display);
         const svg = new DOMParser().parseFromString(result.svg, 'image/svg+xml').documentElement;
