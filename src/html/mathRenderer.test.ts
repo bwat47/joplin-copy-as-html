@@ -1,4 +1,4 @@
-import { createRoot } from './domTestUtils';
+import { createRoot } from '../testUtils/dom';
 import { renderMath } from './mathRenderer';
 
 // Match renderMarkup output for KaTeX math, with the KaTeX HTML trimmed

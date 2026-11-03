@@ -1,5 +1,5 @@
+import { createRoot, decodeSvgImages } from '../testUtils/dom';
 import { renderAbcNotation } from './abcRenderer';
-import { createRoot, decodeSvgImages } from './domTestUtils';
 
 // Matches renderMarkup output for an abc code block
 const abcHtml = (source: string, options = '{}') =>

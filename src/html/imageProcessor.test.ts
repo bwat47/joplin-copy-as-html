@@ -1,7 +1,7 @@
 import type { Mock } from 'vitest';
 
+import { createRoot } from '../testUtils/dom';
 import * as assetProcessor from './assetProcessor';
-import { createRoot } from './domTestUtils';
 import {
     convertSvgImagesToPng,
     embedImagesInDom,

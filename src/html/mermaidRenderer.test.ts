@@ -1,4 +1,4 @@
-import { createRoot, decodeSvgImages } from './domTestUtils';
+import { createRoot, decodeSvgImages } from '../testUtils/dom';
 import { renderMermaidDiagrams } from './mermaidRenderer';
 
 // Matches renderMarkup output for a mermaid code block

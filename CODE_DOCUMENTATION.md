@@ -99,7 +99,7 @@ All default to `false` unless noted.
 - `html/sanitizer.test.ts` tests the DOMPurify allowlist.
 - `html/mathRenderer.test.ts`, `html/abcRenderer.test.ts`, and `html/mermaidRenderer.test.ts` test each rich content transform on its own.
 - `html/imageProcessor.test.ts` tests image embedding, stripping, broken resource placeholders, and SVG to PNG rasterization.
-- `html/domTestUtils.ts` provides shared helpers for testing single DOM transforms.
+- `testUtils/dom.ts` provides shared helpers for testing single DOM transforms.
 - `html/texRenderer.test.ts` tests TeX to SVG conversion.
 - `plainText/plainTextRenderer.test.ts` covers integration scenarios for the plain text pipeline.
 - `utils.test.ts` tests validation helpers and utility functions.
