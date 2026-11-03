@@ -68,11 +68,12 @@ function getConverter(): Converter {
 }
 
 /**
- * Parses a MathJax dimension in ex units.
+ * Parses a MathJax dimension in ex units, including unitless zero.
  * @example exValue('-2.159ex') returns -2.159
  */
 function exValue(value: string | undefined): number {
     const trimmed = value?.trim() ?? '';
+    if (trimmed === '0') return 0;
     const number = Number(trimmed.slice(0, -2));
     if (trimmed.length <= 2 || !trimmed.endsWith('ex') || !Number.isFinite(number)) {
         throw new Error(`Unexpected MathJax dimension: ${value}`);

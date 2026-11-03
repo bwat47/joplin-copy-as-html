@@ -25,6 +25,16 @@ describe('renderTexToSvg', () => {
         expect(renderTexToSvg(String.raw`\int_0^1 f(x)\,dx`, true).verticalAlign).toBeLessThan(0);
     });
 
+    it.each([false, true])('renders math with a unitless zero baseline offset (display: %s)', (display) => {
+        const result = renderTexToSvg(String.raw`\rule{1cm}{1cm}`, display);
+        const svg = new DOMParser().parseFromString(result.svg, 'image/svg+xml').documentElement;
+
+        expect(result.verticalAlign).toBe(0);
+        expect(result.width).toBeGreaterThan(0);
+        expect(result.height).toBe(result.width);
+        expect(svg.querySelector('rect[fill="black"]')).not.toBeNull();
+    });
+
     it.each([String.raw`E = mc^2 \tag{1}`, String.raw`\begin{aligned}a&=b\\c&=d\end{aligned}\tag{1}`])(
         'renders tagged math as a standalone image: %s',
         (tex) => {
