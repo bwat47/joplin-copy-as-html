@@ -33,6 +33,7 @@ export interface TexSvg {
 interface Converter {
     adaptor: LiteAdaptor;
     doc: MathDocument<unknown, unknown, unknown>;
+    ex: number;
 }
 
 let converter: Converter | null = null;
@@ -48,6 +49,8 @@ function getConverter(): Converter {
     MathJaxTexFont.addExtension(MathJaxMhchemFontExtension);
     const adaptor = liteAdaptor();
     RegisterHTMLHandler(adaptor);
+    // fontCache 'none' draws every glyph as a path, so the SVG needs no fonts or shared <defs>
+    const outputJax = new SVG({ fontData: MathJaxTexFont, fontCache: 'none', linebreaks: { inline: false } });
     const doc = mathjax.document('', {
         InputJax: new TeX({
             packages: ['base', 'ams', 'newcommand', 'boldsymbol', 'color', 'cancel', 'mhchem'],
@@ -56,10 +59,11 @@ function getConverter(): Converter {
                 throw err;
             },
         }),
-        // fontCache 'none' draws every glyph as a path, so the SVG needs no fonts or shared <defs>
-        OutputJax: new SVG({ fontData: MathJaxTexFont, fontCache: 'none', linebreaks: { inline: false } }),
+        OutputJax: outputJax,
     });
-    converter = { adaptor, doc };
+    // Match conversion metrics to the final pixel size so responsive SVG transforms
+    // and the fixed viewport use the same scale.
+    converter = { adaptor, doc, ex: EM_PX * outputJax.font.params.x_height };
     return converter;
 }
 
@@ -84,8 +88,8 @@ function exValue(value: string | undefined): number {
  * @throws Error when the TeX is invalid or uses unsupported commands
  */
 export function renderTexToSvg(tex: string, display: boolean): TexSvg {
-    const { adaptor, doc } = getConverter();
-    const container = doc.convert(tex, { display }) as LiteElement;
+    const { adaptor, doc, ex } = getConverter();
+    const container = doc.convert(tex, { display, em: EM_PX, ex }) as LiteElement;
     const svg = adaptor.firstChild(container);
     if (!(svg instanceof LiteElement) || svg.kind !== 'svg') throw new Error('MathJax did not return an SVG');
 
@@ -96,7 +100,10 @@ export function renderTexToSvg(tex: string, display: boolean): TexSvg {
     };
 
     // MathJax sizes the SVG in ex; derive px from the viewBox (in 1/1000 em) instead
-    const [, , viewBoxWidth = 0, viewBoxHeight = 0] = attribute('viewBox').split(/\s+/).map(Number);
+    const responsiveViewBox = attribute('data-mjx-viewBox');
+    const [, , viewBoxWidth = 0, viewBoxHeight = 0] = (attribute('viewBox') || responsiveViewBox)
+        .split(/\s+/)
+        .map(Number);
     if (!viewBoxWidth || !viewBoxHeight) throw new Error('MathJax rendered empty math');
     const unitsPerEx = viewBoxHeight / exValue(attribute('height'));
     // Matches the vertical-align in MathJax's style attribute, e.g. "vertical-align: -0.025ex;"
@@ -105,6 +112,17 @@ export function renderTexToSvg(tex: string, display: boolean): TexSvg {
     const toPx = (units: number) => Math.round((units / UNITS_PER_EM) * EM_PX * 100) / 100;
     const width = toPx(viewBoxWidth);
     const height = toPx(viewBoxHeight);
+    if (responsiveViewBox) {
+        // Tagged equations use a responsive viewport with transforms already in px.
+        // Freeze that viewport at its natural size, preserving the equation and tag layout.
+        adaptor.setAttribute(svg, 'viewBox', `0 0 ${width} ${height}`);
+        adaptor.removeAttribute(svg, 'data-mjx-viewBox');
+        // MathJax normally supplies this through its external stylesheet. Its nested
+        // equation/tag viewports are only one unit wide, so their glyphs must overflow.
+        for (const nested of adaptor.tags(svg, 'svg')) {
+            adaptor.setAttribute(nested, 'overflow', 'visible');
+        }
+    }
     adaptor.setAttribute(svg, 'width', String(width));
     adaptor.setAttribute(svg, 'height', String(height));
     adaptor.removeAttribute(svg, 'style');

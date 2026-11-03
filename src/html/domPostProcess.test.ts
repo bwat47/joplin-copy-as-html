@@ -314,6 +314,17 @@ describe('domPostProcess', () => {
             expect(out).toMatch(/^<p>Before <img src="data:image\/svg\+xml;[^"]+" alt="x\^2"[^>]*> after<\/p>$/);
         });
 
+        it('renders tagged display math instead of falling back to source', async () => {
+            const tex = String.raw`E = mc^2 \tag{1}`;
+            const out = await postProcessHtml(displayMath(tex), opts);
+            const root = new DOMParser().parseFromString(out, 'text/html');
+            const img = root.querySelector('p > img');
+
+            expect(img?.getAttribute('alt')).toBe(tex);
+            expect(img?.getAttribute('src')).toMatch(/^data:image\/svg\+xml;/);
+            expect(root.querySelector('pre, code, .katex, .joplin-source')).toBeNull();
+        });
+
         it.each([
             ['display', displayMath('\\notAMacro{x}'), '<pre><code>$$\n\\notAMacro{x}\n$$</code></pre>'],
             ['inline', inlineMath('x^{2'), '<p>Before <code>$x^{2$</code> after</p>'],

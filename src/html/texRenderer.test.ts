@@ -25,6 +25,25 @@ describe('renderTexToSvg', () => {
         expect(renderTexToSvg(String.raw`\int_0^1 f(x)\,dx`, true).verticalAlign).toBeLessThan(0);
     });
 
+    it.each([String.raw`E = mc^2 \tag{1}`, String.raw`\begin{aligned}a&=b\\c&=d\end{aligned}\tag{1}`])(
+        'renders tagged math as a standalone image: %s',
+        (tex) => {
+            const result = renderTexToSvg(tex, true);
+            const svg = new DOMParser().parseFromString(result.svg, 'image/svg+xml').documentElement;
+
+            expect(svg.getAttribute('viewBox')).toBe(`0 0 ${result.width} ${result.height}`);
+            expect(svg.getAttribute('width')).toBe(String(result.width));
+            expect(svg.getAttribute('height')).toBe(String(result.height));
+            expect(result.width).toBeGreaterThan(0);
+            expect(result.height).toBeGreaterThan(0);
+            expect(svg.querySelector('[data-table] path')).not.toBeNull();
+            expect(svg.querySelector('[data-labels] path[data-c="31"]')).not.toBeNull();
+            expect(svg.querySelector('[data-table]')?.getAttribute('overflow')).toBe('visible');
+            expect(svg.querySelector('[data-labels]')?.getAttribute('overflow')).toBe('visible');
+            expect(result.svg).not.toContain('data-mjx-viewBox');
+        }
+    );
+
     it.each([
         ['mhchem', String.raw`\ce{H2O + CO2 -> H2CO3}`],
         ['ams environments', String.raw`\begin{pmatrix} a & b \\ c & d \end{pmatrix}`],
