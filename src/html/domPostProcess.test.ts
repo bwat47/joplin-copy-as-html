@@ -10,6 +10,10 @@ const mockConvertResource = assetProcessor.convertResourceToBase64 as Mock;
 const defaultOpts: PostProcessOptions = { embedImages: true, downloadRemoteImages: false, embedSvgAsPng: true };
 const noSvgConversion: PostProcessOptions = { ...defaultOpts, embedSvgAsPng: false };
 
+// Matches renderMarkup output for a mermaid code block, including the source kept for the Rich Text Editor
+const mermaidHtml = (source: string) =>
+    `<div class="joplin-editable"><pre class="joplin-source" data-joplin-language="mermaid">${source}</pre><pre class="mermaid">${source}</pre></div>`;
+
 describe('domPostProcess', () => {
     beforeEach(() => {
         mockConvertResource.mockResolvedValue('data:image/png;base64,LOCAL');
@@ -134,11 +138,19 @@ describe('domPostProcess', () => {
                 'ABC notation',
                 '<div class="joplin-editable joplin-abc-notation"><pre class="joplin-source" hidden data-abc-options="{}">X:1\nK: G\nGABc|</pre><pre class="joplin-abc-notation-rendered">X:1\nK: G\nGABc|</pre></div>',
             ],
-            ['Mermaid', '<div class="joplin-editable"><pre class="mermaid">graph TD;\n    A--&gt;B;</pre></div>'],
+            ['Mermaid', mermaidHtml('graph TD;\n    A--&gt;B;')],
         ])('renders %s to a top-level SVG image', async (_name, html) => {
             const out = await postProcessHtml(html, noSvgConversion);
 
             expect(out).toMatch(/^<p[^>]*><img src="data:image\/svg\+xml;charset=utf-8,[^"]+"[^>]*><\/p>$/);
+        });
+
+        it('keeps a Mermaid diagram that fails to render as a code block without its source', async () => {
+            const out = await postProcessHtml(mermaidHtml('notADiagram\n    A--&gt;B;'), noSvgConversion);
+
+            expect(out).toBe(
+                '<div class="joplin-editable"><pre class="mermaid">notADiagram\n    A--&gt;B;</pre></div>'
+            );
         });
     });
 });
