@@ -40,6 +40,7 @@ The HTML renderer leverages Joplin's native `renderMarkup` command to ensure the
 2. **Post-Processing** (`html/domPostProcess.ts`):
     - **Sanitization**: Clean HTML using DOMPurify.
     - **Math**: `renderMarkup` outputs KaTeX HTML, which only displays correctly with KaTeX's stylesheet and fonts. Read the TeX source from each `.joplin-editable` wrapper's `.joplin-source` element, render it with MathJax (`html/texRenderer.ts`), and replace the wrapper with an SVG data URI image. Display math is centered; inline math is aligned to the text baseline. Math that fails to render becomes its source as code. Runs before the `.joplin-source` cleanup.
+    - **ABC Notation**: `renderMarkup` leaves tunes as source in a `.joplin-abc-notation` wrapper (Joplin renders them client-side in the viewer). Render each with `abcjs`, using the options JSON in the `.joplin-source` element's `data-abc-options` attribute minus `responsive`, and replace the wrapper with an SVG data URI image. abcjs measures text with `getBBox`, so it renders into a hidden container in the plugin's live document rather than the sanitized one. Notation that fails to render stays as a code block. Runs before the `.joplin-source` cleanup.
     - **Structure Cleanup**: Remove duplicate `.joplin-source` elements (used for the Rich Text Editor).
     - **Resource Handling**: Replace broken resource placeholders with clear error messages.
     - **Link Cleanup**: Strip internal Joplin resource links (unless they contain images).

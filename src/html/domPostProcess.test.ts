@@ -290,6 +290,52 @@ describe('domPostProcess', () => {
         });
     });
 
+    describe('abc notation', () => {
+        // Matches renderMarkup output for an abc code block
+        const abcHtml = (source: string, options = '{}') =>
+            `<h2>Tune</h2><div class="joplin-editable joplin-abc-notation"><pre class="joplin-source" hidden data-abc-options="${options}" data-joplin-language="abc">${source}</pre><pre class="joplin-rendered joplin-abc-notation-rendered">${source}</pre></div>`;
+        const tune = "X:1\nT: Cooley's\nM: 4/4\nL: 1/8\nK: G\n|:D2|EB{c}BA B2 EB|";
+        const opts = { embedImages: true, downloadRemoteImages: false, convertSvgToPng: false };
+        const decodeSvgs = (out: string) =>
+            Array.from(new DOMParser().parseFromString(out, 'text/html').querySelectorAll('img')).map((img) =>
+                decodeURIComponent(img.getAttribute('src')?.split(',')[1] ?? '')
+            );
+
+        it('replaces the tune block with a top-level SVG image', async () => {
+            const out = await postProcessHtml(abcHtml(tune), opts);
+
+            expect(out).not.toContain('joplin-abc-notation');
+            expect(out).not.toContain('joplin-source');
+            expect(out).toMatch(
+                /<p><img src="data:image\/svg\+xml;charset=utf-8,[^"]+" alt="Sheet Music for &quot;Cooley's&quot;"><\/p>/
+            );
+
+            const [svg] = decodeSvgs(out);
+            expect(svg).toMatch(
+                /^<svg xmlns="http:\/\/www\.w3\.org\/2000\/svg"[^>]* width="\d+(\.\d+)?" height="\d+(\.\d+)?"/
+            );
+            expect(document.body.children).toHaveLength(0);
+        });
+
+        it('applies abcjs options but keeps a fixed size', async () => {
+            const out = await postProcessHtml(
+                abcHtml(tune, '{&quot;staffwidth&quot;:300,&quot;responsive&quot;:&quot;resize&quot;}'),
+                opts
+            );
+
+            const [svg] = decodeSvgs(out);
+            expect(svg).toMatch(/^<svg[^>]* width="330"/);
+        });
+
+        it('leaves the source as a code block when the options are invalid', async () => {
+            const out = await postProcessHtml(abcHtml(tune, 'not json'), opts);
+
+            expect(out).toContain('<pre class="joplin-rendered joplin-abc-notation-rendered">X:1');
+            expect(out).not.toContain('<img');
+            expect(document.body.children).toHaveLength(0);
+        });
+    });
+
     describe('math', () => {
         // Match renderMarkup output for KaTeX math, with the KaTeX HTML trimmed
         const displayMath = (tex: string) =>
