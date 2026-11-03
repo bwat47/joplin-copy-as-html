@@ -1,165 +1,20 @@
-import { renderAbc, type AbcVisualParams } from 'abcjs';
-import DOMPurify from 'dompurify';
-import { render as renderMermaid } from 'pele';
-
 import { GITHUB_ALERT_MARKER_REGEX } from '../constants';
 import { logger } from '../logger';
-import { convertResourceToBase64, downloadRemoteImageAsBase64 } from './assetProcessor';
-import { renderTexToSvg } from './texRenderer';
+import { renderAbcNotation } from './abcRenderer';
+import {
+    convertSvgImagesToPng,
+    embedImagesInDom,
+    replaceBrokenResourceSpans,
+    stripJoplinImages,
+} from './imageProcessor';
+import { renderMath } from './mathRenderer';
+import { renderMermaidDiagrams } from './mermaidRenderer';
+import { sanitizeToRoot } from './sanitizer';
 
 // ----------------------
-// Sanitization Configuration
+// DOM Cleanup Helpers
 // ----------------------
-
-let purifyHooksInstalled = false;
-
-function ensurePurifyHooks(): void {
-    if (purifyHooksInstalled) return;
-    // Add security hook to only allow checkbox inputs
-    DOMPurify.addHook('afterSanitizeAttributes', (node) => {
-        if (node.tagName === 'INPUT') {
-            const type = node.getAttribute('type')?.toLowerCase();
-            if (type !== 'checkbox') node.remove();
-        }
-    });
-    purifyHooksInstalled = true;
-}
-
-/**
- * Sanitizes HTML using DOMPurify with our security policy.
- * Uses the sanitized DOM directly (RETURN_DOM) so post-processing operates on
- * the exact tree DOMPurify validated, avoiding a serialize/reparse round-trip.
- * @param html - Raw HTML string to sanitize
- * @returns The sanitized `<body>` (in a fresh, inert document), or null if DOMPurify could not parse the input
- */
-function sanitizeToRoot(html: string): HTMLElement | null {
-    ensurePurifyHooks();
-    const root = DOMPurify.sanitize(html, {
-        RETURN_DOM: true,
-        // Keep it permissive for rich content but remove dangerous elements
-        ALLOWED_TAGS: [
-            // Required with RETURN_DOM: otherwise DOMPurify removes the returned <body> from its document
-            'body',
-            'h1',
-            'h2',
-            'h3',
-            'h4',
-            'h5',
-            'h6',
-            'p',
-            'br',
-            'hr',
-            'strong',
-            'b',
-            'em',
-            'i',
-            'u',
-            'mark',
-            'del',
-            's',
-            'ins',
-            'sub',
-            'sup',
-            'ul',
-            'ol',
-            'li',
-            'blockquote',
-            'table',
-            'thead',
-            'tbody',
-            'tfoot',
-            'tr',
-            'th',
-            'td',
-            'colgroup',
-            'col',
-            'caption',
-            'a',
-            'img',
-            'code',
-            'pre',
-            'span',
-            // Definition lists
-            'dl',
-            'dt',
-            'dd',
-            // Abbreviations
-            'abbr',
-            // Task list checkboxes
-            'input',
-            // Semantic HTML elements
-            'section',
-            'nav',
-            'article',
-            'aside',
-            'header',
-            'footer',
-            'main',
-            'figure',
-            'figcaption',
-            // Additional formatting
-            'small',
-            'cite',
-            'q',
-            'dfn',
-            'time',
-            'var',
-            'samp',
-            'kbd',
-            'div',
-            'details',
-            'summary',
-        ],
-        ALLOWED_ATTR: [
-            'href',
-            'src',
-            'alt',
-            'title',
-            'width',
-            'height',
-            'style',
-            'class',
-            'id',
-            'data-resource-id',
-            // Tables
-            'colspan',
-            'rowspan',
-            'scope',
-            'align',
-            'valign',
-            // Task list checkboxes
-            'type',
-            'checked',
-            'disabled',
-            // Additional semantic attributes
-            'datetime',
-            'cite',
-            'lang',
-            // Accessibility attributes (aria-* is allowed by DOMPurify's default ALLOW_ARIA_ATTR)
-            'role',
-            // Expanded state for <details>
-            'open',
-        ],
-    });
-    // Typed as Node, but DOMPurify returns null when it cannot create a document
-    return root instanceof HTMLElement ? root : null;
-}
-
-// ----------------------
-// DOM Transform Helpers
-// ----------------------
-// Helpers take the content root rather than its Document and query only its
-// descendants. Stray <html>/<head>/<body> tags in the input merge their attributes
-// onto the document's structural elements, so those must never be matched.
-
-/**
- * Checks whether an element sits inside a code block or inline code, where
- * images are shown as written and must not be modified.
- * @param element - Element to check
- */
-function isInsideCode(element: Element): boolean {
-    return !!element.closest('pre, code');
-}
+// Helpers take the content root rather than its Document; see domHelpers.ts.
 
 /**
  * Removes non-image Joplin resource links and replaces them with their text content.
@@ -177,25 +32,6 @@ function stripJoplinLinks(root: HTMLElement): void {
 }
 
 /**
- * Removes Joplin resource images from the document.
- * @param root - Content root to process
- */
-function stripJoplinImages(root: HTMLElement): void {
-    const imgs = Array.from(root.querySelectorAll('img'));
-    for (const img of imgs) {
-        if (isInsideCode(img)) continue;
-
-        const src = img.getAttribute('src') || '';
-        const resourceId = img.getAttribute('data-resource-id');
-        const isJoplinSrc = /^:\//.test(src) || /^joplin:\/\/resource\//i.test(src);
-
-        if (isJoplinSrc || resourceId) {
-            img.remove();
-        }
-    }
-}
-
-/**
  * Removes joplin-source elements that duplicate code block content.
  * renderMarkup includes both the raw source (for RTE round-tripping) and
  * the highlighted version - we only want the highlighted one.
@@ -207,225 +43,6 @@ function removeJoplinSourceElements(root: HTMLElement): void {
         logger.debug(`Removing ${sourceElements.length} joplin-source elements`);
         sourceElements.forEach((el) => el.remove());
     }
-}
-
-/**
- * Renders Mermaid diagrams to SVG images.
- * renderMarkup leaves diagrams as `<pre class="mermaid">` source inside a
- * `.joplin-editable` wrapper, since Joplin renders them client-side in the viewer.
- * Each diagram that pele can render replaces its wrapper with an SVG data URI
- * image; diagrams that fail to render stay as code blocks.
- * @param root - Content root to process
- */
-function renderMermaidDiagrams(root: HTMLElement): void {
-    root.querySelectorAll('pre.mermaid').forEach((pre) => {
-        let svg: string;
-        try {
-            svg = renderMermaid(pre.textContent).svg;
-        } catch (err) {
-            logger.warn('Mermaid diagram could not be rendered', err);
-            return;
-        }
-
-        const img = root.ownerDocument.createElement('img');
-        img.setAttribute('src', svgToDataUri(svg));
-        img.setAttribute('alt', 'Mermaid diagram');
-        (pre.closest('.joplin-editable') ?? pre).replaceWith(img);
-    });
-}
-
-/**
- * Renders KaTeX math to SVG images.
- * renderMarkup outputs KaTeX HTML, which needs KaTeX's stylesheet and fonts to
- * display correctly. Each `.joplin-editable` wrapper also holds the TeX source in
- * a `.joplin-source` element, so this must run before those are removed.
- * Math that MathJax cannot render is replaced with its source as code.
- * @param root - Content root to process
- */
-function renderMath(root: HTMLElement): void {
-    root.querySelectorAll('.joplin-editable').forEach((editable) => {
-        if (!editable.querySelector('.katex')) return;
-        const tex = editable.querySelector('.joplin-source')?.textContent ?? '';
-        const display = !!editable.querySelector('.katex-display');
-        const doc = root.ownerDocument;
-
-        let replacement: HTMLElement;
-        try {
-            const { svg, width, height, verticalAlign } = renderTexToSvg(tex, display);
-            const img = doc.createElement('img');
-            img.setAttribute('src', svgToDataUri(svg));
-            img.setAttribute('alt', tex);
-            img.setAttribute('width', String(width));
-            img.setAttribute('height', String(height));
-            img.style.verticalAlign = `${verticalAlign}px`;
-            if (display) {
-                replacement = doc.createElement('p');
-                replacement.style.textAlign = 'center';
-                replacement.appendChild(img);
-            } else {
-                replacement = img;
-            }
-        } catch (err) {
-            logger.warn('Math could not be rendered', err);
-            const code = doc.createElement('code');
-            code.textContent = display ? `$$\n${tex}\n$$` : `$${tex}$`;
-            if (display) {
-                replacement = doc.createElement('pre');
-                replacement.appendChild(code);
-            } else {
-                replacement = code;
-            }
-        }
-        editable.replaceWith(replacement);
-    });
-}
-
-/**
- * Renders ABC music notation to SVG images.
- * renderMarkup leaves each tune as source in a `.joplin-abc-notation` wrapper,
- * since Joplin renders them client-side in the viewer. The wrapper's
- * `.joplin-source` element holds the abcjs options as JSON in `data-abc-options`,
- * so this must run before those are removed.
- * abcjs measures text in the live document, so tunes are rendered into a hidden
- * container attached to the plugin's own document rather than the sanitized one.
- * Notation that abcjs cannot render stays as a code block.
- * @param root - Content root to process
- */
-function renderAbcNotation(root: HTMLElement): void {
-    const editables = root.querySelectorAll('.joplin-abc-notation');
-    if (editables.length === 0) return;
-
-    const container = document.createElement('div');
-    container.style.cssText = 'position: absolute; left: -10000px; top: 0; visibility: hidden;';
-    document.body.appendChild(container);
-    try {
-        editables.forEach((editable) => {
-            const rendered = editable.querySelector('.joplin-abc-notation-rendered');
-            if (!rendered) return;
-
-            let svg: SVGSVGElement | null;
-            try {
-                const optionsJson = editable.querySelector('.joplin-source')?.getAttribute('data-abc-options');
-                const options = optionsJson ? (JSON.parse(optionsJson) as AbcVisualParams) : {};
-                // Responsive output has no fixed size, which images need
-                delete options.responsive;
-                // Export the whole score in one image, including every music system.
-                options.oneSvgPerLine = false;
-                container.replaceChildren();
-                renderAbc(container, rendered.textContent, options);
-                svg = container.querySelector('svg');
-                if (svg) normalizeAbcSvgSize(svg);
-            } catch (err) {
-                logger.warn('ABC notation could not be rendered', err);
-                return;
-            }
-            if (!svg) return;
-
-            const img = root.ownerDocument.createElement('img');
-            img.setAttribute('src', svgToDataUri(new XMLSerializer().serializeToString(svg)));
-            img.setAttribute('alt', svg.getAttribute('aria-label') ?? 'Sheet music');
-            editable.replaceWith(img);
-        });
-    } finally {
-        container.remove();
-    }
-}
-
-/** Moves abcjs's CSS scale into the SVG viewport for standalone image sizing. */
-function normalizeAbcSvgSize(svg: SVGSVGElement): void {
-    // abcjs emits a uniform transform such as "scale(0.5,0.5)" for scaled scores.
-    const match = /^scale\(([^,]+),([^)]+)\)$/.exec(svg.style.transform);
-    if (!match) return;
-    const scale = Number(match[1]);
-    if (!Number.isFinite(scale) || scale <= 0 || scale !== Number(match[2])) return;
-
-    const width = Number(svg.getAttribute('width'));
-    const height = Number(svg.getAttribute('height'));
-    // Below 1x, abcjs puts the scaled dimensions on the parent div instead.
-    const displayWidth = width * Math.min(scale, 1);
-    const displayHeight = height * Math.min(scale, 1);
-    svg.setAttribute('width', String(displayWidth));
-    svg.setAttribute('height', String(displayHeight));
-    svg.setAttribute('viewBox', `0 0 ${displayWidth / scale} ${displayHeight / scale}`);
-    svg.style.removeProperty('transform');
-    svg.style.removeProperty('-webkit-transform');
-    svg.style.removeProperty('-ms-transform');
-}
-
-/**
- * Encodes SVG markup as a data URI.
- * @param svg - SVG markup
- */
-function svgToDataUri(svg: string): string {
-    return `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
-}
-
-/**
- * Replaces `element` with a red "Image failed to load" message.
- * @param element - Element to replace
- */
-function replaceWithImageError(element: Element): void {
-    const span = element.ownerDocument.createElement('span');
-    span.textContent = 'Image failed to load';
-    span.style.color = 'red';
-    element.replaceWith(span);
-}
-
-/**
- * Replaces Joplin's broken resource placeholders with our custom error message.
- * Joplin renders broken images as a span with class "not-loaded-resource" containing a large placeholder image.
- * @param root - Content root to process
- */
-function replaceBrokenResourceSpans(root: HTMLElement): void {
-    root.querySelectorAll('span.not-loaded-resource').forEach(replaceWithImageError);
-}
-
-/**
- * Iterates through images in the DOM and embeds them as base64 data URIs.
- * Embeds local Joplin resources and optionally downloads remote images.
- * @param root - Content root to process
- * @param downloadRemoteImages - Whether to download and embed remote images
- */
-async function embedImagesInDom(root: HTMLElement, downloadRemoteImages: boolean): Promise<void> {
-    const images = Array.from(root.querySelectorAll('img'));
-    logger.debug(`Found ${images.length} images to process`);
-
-    const jobs: Promise<void>[] = [];
-
-    for (const img of images) {
-        if (isInsideCode(img)) continue;
-
-        const resourceId = img.getAttribute('data-resource-id');
-        const src = img.getAttribute('src') || '';
-
-        // Case 1: Joplin Resource (local)
-        if (resourceId) {
-            jobs.push(
-                convertResourceToBase64(resourceId).then((dataUri) => {
-                    if (dataUri) {
-                        img.setAttribute('src', dataUri);
-                        logger.debug(`Embedded resource: ${resourceId}`);
-                    } else {
-                        replaceWithImageError(img);
-                    }
-                })
-            );
-        }
-        // Case 2: Remote Image
-        else if (/^https?:\/\//i.test(src) && downloadRemoteImages) {
-            jobs.push(
-                downloadRemoteImageAsBase64(src).then((dataUri) => {
-                    if (dataUri) {
-                        img.setAttribute('src', dataUri);
-                        logger.debug(`Embedded remote image: ${src}`);
-                    }
-                    // For remote images, we leave the original URL on failure as it might still be reachable
-                })
-            );
-        }
-    }
-
-    await Promise.all(jobs);
 }
 
 /**
@@ -531,130 +148,6 @@ function stripGithubAlertMarkers(root: HTMLElement): void {
     });
 }
 
-/**
- * Checks if a source is an SVG data URI.
- * @param src - Image source to check
- * @returns True if source is an SVG data URI
- */
-function isSvgDataUri(src: string | null): boolean {
-    return !!src && /^data:image\/svg\+xml/i.test(src.trim());
-}
-
-/**
- * Converts all SVG images in the document to PNG for better compatibility.
- * @param root - Content root to process
- */
-async function convertSvgImagesToPng(root: HTMLElement): Promise<void> {
-    const svgImgs = Array.from(root.querySelectorAll('img'))
-        .map((img) => ({ img, src: img.getAttribute('src') }))
-        .filter(
-            (item): item is { img: HTMLImageElement; src: string } => !isInsideCode(item.img) && isSvgDataUri(item.src)
-        );
-
-    const jobs = svgImgs.map(async ({ img, src }) => {
-        try {
-            const existingWidth = img.getAttribute('width');
-            const existingHeight = img.getAttribute('height');
-
-            const png = await rasterizeSvgDataUriToPng(src);
-            if (!png) return;
-
-            if (!img.isConnected) {
-                logger.debug('SVG image became disconnected during rasterization, skipping');
-                return;
-            }
-
-            img.setAttribute('src', png.dataUrl);
-
-            // Set explicit dimensions to maintain original display size
-            // Prefer existing attributes, otherwise use dimensions from rasterization (unscaled)
-            if (!existingWidth && png.originalWidth) {
-                img.setAttribute('width', String(png.originalWidth));
-            }
-            if (!existingHeight && png.originalHeight) {
-                img.setAttribute('height', String(png.originalHeight));
-            }
-        } catch (err) {
-            logger.debug('SVG rasterization failed', err);
-        }
-    });
-
-    await Promise.all(jobs);
-}
-
-/**
- * Rasterizes an SVG data URI to a PNG data URI using the Canvas API.
- * @param svgDataUri - SVG image encoded as a data URI
- * @returns Object with PNG data URI and original dimensions, or null on failure
- * @remarks
- * Requires browser environment with Canvas API (Chromium 116+).
- * Returns null in Node.js/SSR environments or if rasterization fails.
- * Renders at 2x scale for sharper output on high-DPI displays.
- */
-async function rasterizeSvgDataUriToPng(
-    svgDataUri: string
-): Promise<{ dataUrl: string; originalWidth: number; originalHeight: number } | null> {
-    if (typeof Image === 'undefined' || typeof document === 'undefined') {
-        return null;
-    }
-
-    return new Promise((resolve) => {
-        const img = new Image();
-
-        const cleanup = () => {
-            img.onload = null;
-            img.onerror = null;
-        };
-
-        img.onload = () => {
-            try {
-                const sourceWidth = img.naturalWidth;
-                const sourceHeight = img.naturalHeight;
-
-                if (!sourceWidth || !sourceHeight) {
-                    resolve(null);
-                    return;
-                }
-
-                // Render at 2x scale for sharper output (especially on high-DPI displays)
-                const SCALE_FACTOR = 2;
-                const width = sourceWidth * SCALE_FACTOR;
-                const height = sourceHeight * SCALE_FACTOR;
-
-                const canvas = document.createElement('canvas');
-                canvas.width = width;
-                canvas.height = height;
-
-                const ctx = canvas.getContext('2d');
-                if (!ctx) {
-                    resolve(null);
-                    return;
-                }
-
-                ctx.drawImage(img, 0, 0, width, height);
-
-                resolve({
-                    dataUrl: canvas.toDataURL('image/png'),
-                    originalWidth: sourceWidth,
-                    originalHeight: sourceHeight,
-                });
-            } catch (err) {
-                logger.debug('SVG rasterization failed', err);
-                resolve(null);
-            } finally {
-                cleanup();
-            }
-        };
-
-        img.onerror = () => {
-            cleanup();
-            resolve(null);
-        };
-
-        img.src = svgDataUri;
-    });
-}
-
 // ----------------------
 // Main Orchestrator
 // ----------------------
@@ -667,6 +160,8 @@ interface PostProcessOptions {
 
 /**
  * Post-processes rendered HTML with sanitization, resource cleanup, and image processing.
+ * This is the only place that knows the order of the transforms; each transform
+ * module documents what it needs to run before or after.
  *
  * @param html - Raw HTML string to process
  * @param opts - Processing configuration
@@ -675,32 +170,35 @@ interface PostProcessOptions {
  * @remarks
  * Processing pipeline:
  * 1. Sanitize HTML with DOMPurify (removes scripts, dangerous attributes)
- * 2. Render KaTeX math and ABC notation to SVG data URI images (needs the joplin-source elements)
+ * 2. Render KaTeX math, ABC notation, and Mermaid diagrams to SVG data URI images
+ *    (math and ABC need the joplin-source elements)
  * 3. Remove duplicate joplin-source elements from code blocks
  * 4. Replace broken resource placeholders with error messages
  * 5. Strip GitHub alert markers from blockquote content
  * 6. Remove non-image Joplin resource links (:/... or joplin://resource/...)
  * 7. Disable checkbox inputs
- * 8. Render Mermaid diagrams to SVG data URI images
- * 9. Strip Joplin images if embedding is disabled
- * 10. Embed images (local and remote) as base64 if enabled
- * 11. Wrap top-level images in paragraph tags for consistent formatting
- * 12. Convert SVG data URIs to PNG if enabled (requires Canvas API)
+ * 8. Strip Joplin images if embedding is disabled
+ * 9. Embed images (local and remote) as base64 if enabled
+ * 10. Wrap top-level images in paragraph tags for consistent formatting
+ * 11. Convert SVG data URIs to PNG if enabled (requires Canvas API)
  */
 export async function postProcessHtml(html: string, opts: PostProcessOptions): Promise<string> {
     const root = sanitizeToRoot(html);
     if (!root) return '';
 
-    // Pipeline of transformations
+    // Render rich content to images
     renderMath(root);
     renderAbcNotation(root);
+    renderMermaidDiagrams(root);
+
+    // Clean up Joplin-specific markup
     removeJoplinSourceElements(root);
     replaceBrokenResourceSpans(root);
     stripGithubAlertMarkers(root);
     stripJoplinLinks(root);
     disableCheckboxes(root);
-    renderMermaidDiagrams(root);
 
+    // Images
     if (!opts.embedImages) {
         stripJoplinImages(root);
     } else {
