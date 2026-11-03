@@ -47,6 +47,9 @@
         "webpack-cli": "^6.0.1"
     },
     "dependencies": {
+        "@mathjax/mathjax-mhchem-font-extension": "^4.1.3",
+        "@mathjax/mathjax-tex-font": "^4.1.3",
+        "@mathjax/src": "^4.1.3",
         "dompurify": "^3.4.16",
         "node-emoji": "^2.2.0",
         "pele": "^1.13.0",
