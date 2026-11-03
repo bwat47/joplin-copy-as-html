@@ -344,6 +344,30 @@ describe('domPostProcess', () => {
             expect(split).toEqual(normal);
             expect(document.body.children).toHaveLength(0);
         });
+
+        it.each([
+            ['smaller', tune, '{&quot;scale&quot;:0.5}', 0.5, 770],
+            ['larger', tune, '{&quot;scale&quot;:2}', 2, 770],
+            ['custom width', tune, '{&quot;scale&quot;:0.5,&quot;staffwidth&quot;:300}', 0.5, 330],
+            ['ABC scale directive', tune.replace('K: G', '%%scale 0.5\nK: G'), '{}', 0.5, 770],
+        ])(
+            'exports %s scores with scaled dimensions and an untransformed viewport',
+            async (_name, source, options, scale, expectedWidth) => {
+                const [markup] = decodeSvgs(await postProcessHtml(abcHtml(source, options), opts));
+                const svg = new DOMParser().parseFromString(markup ?? '', 'image/svg+xml').documentElement;
+                const width = Number(svg.getAttribute('width'));
+                const height = Number(svg.getAttribute('height'));
+                const viewBox = svg.getAttribute('viewBox')?.split(' ').map(Number);
+
+                expect(width).toBeCloseTo(expectedWidth);
+                expect(height).toBeGreaterThan(0);
+                expect(viewBox?.[2]).toBeCloseTo(width / scale);
+                expect(viewBox?.[3]).toBeCloseTo(height / scale);
+                expect(svg.getAttribute('style')).not.toMatch(/(?:^|;)\s*(?:-webkit-|-ms-)?transform:/);
+                expect(svg.querySelectorAll('path').length).toBeGreaterThan(0);
+                expect(document.body.children).toHaveLength(0);
+            }
+        );
     });
 
     describe('math', () => {

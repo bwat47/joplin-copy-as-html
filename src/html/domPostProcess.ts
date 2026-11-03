@@ -314,6 +314,7 @@ function renderAbcNotation(root: HTMLElement): void {
                 container.replaceChildren();
                 renderAbc(container, rendered.textContent, options);
                 svg = container.querySelector('svg');
+                if (svg) normalizeAbcSvgSize(svg);
             } catch (err) {
                 logger.warn('ABC notation could not be rendered', err);
                 return;
@@ -328,6 +329,27 @@ function renderAbcNotation(root: HTMLElement): void {
     } finally {
         container.remove();
     }
+}
+
+/** Moves abcjs's CSS scale into the SVG viewport for standalone image sizing. */
+function normalizeAbcSvgSize(svg: SVGSVGElement): void {
+    // abcjs emits a uniform transform such as "scale(0.5,0.5)" for scaled scores.
+    const match = /^scale\(([^,]+),([^)]+)\)$/.exec(svg.style.transform);
+    if (!match) return;
+    const scale = Number(match[1]);
+    if (!Number.isFinite(scale) || scale <= 0 || scale !== Number(match[2])) return;
+
+    const width = Number(svg.getAttribute('width'));
+    const height = Number(svg.getAttribute('height'));
+    // Below 1x, abcjs puts the scaled dimensions on the parent div instead.
+    const displayWidth = width * Math.min(scale, 1);
+    const displayHeight = height * Math.min(scale, 1);
+    svg.setAttribute('width', String(displayWidth));
+    svg.setAttribute('height', String(displayHeight));
+    svg.setAttribute('viewBox', `0 0 ${displayWidth / scale} ${displayHeight / scale}`);
+    svg.style.removeProperty('transform');
+    svg.style.removeProperty('-webkit-transform');
+    svg.style.removeProperty('-ms-transform');
 }
 
 /**
