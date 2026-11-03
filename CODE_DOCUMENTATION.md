@@ -95,7 +95,11 @@ All default to `false` unless noted.
 - `html/htmlRenderer.test.ts` exercises HTML conversion, DOM sanitization, and image embedding flows.
 - `html/assetProcessor.test.ts` tests resource embedding, remote image downloading, and base64 conversion.
 - `html/stylesheet.ts` loads custom CSS for full HTML exports, falling back to the bundled stylesheet; `html/stylesheet.test.ts` covers loading and fallback behavior.
-- `html/domPostProcess.test.ts` tests DOM sanitization, Joplin markup cleanup, image embedding and wrapping, SVG rasterization, and math, ABC, and Mermaid rendering.
+- `html/domPostProcess.test.ts` tests the full post-processing pipeline: Joplin markup cleanup, image wrapping, option handling, and that rich content ends up as top-level images.
+- `html/sanitizer.test.ts` tests the DOMPurify allowlist.
+- `html/mathRenderer.test.ts`, `html/abcRenderer.test.ts`, and `html/mermaidRenderer.test.ts` test each rich content transform on its own.
+- `html/imageProcessor.test.ts` tests image embedding, stripping, broken resource placeholders, and SVG to PNG rasterization.
+- `html/domTestUtils.ts` provides shared helpers for testing single DOM transforms.
 - `html/texRenderer.test.ts` tests TeX to SVG conversion.
 - `plainText/plainTextRenderer.test.ts` covers integration scenarios for the plain text pipeline.
 - `utils.test.ts` tests validation helpers and utility functions.
