@@ -24,6 +24,23 @@ describe('renderMermaidDiagrams', () => {
         expect(svg).toContain('data-id="L_A_B_0"');
     });
 
+    it('typesets label math as nested SVG', () => {
+        const out = render(mermaidHtml('graph TD;\n    A["$$x^2$$"]--&gt;B;'));
+
+        const [svg] = decodeSvgImages(out);
+        expect(svg).toMatch(/<svg class="pele-math"[^>]*><svg[^>]*viewBox=/);
+        expect(svg).not.toContain('foreignObject');
+        expect(svg).not.toContain('$$x^2$$');
+    });
+
+    it('shows the TeX source when label math cannot be rendered', () => {
+        const out = render(mermaidHtml('graph TD;\n    A["$$\\notACommand$$"]--&gt;B;'));
+
+        const [svg] = decodeSvgImages(out);
+        expect(svg).not.toContain('pele-math');
+        expect(svg).toContain('notACommand');
+    });
+
     it('leaves the source as a code block when the diagram cannot be rendered', () => {
         const out = render(mermaidHtml('notADiagram\n    A--&gt;B;'));
 

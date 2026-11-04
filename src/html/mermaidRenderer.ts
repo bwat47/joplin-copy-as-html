@@ -1,7 +1,23 @@
-import { render as renderMermaid } from 'pele';
+import { render as renderMermaid, type MathMarkup } from 'pele';
 
 import { logger } from '../logger';
 import { svgToDataUri } from './domHelpers';
+import { renderTexToSvg } from './texRenderer';
+
+/**
+ * Typesets `$$...$$` in diagram labels as self-contained MathJax SVG, which
+ * pele nests directly in the diagram SVG. Returning null makes pele show the
+ * TeX source instead.
+ */
+function renderLabelMath(tex: string, size: number): MathMarkup | null {
+    try {
+        const { svg, width, height } = renderTexToSvg(tex, true, size);
+        return { svg, width, height };
+    } catch (err) {
+        logger.warn('Mermaid label math could not be rendered', err);
+        return null;
+    }
+}
 
 /**
  * Renders Mermaid diagrams to SVG images.
@@ -15,7 +31,7 @@ export function renderMermaidDiagrams(root: HTMLElement): void {
     root.querySelectorAll('pre.mermaid').forEach((pre) => {
         let svg: string;
         try {
-            svg = renderMermaid(pre.textContent).svg;
+            svg = renderMermaid(pre.textContent, { math: renderLabelMath }).svg;
         } catch (err) {
             logger.warn('Mermaid diagram could not be rendered', err);
             return;

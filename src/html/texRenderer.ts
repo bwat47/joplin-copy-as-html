@@ -19,7 +19,7 @@ import { SVG } from '@mathjax/src/js/output/svg.js';
 
 // MathJax measures in units of 1/1000 em. KaTeX renders math at 1.21x the
 // surrounding text, which is about 18px at typical 15px body text.
-const EM_PX = 18;
+const DEFAULT_EM_PX = 18;
 const UNITS_PER_EM = 1000;
 
 export interface TexSvg {
@@ -45,7 +45,7 @@ let adaptor: LiteAdaptor | null = null;
  * Uses the TeX font, which has the same glyph style as KaTeX and needs no
  * dynamically loaded font files, so it works inside the bundled plugin.
  */
-function createConverter(): Converter {
+function createConverter(emPx: number): Converter {
     if (!adaptor) {
         MathJaxTexFont.addExtension(MathJaxMhchemFontExtension);
         adaptor = liteAdaptor();
@@ -65,7 +65,7 @@ function createConverter(): Converter {
     });
     // Match conversion metrics to the final pixel size so responsive SVG transforms
     // and the fixed viewport use the same scale.
-    return { adaptor, doc, ex: EM_PX * outputJax.font.params.x_height };
+    return { adaptor, doc, ex: emPx * outputJax.font.params.x_height };
 }
 
 /**
@@ -109,12 +109,13 @@ function inlineTableBorderStyles(adaptor: LiteAdaptor, svg: LiteElement): void {
  * Renders TeX to a standalone SVG sized in px.
  * @param tex - TeX source without delimiters
  * @param display - Whether to render as display (block) math
+ * @param emPx - Font size to render at, in px
  * @returns SVG markup and its size and baseline offset in px
  * @throws Error when the TeX is invalid or uses unsupported commands
  */
-export function renderTexToSvg(tex: string, display: boolean): TexSvg {
-    const { adaptor, doc, ex } = createConverter();
-    const container = doc.convert(tex, { display, em: EM_PX, ex }) as LiteElement;
+export function renderTexToSvg(tex: string, display: boolean, emPx = DEFAULT_EM_PX): TexSvg {
+    const { adaptor, doc, ex } = createConverter(emPx);
+    const container = doc.convert(tex, { display, em: emPx, ex }) as LiteElement;
     const svg = adaptor.firstChild(container);
     if (!(svg instanceof LiteElement) || svg.kind !== 'svg') throw new Error('MathJax did not return an SVG');
 
@@ -134,7 +135,7 @@ export function renderTexToSvg(tex: string, display: boolean): TexSvg {
     // Matches the vertical-align in MathJax's style attribute, e.g. "vertical-align: -0.025ex;"
     const verticalAlignEx = exValue(/vertical-align:\s*([^;]+)/.exec(attribute('style'))?.[1]);
 
-    const toPx = (units: number) => Math.round((units / UNITS_PER_EM) * EM_PX * 100) / 100;
+    const toPx = (units: number) => Math.round((units / UNITS_PER_EM) * emPx * 100) / 100;
     const width = toPx(viewBoxWidth);
     const height = toPx(viewBoxHeight);
     if (responsiveViewBox) {
