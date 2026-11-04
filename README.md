@@ -46,10 +46,7 @@ To use custom CSS, create `copy-as-html-user.css` in your Joplin profile directo
 
 ### Markdown rendering
 
-HTML output follows Joplin's Markdown rendering settings, including options such as footnotes, highlighting, and tables.
-
-<details>
-<summary>Supported optional Markdown settings</summary>
+HTML output follows Joplin's Markdown rendering settings, supporting the following:
 
 - Soft Breaks
 - Typographer
@@ -64,8 +61,9 @@ HTML output follows Joplin's Markdown rendering settings, including options such
 - Markdown Emoji
 - Insert (`++Insert++`)
 - Multimarkdown Table
-
-</details>
+- Mermaid Diagrams
+- Math
+- ABC Musical Notation
 
 ## Plain text options
 
