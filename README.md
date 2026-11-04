@@ -37,6 +37,8 @@ Successfully embedded remote images can be viewed without internet access. If a 
 
 Drawings from Freehand Drawing, Excalidraw, and Drawio are supported when stored as Joplin image resources (embedded like any other image resource).
 
+Mermaid Diagrams, Math, and ABC Music notation will be embedded as SVG images (or converted to PNG if Convert SVG Images to PNG is enabled).
+
 ### HTML fragment or full document
 
 - **Default:** Copies an HTML fragment without an added stylesheet. The destination app determines its appearance.
