@@ -85,7 +85,7 @@ All settings are registered in `settings.ts` via `registerPluginSettings()`. Set
 All default to `false` unless noted.
 
 - Preservation toggles: `preserveSuperscript`, `preserveSubscript`, `preserveEmphasis`, `preserveBold`, `preserveHeading`, `preserveQuoteMarkers`, `preserveStrikethrough`, `preserveHorizontalRule`, `preserveMark`, `preserveInsert`, `preserveCodeBackticks`, `preserveTablePipes`.
-- `displayEmojis` (default `true`): convert `:emoji:` syntax to Unicode.
+- `displayEmojis` (default `true`): convert `:emoji:` syntax to Unicode when enabled; leave shortcodes unchanged when disabled.
 - `hyperlinkBehavior`: emit external links as `title`, `url`, or `markdown`.
 - `indentType`: choose list indentation via spaces or tabs.
 - `listSpacing`: choose tight or loose list item spacing.

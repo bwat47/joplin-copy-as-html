@@ -1,5 +1,3 @@
-import type { Root } from 'mdast';
-import * as nodeEmoji from 'node-emoji';
 import remarkEmoji from 'remark-emoji';
 import remarkFlexibleMarkers from 'remark-flexible-markers';
 import remarkGfm from 'remark-gfm';
@@ -7,7 +5,7 @@ import remarkIns from 'remark-ins';
 import remarkParse from 'remark-parse';
 import remarkSupersub from 'remark-supersub';
 import stringWidth from 'string-width';
-import { unified, type Plugin } from 'unified';
+import { unified } from 'unified';
 
 import { GITHUB_ALERT_MARKER_REGEX } from '../constants';
 import { logger } from '../logger';
@@ -27,7 +25,6 @@ type PlainTextNode = {
     children?: PlainTextNode[];
 };
 
-const EMOJI_SHORTCODE_PATTERN = /:([+\w-]+):/g;
 const FOOTNOTE_REF_PATTERN = /\[\^([^\]]+)\]/g;
 
 // Output layout
@@ -48,31 +45,9 @@ function createRemarkProcessor(displayEmojis: boolean) {
 
     if (displayEmojis) {
         processor.use(remarkEmoji);
-    } else {
-        processor.use(stripEmojiShortcodes);
     }
 
     return processor;
-}
-
-const stripEmojiShortcodes: Plugin<[], Root> = () => {
-    return (tree: Root): void => {
-        walkTextNodes(tree, (node) => {
-            node.value = (node.value ?? '').replace(EMOJI_SHORTCODE_PATTERN, (match, key: string) => {
-                return nodeEmoji.has(key) ? '' : match;
-            });
-        });
-    };
-};
-
-function walkTextNodes(node: PlainTextNode, visitor: (node: PlainTextNode) => void): void {
-    if (node.type === 'text') {
-        visitor(node);
-    }
-
-    for (const child of node.children ?? []) {
-        walkTextNodes(child, visitor);
-    }
 }
 
 /**

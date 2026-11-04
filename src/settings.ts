@@ -195,8 +195,9 @@ export async function registerPluginSettings(): Promise<void> {
             type: SettingItemType.Bool,
             section: SECTION_ID,
             public: true,
-            label: 'Display emojis',
-            description: 'If enabled, emojis will be displayed in the plain text output.',
+            label: 'Convert emoji shortcodes',
+            description:
+                'If enabled, emoji shortcodes such as :tada: are converted to Unicode in plain text output. If disabled, shortcodes are left as written.',
         },
         [SETTINGS.PRESERVE_TABLE_PIPES]: {
             value: DEFAULT_PLAIN_TEXT_OPTIONS.preserveTablePipes,

@@ -69,13 +69,13 @@ HTML output follows Joplin's Markdown rendering settings, supporting the followi
 
 Plain text output removes Markdown formatting markers and images while preserving paragraphs, list markers, nested list indentation, readable tables, footnotes, and link text. It parses Markdown independently of Joplin's HTML rendering settings.
 
-| Setting                       | Default    | Options                                                                                                             |
-| ----------------------------- | ---------- | ------------------------------------------------------------------------------------------------------------------- |
-| Plain text hyperlink behavior | Link Title | Keep link text, show the URL, or preserve Markdown link formatting. Applies to Markdown links with HTTP/HTTPS URLs. |
-| List indentation type         | 4 Spaces   | Indent nested lists with four spaces or tabs.                                                                       |
-| List spacing                  | Loose      | Loose adds blank lines between list items; Tight omits them.                                                        |
-| Display emojis                | On         | Converts emoji shortcodes such as `:white_check_mark:` to Unicode (✅).                                             |
-| Preserve table pipes          | Off        | Retains Markdown pipe separators in tables.                                                                         |
+| Setting                       | Default    | Options                                                                                                                         |
+| ----------------------------- | ---------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| Plain text hyperlink behavior | Link Title | Keep link text, show the URL, or preserve Markdown link formatting. Applies to Markdown links with HTTP/HTTPS URLs.             |
+| List indentation type         | 4 Spaces   | Indent nested lists with four spaces or tabs.                                                                                   |
+| List spacing                  | Loose      | Loose adds blank lines between list items; Tight omits them.                                                                    |
+| Convert emoji shortcodes      | On         | Converts emoji shortcodes such as `:white_check_mark:` to Unicode (✅) when enabled; leaves shortcodes unchanged when disabled. |
+| Preserve table pipes          | Off        | Retains Markdown pipe separators in tables.                                                                                     |
 
 You can also preserve superscript, subscript, emphasis, bold, heading, quote, strikethrough, highlight, and insert markers, horizontal rules, and code backticks. These options are off by default and appear when you enable **Show advanced settings** in the plugin's settings section.
 

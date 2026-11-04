@@ -243,22 +243,11 @@ describe('Emoji Handling', () => {
         expect(result.trim()).toBe('Joplin is great 🎉');
     });
 
-    it.each([
-        ['should strip emojis', 'Joplin is great :tada:', 'Joplin is great'],
-        [
-            'should strip valid emoji aliases without corrupting colon-delimited text',
-            'Time 10:30:45 and :tada: plus :+1: remains formatted.',
-            'Time 10:30:45 and  plus  remains formatted.',
-        ],
-        [
-            'should leave unknown shortcode-like text unchanged',
-            'Keep :not-an-emoji: as written.',
-            'Keep :not-an-emoji: as written.',
-        ],
-    ])('%s when the setting is disabled', (_name, markdown, expected) => {
+    it('should leave shortcodes unchanged when the setting is disabled', () => {
+        const markdown = 'Time 10:30:45 and :tada: plus :+1: and :not-an-emoji: remain as written.';
         const options = { ...defaultOptions, displayEmojis: false };
         const result = convertMarkdownToPlainText(markdown, options);
-        expect(result.trim()).toBe(expected);
+        expect(result.trim()).toBe(markdown);
     });
 
     it('should render emojis contained within table cells', () => {
