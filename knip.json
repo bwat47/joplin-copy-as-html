@@ -1,9 +1,9 @@
 {
     "$schema": "https://unpkg.com/knip@6/schema.json",
-    "entry": ["webpack.config.js", "src/index.ts", "src/**/*.test.ts"],
+    "entry": ["webpack.config.js", "webpack.config.override.js", "src/index.ts", "src/**/*.test.ts"],
     "project": ["src/**/*.ts"],
     "ignoreBinaries": ["yo"],
-    "ignoreDependencies": ["ts-loader"],
+    "ignoreDependencies": ["ts-loader", "@swc/core"],
     "ignoreIssues": {
         "api/**": ["unlisted", "unresolved"]
     },

@@ -223,7 +223,7 @@ const pluginConfig = { ...baseConfig, entry: './src/index.ts',
 		}),
 	] };
 
-applyWebpackOverrides(pluginConfig);
+applyWebpackOverrides(pluginConfig, 'plugin');
 
 
 // These libraries can be included with require(...) or
@@ -265,7 +265,7 @@ const extraScriptConfig = {
 	externals: extraScriptExternals,
 };
 
-applyWebpackOverrides(extraScriptConfig);
+applyWebpackOverrides(extraScriptConfig, 'extraScript');
 
 const createArchiveConfig = {
 	stats: 'errors-only',
@@ -284,7 +284,7 @@ const createArchiveConfig = {
 	}],
 };
 
-applyWebpackOverrides(createArchiveConfig);
+applyWebpackOverrides(createArchiveConfig, 'archive');
 
 function resolveExtraScriptPath(name) {
 	const relativePath = `./src/${name}`;
