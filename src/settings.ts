@@ -190,6 +190,7 @@ export async function registerPluginSettings(): Promise<void> {
             label: 'List spacing',
             description: 'Whether plain text lists should include blank lines between list items.',
         },
+        // Key keeps its legacy name ('displayEmojis') so saved user values are preserved.
         [SETTINGS.DISPLAY_EMOJIS]: {
             value: DEFAULT_PLAIN_TEXT_OPTIONS.displayEmojis,
             type: SettingItemType.Bool,
