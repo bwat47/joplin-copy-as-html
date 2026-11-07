@@ -11,11 +11,16 @@ import globals from 'globals';
 
 export default defineConfig([
     {
-        ignores: ['api/**', 'dist/**', 'webpack.config.js', 'webpack.config.override.js', '.prettierrc.js'],
+        ignores: ['api/**', 'dist/**', '.prettierrc.js'],
     },
 
     js.configs.recommended,
     sonarjs.configs.recommended,
+
+    {
+        files: ['scripts/*.mjs'],
+        languageOptions: { globals: globals.node },
+    },
 
     // Project TypeScript sources
     {
