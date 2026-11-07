@@ -1,13 +1,13 @@
 // Flat config (ESM). Adds typed linting, Node + Vitest globals, and project rule tweaks.
 
 import js from '@eslint/js';
-import { defineConfig } from 'eslint/config';
-import tseslint from 'typescript-eslint';
 import vitest from '@vitest/eslint-plugin';
+import prettier from 'eslint-config-prettier';
 import sonarjs from 'eslint-plugin-sonarjs';
 import tsdoc from 'eslint-plugin-tsdoc';
-import prettier from 'eslint-config-prettier';
+import { defineConfig } from 'eslint/config';
 import globals from 'globals';
+import tseslint from 'typescript-eslint';
 
 export default defineConfig([
     {
