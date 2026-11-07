@@ -56,11 +56,11 @@ export function renderAbcNotation(root: HTMLElement): void {
 
 /** Moves abcjs's CSS scale into the SVG viewport for standalone image sizing. */
 function normalizeAbcSvgSize(svg: SVGSVGElement): void {
-    // abcjs emits a uniform transform such as "scale(0.5,0.5)" for scaled scores.
-    const match = /^scale\(([^,]+),([^)]+)\)$/.exec(svg.style.transform);
+    // abcjs emits "scale(0.5,0.5)"; CSS serialization can shorten it to "scale(0.5)".
+    const match = /^scale\(([^,)]+)(?:,([^)]+))?\)$/.exec(svg.style.transform);
     if (!match) return;
     const scale = Number(match[1]);
-    if (!Number.isFinite(scale) || scale <= 0 || scale !== Number(match[2])) return;
+    if (!Number.isFinite(scale) || scale <= 0 || scale !== Number(match[2] ?? match[1])) return;
 
     const width = Number(svg.getAttribute('width'));
     const height = Number(svg.getAttribute('height'));
