@@ -11,7 +11,7 @@ import globals from 'globals';
 
 export default defineConfig([
     {
-        ignores: ['api/**', 'dist/**', '.prettierrc.js'],
+        ignores: ['api/**', '.api-staging-*/**', 'dist/**', '.prettierrc.js'],
     },
 
     js.configs.recommended,

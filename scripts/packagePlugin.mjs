@@ -4,7 +4,8 @@ import { mkdir, readdir, readFile, stat, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { create } from 'tar';
 
-const categories = new Set([
+/** Accepted plugin categories; `npm run updateApi` warns when the generator's list differs. */
+export const VALID_CATEGORIES = new Set([
     'appearance',
     'developer tools',
     'productivity',
@@ -33,7 +34,7 @@ export async function readProject(root) {
     const selectedCategories = manifest.categories ?? [];
     if (
         new Set(selectedCategories).size !== selectedCategories.length ||
-        selectedCategories.some((category) => !categories.has(category))
+        selectedCategories.some((category) => !VALID_CATEGORIES.has(category))
     ) {
         throw new Error('Manifest contains invalid or repeated categories.');
     }
@@ -50,6 +51,9 @@ export async function readProject(root) {
     return { packageJson, manifest };
 }
 
+/** Branch recorded in `_publish_commit` when the build runs from a detached HEAD. */
+const DEFAULT_BRANCH = 'main';
+
 function currentGitInfo(root) {
     try {
         // Git is intentionally resolved from the developer's PATH, with fixed arguments and no shell.
@@ -59,15 +63,17 @@ function currentGitInfo(root) {
             .trim();
         // eslint-disable-next-line sonarjs/no-os-command-from-path
         const commit = execFileSync('git', ['rev-parse', 'HEAD'], { cwd: root, stdio: 'pipe' }).toString().trim();
-        return `${branch === 'HEAD' ? 'master' : branch}:${commit}`;
+        return `${branch === 'HEAD' ? DEFAULT_BRANCH : branch}:${commit}`;
     } catch {
         return '';
     }
 }
 
+/** Lists files under `directory`, skipping dotfiles and dot-directories (e.g. `.DS_Store`, `.gitkeep`). */
 async function listFiles(directory, prefix = '') {
     const files = [];
     for (const entry of await readdir(directory, { withFileTypes: true })) {
+        if (entry.name.startsWith('.')) continue;
         const relativePath = `${prefix}${entry.name}`;
         if (entry.isDirectory()) {
             files.push(...(await listFiles(path.join(directory, entry.name), `${relativePath}/`)));

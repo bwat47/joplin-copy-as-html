@@ -2,6 +2,8 @@ node_modules/
 dist/
 build/
 publish/
+# Left behind only if `npm run updateApi` is interrupted.
+.api-staging-*/
 *.log
 .DS_Store
 .env

@@ -3,6 +3,12 @@ import { fileURLToPath } from 'node:url';
 
 export const root = fileURLToPath(new URL('../', import.meta.url));
 
+/**
+ * Matches TypeScript sources, which are bundled rather than copied,
+ * e.g. `index.ts`, `view.tsx`, `worker.mts`, `config.cts`, `types.d.ts` (not `notes.txt`).
+ */
+export const TYPESCRIPT_SOURCE_PATTERN = /\.(?:[cm]?ts|tsx)$/;
+
 /** @type {import('esbuild').BuildOptions} */
 export const buildOptions = {
     absWorkingDir: root,
@@ -13,6 +19,8 @@ export const buildOptions = {
     format: 'cjs',
     target: 'es2020',
     minify: true,
+    // Match Webpack's production mode, including dependencies in this Node-platform build.
+    define: { 'process.env.NODE_ENV': '"production"' },
     // JSDOM is an optional MathJax dependency; the plugin uses liteAdaptor.
     external: ['jsdom'],
     alias: {

@@ -2,7 +2,7 @@ import { cp, mkdir, rm } from 'node:fs/promises';
 import path from 'node:path';
 import { build } from 'esbuild';
 
-import { buildOptions, root } from './buildConfig.mjs';
+import { buildOptions, root, TYPESCRIPT_SOURCE_PATTERN } from './buildConfig.mjs';
 import { packagePlugin, readProject } from './packagePlugin.mjs';
 
 const dist = path.join(root, 'dist');
@@ -14,13 +14,12 @@ await rm(dist, { recursive: true, force: true });
 await rm(publish, { recursive: true, force: true });
 await mkdir(dist, { recursive: true });
 
-await build(buildOptions);
-
-// Match the generator's runtime asset copying, excluding TypeScript sources.
+// Copy first so a JavaScript source asset cannot overwrite the compiled bundle.
 await cp(path.join(root, 'src'), dist, {
     recursive: true,
-    // For example, skip renderer.ts and renderer.test.ts; retain manifest.json.
-    filter: (source) => !/\.tsx?$/.test(source),
+    filter: (source) => !TYPESCRIPT_SOURCE_PATTERN.test(source),
 });
+
+await build(buildOptions);
 
 await packagePlugin(root, manifest);
