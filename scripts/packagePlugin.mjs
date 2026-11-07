@@ -4,7 +4,10 @@ import { mkdir, readdir, readFile, stat, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { create } from 'tar';
 
-/** Accepted plugin categories; `npm run updateApi` warns when the generator's list differs. */
+/**
+ * Plugin repository categories accepted in `manifest.categories`.
+ * Mirrors generator-joplin's list; `npm run updateApi` warns when they differ.
+ */
 export const VALID_CATEGORIES = new Set([
     'appearance',
     'developer tools',
@@ -19,10 +22,22 @@ export const VALID_CATEGORIES = new Set([
     'personal knowledge management',
 ]);
 
+/** File extensions accepted for local manifest screenshots. */
+const SCREENSHOT_EXTENSIONS = new Set(['.jpg', '.jpeg', '.png', '.gif', '.webp']);
+
+/** Maximum size of a local manifest screenshot. */
+const MAX_SCREENSHOT_BYTES = 1024 * 1024;
+
+/** Matches a remote screenshot URL, which is not validated locally, e.g. `https://example.com/a.png`. */
+const REMOTE_URL_PATTERN = /^https?:\/\//;
+
+/** Matches a valid plugin ID, e.g. `com.bwat47.copyashtml` (letters, digits, `_`, `.`, `-`). */
+const PLUGIN_ID_PATTERN = /^[\w.-]+$/;
+
 export async function readProject(root) {
     const packageJson = JSON.parse(await readFile(path.join(root, 'package.json'), 'utf8'));
     const manifest = JSON.parse(await readFile(path.join(root, 'src/manifest.json'), 'utf8'));
-    if (!manifest.id || !/^[\w.-]+$/.test(manifest.id)) {
+    if (!manifest.id || !PLUGIN_ID_PATTERN.test(manifest.id)) {
         throw new Error('Manifest plugin ID must contain only letters, digits, underscores, dots, or hyphens.');
     }
     if (manifest.version !== packageJson.version) {
@@ -40,12 +55,12 @@ export async function readProject(root) {
     }
     for (const screenshot of manifest.screenshots ?? []) {
         if (!screenshot.src) throw new Error('Manifest screenshot must specify src.');
-        if (/^https?:\/\//.test(screenshot.src)) continue;
-        if (!['.jpg', '.jpeg', '.png', '.gif', '.webp'].includes(path.extname(screenshot.src))) {
+        if (REMOTE_URL_PATTERN.test(screenshot.src)) continue;
+        if (!SCREENSHOT_EXTENSIONS.has(path.extname(screenshot.src))) {
             throw new Error(`Unsupported screenshot type: ${screenshot.src}`);
         }
-        if ((await stat(path.join(root, screenshot.src))).size > 1024 * 1024) {
-            throw new Error(`Screenshot exceeds 1 MB: ${screenshot.src}`);
+        if ((await stat(path.join(root, screenshot.src))).size > MAX_SCREENSHOT_BYTES) {
+            throw new Error(`Screenshot exceeds ${MAX_SCREENSHOT_BYTES / (1024 * 1024)} MB: ${screenshot.src}`);
         }
     }
     return { packageJson, manifest };
@@ -63,6 +78,7 @@ function currentGitInfo(root) {
             .trim();
         // eslint-disable-next-line sonarjs/no-os-command-from-path
         const commit = execFileSync('git', ['rev-parse', 'HEAD'], { cwd: root, stdio: 'pipe' }).toString().trim();
+        // A detached HEAD (e.g. a CI tag checkout) reports `HEAD`; record the default branch instead.
         return `${branch === 'HEAD' ? DEFAULT_BRANCH : branch}:${commit}`;
     } catch {
         return '';
