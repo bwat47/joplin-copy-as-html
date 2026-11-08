@@ -18,7 +18,7 @@ export default defineConfig([
     sonarjs.configs.recommended,
 
     {
-        files: ['scripts/*.mjs'],
+        files: ['test/*.mjs'],
         languageOptions: { globals: globals.node },
     },
 

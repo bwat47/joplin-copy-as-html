@@ -1,0 +1,8 @@
+{
+    "mainBuildOptions": {
+        "external": ["jsdom"],
+        "alias": {
+            "#default-font": "./node_modules/@mathjax/mathjax-tex-font/mjs"
+        }
+    }
+}

@@ -9,7 +9,7 @@
 
 - Key scripts: `npm run dist` (build `.jpl`), `npm test` (Vitest), `npm run lint`, `npm run format`, `npm run updateVersion`.
 - Bundled with esbuild after a separate TypeScript check; application tests run through Vitest.
-- `scripts/build.mjs` builds and copies runtime assets; `scripts/packagePlugin.mjs` validates metadata and creates the `.jpl` and publish information. See [Building the plugin](BUILDING.md).
+- The shared `@bwat47/joplin-plugin-scripts` package builds and copies runtime assets, validates metadata, and creates the `.jpl` and publish information. Plugin-specific esbuild options live in `plugin.config.json`. See [Building the plugin](BUILDING.md).
 
 ## Repository Layout
 
@@ -23,7 +23,7 @@
     - `domPostProcess.ts` – post-processing orchestrator (the only place that knows transform order) plus small Joplin markup cleanups.
     - `sanitizer.ts` – DOMPurify allowlist and hooks.
     - `mathRenderer.ts`, `abcRenderer.ts`, `mermaidRenderer.ts` – replace math, ABC notation, and Mermaid blocks with SVG data URI images.
-    - `texRenderer.ts` – pure TeX to SVG conversion with MathJax, used by `mathRenderer.ts`. Uses MathJax's TeX font, which has no dynamically loaded font files; `scripts/buildConfig.mjs` points MathJax's `#default-font` import at the same font so the unused default font isn't bundled.
+    - `texRenderer.ts` – pure TeX to SVG conversion with MathJax, used by `mathRenderer.ts`. Uses MathJax's TeX font, which has no dynamically loaded font files; `plugin.config.json` points MathJax's `#default-font` import at the same font so the unused default font isn't bundled.
     - `imageProcessor.ts` – image embedding and stripping, broken resource placeholders, SVG to PNG rasterization.
     - `assetProcessor.ts` – loads Joplin resources and remote images as base64 data URIs.
     - `domHelpers.ts` – helpers shared by the transforms.

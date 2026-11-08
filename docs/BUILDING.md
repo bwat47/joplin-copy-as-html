@@ -7,13 +7,24 @@ npm ci
 npm run dist
 ```
 
-The build checks TypeScript, bundles with esbuild, and creates:
+The build checks TypeScript, then runs `joplin-plugin-scripts build` from the shared
+`@bwat47/joplin-plugin-scripts` dev dependency, which bundles with esbuild and creates:
 
-- `dist/`: the plugin bundle and runtime assets.
+- `dist/`: the plugin bundle and runtime assets, without tests or fixtures.
 - `publish/com.bwat47.copyashtml.jpl`: the installable plugin.
 - `publish/com.bwat47.copyashtml.json`: publish metadata.
 
 Each build clears `dist/` and `publish/` first.
+
+`plugin.config.json` adds two main-bundle esbuild options:
+
+- `external: ["jsdom"]`: JSDOM is an optional MathJax dependency; the plugin uses
+  MathJax's liteAdaptor instead.
+- `alias["#default-font"]`: MathJax imports its default font even when given explicit
+  font data, so this reuses the TeX font instead of bundling the unused NewCM font.
+
+Build, packaging, version, and API-update behavior lives in the shared package. Change it
+there and update the dependency here, rather than adding local build scripts.
 
 ## Maintenance
 
@@ -21,14 +32,15 @@ Each build clears `dist/` and `publish/` first.
   `src/manifest.json`, and `package-lock.json` together. Their versions must match
   before bumping.
 - `npm run updateApi`: update `api/` from the latest `generator-joplin` package
-  without regenerating the project. Review `git diff api/`, address any category
-  warnings, and run `npm run typecheck` afterward.
+  without regenerating the project. Review `git diff api/` and run `npm run typecheck`
+  afterward. Category or content-script external warnings mean the shared package
+  needs updating.
 
 ## Verification
 
-- `npm test`: run application and build-tool tests.
+- `npm test`: run application and bundle tests.
 - `npm run typecheck`: check TypeScript without producing output.
-- `npm run lint`: lint application sources and build scripts.
+- `npm run lint`: lint application sources and bundle tests.
 - `npm run knip`: check for unused dependencies, exports, and files.
 - `npm run dist`: build and package the plugin.
 
