@@ -1,4 +1,5 @@
 {
+    "buildOptions": { "target": "es2020" },
     "mainBuildOptions": {
         "external": ["jsdom"],
         "alias": {
