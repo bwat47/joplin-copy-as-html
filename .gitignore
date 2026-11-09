@@ -11,3 +11,6 @@ publish/
 *:Zone.Identifier
 *.patch
 *.diff
+.codex/
+.claude/
+.agents/
