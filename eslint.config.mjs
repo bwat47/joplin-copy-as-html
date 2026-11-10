@@ -17,11 +17,6 @@ export default defineConfig([
     js.configs.recommended,
     sonarjs.configs.recommended,
 
-    {
-        files: ['test/*.mjs'],
-        languageOptions: { globals: globals.node },
-    },
-
     // Project TypeScript sources
     {
         files: ['**/*.{ts,tsx,mts,cts}'],
