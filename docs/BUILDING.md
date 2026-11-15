@@ -40,8 +40,9 @@ there and update the dependency here, rather than adding local build scripts.
 
 - `npm test`: run tests.
 - `npm run typecheck`: check TypeScript without producing output.
-- `npm run lint`: lint application sources.
-- `npm run knip`: check for unused dependencies, exports, and files.
+- `npm run lint`: lint sources and tests with Oxlint, then run the fallow dead-code
+  and complexity checks.
+- `npm run format:check`: check formatting with Oxfmt.
 - `npm run dist`: build and package the plugin.
 
 Before releasing, install the `.jpl` in a Joplin development profile and check

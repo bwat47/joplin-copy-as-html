@@ -225,11 +225,8 @@ describe('Character Preservation Options', () => {
         const disabledResult = convertMarkdownToPlainText(input, defaultOptions);
 
         // Special case for horizontal rule: nbsp gets trimmed, so check raw result
-        if (optionName === 'preserveHorizontalRule') {
-            expect(disabledResult).toBe(expectedWhenDisabled);
-        } else {
-            expect(disabledResult.trim()).toBe(expectedWhenDisabled);
-        }
+        const comparedResult = optionName === 'preserveHorizontalRule' ? disabledResult : disabledResult.trim();
+        expect(comparedResult).toBe(expectedWhenDisabled);
     });
 });
 

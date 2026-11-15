@@ -14,3 +14,5 @@ publish/
 .codex/
 .claude/
 .agents/
+coverage
+.fallow/
