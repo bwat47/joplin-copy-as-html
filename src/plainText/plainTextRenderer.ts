@@ -127,6 +127,31 @@ function renderChildrenInline(children: PlainTextNode[] | undefined, options: Pl
     return (children ?? []).map((child) => renderInlineNode(child, options)).join('');
 }
 
+type InlineMarker = {
+    option: keyof Pick<
+        PlainTextOptions,
+        | 'preserveEmphasis'
+        | 'preserveBold'
+        | 'preserveStrikethrough'
+        | 'preserveInsert'
+        | 'preserveMark'
+        | 'preserveSubscript'
+        | 'preserveSuperscript'
+    >;
+    marker: string;
+};
+
+/** Inline node types wrapped in their Markdown marker when the matching option is enabled. */
+const INLINE_MARKERS = new Map<string, InlineMarker>([
+    ['emphasis', { option: 'preserveEmphasis', marker: '*' }],
+    ['strong', { option: 'preserveBold', marker: '**' }],
+    ['delete', { option: 'preserveStrikethrough', marker: '~~' }],
+    ['insert', { option: 'preserveInsert', marker: '++' }],
+    ['mark', { option: 'preserveMark', marker: '==' }],
+    ['subscript', { option: 'preserveSubscript', marker: '~' }],
+    ['superscript', { option: 'preserveSuperscript', marker: '^' }],
+]);
+
 function renderInlineWithMarkers(
     node: PlainTextNode,
     options: PlainTextOptions,
@@ -176,6 +201,11 @@ function renderCodeBlock(node: PlainTextNode, options: PlainTextOptions): string
 }
 
 function renderInlineNode(node: PlainTextNode, options: PlainTextOptions): string {
+    const inlineMarker = INLINE_MARKERS.get(node.type);
+    if (inlineMarker) {
+        return renderInlineWithMarkers(node, options, options[inlineMarker.option], inlineMarker.marker);
+    }
+
     switch (node.type) {
         case 'text':
             return (node.value ?? '').replace(FOOTNOTE_REF_PATTERN, '[$1]').replace(/\u00A0/g, ' ');
@@ -185,20 +215,6 @@ function renderInlineNode(node: PlainTextNode, options: PlainTextOptions): strin
             return '\n';
         case 'html':
             return htmlFragmentToPlainText(node.value ?? '');
-        case 'emphasis':
-            return renderInlineWithMarkers(node, options, options.preserveEmphasis, '*');
-        case 'strong':
-            return renderInlineWithMarkers(node, options, options.preserveBold, '**');
-        case 'delete':
-            return renderInlineWithMarkers(node, options, options.preserveStrikethrough, '~~');
-        case 'insert':
-            return renderInlineWithMarkers(node, options, options.preserveInsert, '++');
-        case 'mark':
-            return renderInlineWithMarkers(node, options, options.preserveMark, '==');
-        case 'subscript':
-            return renderInlineWithMarkers(node, options, options.preserveSubscript, '~');
-        case 'superscript':
-            return renderInlineWithMarkers(node, options, options.preserveSuperscript, '^');
         case 'link': {
             const text = renderChildrenInline(node.children, options);
             const url = node.url ?? '';
@@ -304,6 +320,10 @@ function joinTableCells(cells: string[], preservePipes: boolean, plainSeparator:
     return `| ${cells.join(' | ')} |`;
 }
 
+function padCell(cell: string, width: number): string {
+    return `${cell}${' '.repeat(width - stringWidth(cell))}`;
+}
+
 function renderTableNode(node: PlainTextNode, options: PlainTextOptions): string {
     const rows = (node.children ?? []).map((row) =>
         (row.children ?? []).map((cell) => normalizeBlockText(renderChildrenInline(cell.children, options)))
@@ -316,10 +336,6 @@ function renderTableNode(node: PlainTextNode, options: PlainTextOptions): string
         row.forEach((cell, index) => {
             columnWidths[index] = Math.max(columnWidths[index] ?? 0, stringWidth(cell));
         });
-    }
-
-    function padCell(cell: string, width: number): string {
-        return `${cell}${' '.repeat(width - stringWidth(cell))}`;
     }
 
     const cellSeparator = ' '.repeat(TABLE_CELL_PADDING);
@@ -336,21 +352,27 @@ function renderTableNode(node: PlainTextNode, options: PlainTextOptions): string
     return lines.join('\n');
 }
 
+function renderHeadingNode(node: PlainTextNode, options: PlainTextOptions): string {
+    const text = normalizeBlockText(renderChildrenInline(node.children, options));
+    if (!options.preserveHeading) return text;
+    return `${'#'.repeat(node.depth ?? 1)} ${text}`.trim();
+}
+
+function renderBlockquoteNode(node: PlainTextNode, options: PlainTextOptions, depth: number): string {
+    stripGithubAlertMarkerFromBlockquote(node);
+    const quoteBody = renderBlocks(node.children ?? [], options, depth).trim();
+    if (!quoteBody) return '';
+    return options.preserveQuoteMarkers ? prefixBlockquoteLines(quoteBody) : quoteBody;
+}
+
 function renderBlockNode(node: PlainTextNode, options: PlainTextOptions, depth = 0): string {
     switch (node.type) {
         case 'paragraph':
             return normalizeBlockText(renderChildrenInline(node.children, options));
-        case 'heading': {
-            const text = normalizeBlockText(renderChildrenInline(node.children, options));
-            if (!options.preserveHeading) return text;
-            return `${'#'.repeat(node.depth ?? 1)} ${text}`.trim();
-        }
-        case 'blockquote': {
-            stripGithubAlertMarkerFromBlockquote(node);
-            const quoteBody = renderBlocks(node.children ?? [], options, depth).trim();
-            if (!quoteBody) return '';
-            return options.preserveQuoteMarkers ? prefixBlockquoteLines(quoteBody) : quoteBody;
-        }
+        case 'heading':
+            return renderHeadingNode(node, options);
+        case 'blockquote':
+            return renderBlockquoteNode(node, options, depth);
         case 'code':
             return renderCodeBlock(node, options);
         case 'html':

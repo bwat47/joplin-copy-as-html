@@ -14,6 +14,12 @@ vi.mock('./assetProcessor');
 const mockConvertResource = assetProcessor.convertResourceToBase64 as Mock;
 const mockDownloadRemote = assetProcessor.downloadRemoteImageAsBase64 as Mock;
 
+async function embed(html: string, downloadRemoteImages: boolean): Promise<string> {
+    const root = createRoot(html);
+    await embedImagesInDom(root, downloadRemoteImages);
+    return root.innerHTML;
+}
+
 describe('imageProcessor', () => {
     beforeEach(() => {
         mockConvertResource.mockResolvedValue('data:image/png;base64,LOCAL');
@@ -21,12 +27,6 @@ describe('imageProcessor', () => {
     });
 
     describe('embedImagesInDom', () => {
-        async function embed(html: string, downloadRemoteImages: boolean): Promise<string> {
-            const root = createRoot(html);
-            await embedImagesInDom(root, downloadRemoteImages);
-            return root.innerHTML;
-        }
-
         it('embeds local Joplin resources', async () => {
             const out = await embed('<img data-resource-id="12345" src=":/12345" alt="local">', false);
 
@@ -89,22 +89,16 @@ describe('imageProcessor', () => {
 
     it('converts SVG image sources to PNG data URIs', async () => {
         const originalImage = (globalThis as { Image?: typeof Image }).Image;
-        class FakeImage {
-            public onload: ((this: FakeImage, ev: Event) => unknown) | null = null;
-            public onerror: ((this: FakeImage, ev: Event) => unknown) | null = null;
+        class FakeImage extends EventTarget {
             public naturalWidth = 24;
             public naturalHeight = 24;
             set src(value: string) {
                 if (!value.startsWith('data:image/svg+xml')) {
-                    if (this.onerror) {
-                        this.onerror.call(this, new Event('error'));
-                    }
+                    this.dispatchEvent(new Event('error'));
                     return;
                 }
                 queueMicrotask(() => {
-                    if (this.onload) {
-                        this.onload.call(this, new Event('load'));
-                    }
+                    this.dispatchEvent(new Event('load'));
                 });
             }
         }

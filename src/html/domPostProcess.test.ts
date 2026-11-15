@@ -87,7 +87,7 @@ describe('domPostProcess', () => {
         const out = await postProcessHtml(html, defaultOpts);
 
         // Should have added disabled attribute
-        expect(out).toMatch(/<input[^>]*type="checkbox"[^>]*disabled(="disabled")?[^>]*>/);
+        expect(out).toMatch(/<input[^>]*type="checkbox"[^>]*disabled[^>]*>/);
         // Count occurrences
         const disabledCount = (out.match(/disabled/g) || []).length;
         expect(disabledCount).toBeGreaterThanOrEqual(2);

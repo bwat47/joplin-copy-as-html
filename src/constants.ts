@@ -60,4 +60,4 @@ export const DEFAULT_PLAIN_TEXT_OPTIONS: PlainTextOptions = {
 };
 
 // Matches a GitHub/Joplin alert marker only at the start of blockquote content.
-export const GITHUB_ALERT_MARKER_REGEX = /^\s*\[![^\]\r\n]+\](?:[ \t]*\r?\n|[ \t]*)/i;
+export const GITHUB_ALERT_MARKER_REGEX = /^\s*\[![^\]\r\n]+\](?:[ \t]*\r?\n|[ \t]*)/;

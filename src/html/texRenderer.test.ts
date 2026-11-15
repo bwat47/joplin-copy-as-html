@@ -15,7 +15,9 @@ describe('renderTexToSvg', () => {
         const tex = String.raw`\cos x`;
         const original = renderTexToSvg(tex, false);
 
-        expect(() => renderTexToSvg(String.raw`\renewcommand{\cos}{Z}\notAMacro`, false)).toThrow();
+        expect(() => renderTexToSvg(String.raw`\renewcommand{\cos}{Z}\notAMacro`, false)).toThrow(
+            String.raw`Undefined control sequence \notAMacro`
+        );
 
         expect(renderTexToSvg(tex, false)).toEqual(original);
     });
@@ -112,9 +114,9 @@ describe('renderTexToSvg', () => {
     });
 
     it.each([
-        ['undefined macros', String.raw`\notAMacro{x}`],
-        ['syntax errors', 'x^{2'],
-    ])('throws for %s', (_name, tex) => {
-        expect(() => renderTexToSvg(tex, false)).toThrow();
+        ['undefined macros', String.raw`\notAMacro{x}`, String.raw`Undefined control sequence \notAMacro`],
+        ['syntax errors', 'x^{2', 'Extra open brace or missing close brace'],
+    ])('throws for %s', (_name, tex, message) => {
+        expect(() => renderTexToSvg(tex, false)).toThrow(message);
     });
 });

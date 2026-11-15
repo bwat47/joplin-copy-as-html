@@ -33,7 +33,7 @@ export function stripJoplinImages(root: HTMLElement): void {
 
         const src = img.getAttribute('src') || '';
         const resourceId = img.getAttribute('data-resource-id');
-        const isJoplinSrc = /^:\//.test(src) || /^joplin:\/\/resource\//i.test(src);
+        const isJoplinSrc = src.startsWith(':/') || /^joplin:\/\/resource\//i.test(src);
 
         if (isJoplinSrc || resourceId) {
             img.remove();
@@ -160,11 +160,11 @@ async function rasterizeSvgDataUriToPng(
         const img = new Image();
 
         const cleanup = () => {
-            img.onload = null;
-            img.onerror = null;
+            img.removeEventListener('load', handleLoad);
+            img.removeEventListener('error', handleError);
         };
 
-        img.onload = () => {
+        const handleLoad = () => {
             try {
                 const sourceWidth = img.naturalWidth;
                 const sourceHeight = img.naturalHeight;
@@ -204,11 +204,13 @@ async function rasterizeSvgDataUriToPng(
             }
         };
 
-        img.onerror = () => {
+        const handleError = () => {
             cleanup();
             resolve(null);
         };
 
+        img.addEventListener('load', handleLoad);
+        img.addEventListener('error', handleError);
         img.src = svgDataUri;
     });
 }

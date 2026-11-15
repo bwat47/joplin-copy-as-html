@@ -5,7 +5,6 @@ import { liteAdaptor, type LiteAdaptor } from '@mathjax/src/js/adaptors/liteAdap
 import type { MathDocument } from '@mathjax/src/js/core/MathDocument.js';
 import { RegisterHTMLHandler } from '@mathjax/src/js/handlers/html.js';
 import { TeX } from '@mathjax/src/js/input/tex.js';
-
 import '@mathjax/src/js/input/tex/ams/AmsConfiguration.js';
 import '@mathjax/src/js/input/tex/base/BaseConfiguration.js';
 import '@mathjax/src/js/input/tex/boldsymbol/BoldsymbolConfiguration.js';
@@ -13,7 +12,6 @@ import '@mathjax/src/js/input/tex/cancel/CancelConfiguration.js';
 import '@mathjax/src/js/input/tex/color/ColorConfiguration.js';
 import '@mathjax/src/js/input/tex/mhchem/MhchemConfiguration.js';
 import '@mathjax/src/js/input/tex/newcommand/NewcommandConfiguration.js';
-
 import { mathjax } from '@mathjax/src/js/mathjax.js';
 import { SVG } from '@mathjax/src/js/output/svg.js';
 
@@ -36,7 +34,7 @@ interface Converter {
     ex: number;
 }
 
-let adaptor: LiteAdaptor | null = null;
+let sharedAdaptor: LiteAdaptor | null = null;
 
 /**
  * Creates a fresh MathJax document for each expression so macro definitions and
@@ -46,10 +44,10 @@ let adaptor: LiteAdaptor | null = null;
  * dynamically loaded font files, so it works inside the bundled plugin.
  */
 function createConverter(emPx: number): Converter {
-    if (!adaptor) {
+    if (!sharedAdaptor) {
         MathJaxTexFont.addExtension(MathJaxMhchemFontExtension);
-        adaptor = liteAdaptor();
-        RegisterHTMLHandler(adaptor);
+        sharedAdaptor = liteAdaptor();
+        RegisterHTMLHandler(sharedAdaptor);
     }
     // fontCache 'none' draws every glyph as a path, so the SVG needs no fonts or shared <defs>
     const outputJax = new SVG({ fontData: MathJaxTexFont, fontCache: 'none', linebreaks: { inline: false } });
@@ -65,7 +63,7 @@ function createConverter(emPx: number): Converter {
     });
     // Match conversion metrics to the final pixel size so responsive SVG transforms
     // and the fixed viewport use the same scale.
-    return { adaptor, doc, ex: emPx * outputJax.font.params.x_height };
+    return { adaptor: sharedAdaptor, doc, ex: emPx * outputJax.font.params.x_height };
 }
 
 /**

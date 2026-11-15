@@ -108,4 +108,4 @@ All default to `false` unless noted.
 ## Dependencies
 
 - Runtime: remark/unified plus plugins (`gfm`, `emoji`, `flexible-markers`, `ins`, `supersub`); `string-width` for alignment; `dompurify` for sanitization; MathJax (`@mathjax/src` with the TeX and mhchem font packages) for math, `abcjs` for ABC notation, and `pele` for Mermaid diagrams.
-- Dev: TypeScript, Vitest, ESLint, Prettier, esbuild, and tar packaging defined in `package.json`.
+- Dev: TypeScript, Vitest, Oxlint, Oxfmt, fallow, esbuild, and tar packaging defined in `package.json`.
