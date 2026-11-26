@@ -5,8 +5,15 @@
     "ignorePatterns": ["**/*.d.ts", "api/**"],
     "rules": {
         "complexity-crap": "off",
-        "dev-dependencies-in-production": "off"
+        "dev-dependencies-in-production": "off",
+        "test-only-exports": "warn"
     },
+    "overrides": [
+        {
+            "files": ["src/testUtils/**"],
+            "rules": { "test-only-exports": "off" }
+        }
+    ],
     "health": {
         "maxCognitive": 15,
         "maxCyclomatic": 20
