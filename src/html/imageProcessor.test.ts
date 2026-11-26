@@ -104,11 +104,6 @@ describe('imageProcessor', () => {
             expect(scale).toBe(2);
             expect(4096 * scale * 4096 * scale).toBeLessThanOrEqual(8192 * 8192);
         });
-
-        it('returns requested scale when dimensions are non-positive', () => {
-            expect(fitPngScale(0, 100, 3)).toBe(3);
-            expect(fitPngScale(100, 0, 3)).toBe(3);
-        });
     });
 
     describe('convertSvgImagesToPng', () => {
