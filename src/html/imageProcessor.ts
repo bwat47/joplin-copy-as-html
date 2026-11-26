@@ -111,7 +111,7 @@ function isSvgDataUri(src: string | null): boolean {
  * side and pixel-area caps (`MAX_CANVAS_SIDE`, `MAX_CANVAS_AREA`) while preserving its aspect ratio.
  * Expects positive dimensions; callers reject zero-sized images before calling.
  */
-export function fitPngScale(width: number, height: number, requested: number): number {
+function fitPngScale(width: number, height: number, requested: number): number {
     const limit = Math.min(
         MAX_CANVAS_SIDE / width,
         MAX_CANVAS_SIDE / height,

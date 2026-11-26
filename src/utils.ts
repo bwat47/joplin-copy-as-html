@@ -47,7 +47,10 @@ export function validateHtmlSettings(settings: unknown): HtmlOptions {
     };
 }
 
-export function validateBooleanSetting(setting: unknown, defaultValue: boolean): boolean {
+/**
+ * Returns `setting` if it is a boolean, otherwise `defaultValue`.
+ */
+function validateBooleanSetting(setting: unknown, defaultValue: boolean): boolean {
     return typeof setting === 'boolean' ? setting : defaultValue;
 }
 

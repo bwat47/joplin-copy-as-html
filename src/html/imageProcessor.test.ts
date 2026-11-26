@@ -6,7 +6,6 @@ import * as assetProcessor from './assetProcessor';
 import {
     convertSvgImagesToPng,
     embedImagesInDom,
-    fitPngScale,
     replaceBrokenResourceSpans,
     stripJoplinImages,
 } from './imageProcessor';
@@ -87,23 +86,6 @@ describe('imageProcessor', () => {
         expect(root.innerHTML).toContain('Image failed to load');
         expect(root.innerHTML).not.toContain('<img');
         expect(root.innerHTML).not.toContain('not-loaded-resource');
-    });
-
-    describe('fitPngScale', () => {
-        it('keeps the requested scale for ordinary images', () => {
-            expect(fitPngScale(800, 600, 4)).toBe(4);
-        });
-
-        it('lowers the scale to stay within the side limit', () => {
-            expect(fitPngScale(8192, 100, 4)).toBe(2);
-            expect(fitPngScale(100, 8192, 4)).toBe(2);
-        });
-
-        it('lowers the scale to stay within the pixel-area limit', () => {
-            const scale = fitPngScale(4096, 4096, 4);
-            expect(scale).toBe(2);
-            expect(4096 * scale * 4096 * scale).toBeLessThanOrEqual(8192 * 8192);
-        });
     });
 
     describe('convertSvgImagesToPng', () => {

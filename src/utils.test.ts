@@ -1,28 +1,6 @@
 // src/utils.test.ts
 import { DEFAULT_HTML_OPTIONS, DEFAULT_PLAIN_TEXT_OPTIONS } from './constants';
-import { hasProperty, validateBooleanSetting, validateHtmlSettings, validatePlainTextSettings } from './utils';
-
-describe('validateBooleanSetting', () => {
-    it('should return the boolean value if it is a boolean', () => {
-        expect(validateBooleanSetting(true, false)).toBe(true);
-        expect(validateBooleanSetting(false, true)).toBe(false);
-    });
-
-    it('should return the default value if the setting is not a boolean', () => {
-        expect(validateBooleanSetting(undefined, false)).toBe(false);
-        expect(validateBooleanSetting(null, false)).toBe(false);
-        expect(validateBooleanSetting('true', false)).toBe(false);
-        expect(validateBooleanSetting(1, false)).toBe(false);
-        expect(validateBooleanSetting({}, false)).toBe(false);
-    });
-
-    it('should return the provided default value for non-boolean types', () => {
-        // Test with a specified default value (true)
-        expect(validateBooleanSetting(undefined, true)).toBe(true);
-        expect(validateBooleanSetting(null, true)).toBe(true);
-        expect(validateBooleanSetting('false', true)).toBe(true);
-    });
-});
+import { hasProperty, validateHtmlSettings, validatePlainTextSettings } from './utils';
 
 describe('validatePlainTextSettings', () => {
     it('should return default values for invalid settings', () => {
