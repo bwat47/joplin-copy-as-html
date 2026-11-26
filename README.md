@@ -36,6 +36,8 @@ Local Joplin images are embedded as base64 by default, allowing you to paste tex
 
 Successfully embedded remote images can be viewed without internet access. If a download fails, the original image URL is retained.
 
+To limit memory use, the PNG scale is automatically reduced for very large SVG images, so in rare cases they may be converted at a lower resolution than selected.
+
 Drawings from Freehand Drawing, Excalidraw, and Drawio are supported when stored as Joplin image resources (embedded like any other image resource).
 
 Mermaid Diagrams, Math, and ABC Music notation will be embedded as SVG images (or converted to PNG if Convert SVG Images to PNG is enabled).
