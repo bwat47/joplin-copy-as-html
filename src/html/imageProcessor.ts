@@ -1,6 +1,14 @@
 import { logger } from '../logger';
+import type { PngScale } from '../types';
 import { convertResourceToBase64, downloadRemoteImageAsBase64 } from './assetProcessor';
 import { isInsideCode } from './domHelpers';
+
+// Conservative caps on canvas dimensions to limit memory use during SVG rasterization.
+// These are the plugin's own limits, set below Chromium's maximums.
+// At the pixel-area cap, one RGBA buffer uses 256 MiB.
+const MAX_CANVAS_SIDE = 16_384;
+const MAX_CANVAS_AREA = 8_192 * 8_192;
+const PNG_DATA_URL_PREFIX = 'data:image/png;base64,';
 
 /**
  * Replaces `element` with a red "Image failed to load" message.
@@ -99,10 +107,33 @@ function isSvgDataUri(src: string | null): boolean {
 }
 
 /**
+ * Lowers `requested` if needed so a `width`×`height` image's canvas stays within the plugin's
+ * side and pixel-area caps (`MAX_CANVAS_SIDE`, `MAX_CANVAS_AREA`) while preserving its aspect ratio.
+ * Expects positive dimensions; callers reject zero-sized images before calling.
+ */
+export function fitPngScale(width: number, height: number, requested: number): number {
+    const limit = Math.min(
+        MAX_CANVAS_SIDE / width,
+        MAX_CANVAS_SIDE / height,
+        Math.sqrt(MAX_CANVAS_AREA / (width * height))
+    );
+    return Math.min(requested, limit);
+}
+
+/**
+ * Checks whether a canvas-encoded string is a valid non-empty PNG data URL.
+ * Rejects failure markers such as `data:,` or empty payloads.
+ */
+function isValidPngDataUrl(dataUrl: string): boolean {
+    return dataUrl.startsWith(PNG_DATA_URL_PREFIX) && dataUrl.length > PNG_DATA_URL_PREFIX.length;
+}
+
+/**
  * Converts all SVG images in the document to PNG for better compatibility.
  * @param root - Content root to process
+ * @param pngScale - Requested PNG pixel scale relative to the SVG's natural dimensions
  */
-export async function convertSvgImagesToPng(root: HTMLElement): Promise<void> {
+export async function convertSvgImagesToPng(root: HTMLElement, pngScale: PngScale): Promise<void> {
     const svgImgs = Array.from(root.querySelectorAll('img'))
         .map((img) => ({ img, src: img.getAttribute('src') }))
         .filter(
@@ -114,7 +145,7 @@ export async function convertSvgImagesToPng(root: HTMLElement): Promise<void> {
             const existingWidth = img.getAttribute('width');
             const existingHeight = img.getAttribute('height');
 
-            const png = await rasterizeSvgDataUriToPng(src);
+            const png = await rasterizeSvgDataUriToPng(src, pngScale);
             if (!png) return;
 
             if (!img.isConnected) {
@@ -143,14 +174,16 @@ export async function convertSvgImagesToPng(root: HTMLElement): Promise<void> {
 /**
  * Rasterizes an SVG data URI to a PNG data URI using the Canvas API.
  * @param svgDataUri - SVG image encoded as a data URI
+ * @param requestedScale - Requested PNG pixel scale relative to the SVG's natural dimensions
  * @returns Object with PNG data URI and original dimensions, or null on failure
  * @remarks
  * Requires browser environment with Canvas API (Chromium 116+).
  * Returns null in Node.js/SSR environments or if rasterization fails.
- * Renders at 2x scale for sharper output on high-DPI displays.
+ * Reduces `requestedScale` per image if needed to stay within the plugin's canvas memory caps.
  */
 async function rasterizeSvgDataUriToPng(
-    svgDataUri: string
+    svgDataUri: string,
+    requestedScale: PngScale
 ): Promise<{ dataUrl: string; originalWidth: number; originalHeight: number } | null> {
     if (typeof Image === 'undefined' || typeof document === 'undefined') {
         return null;
@@ -174,10 +207,10 @@ async function rasterizeSvgDataUriToPng(
                     return;
                 }
 
-                // Render at 2x scale for sharper output (especially on high-DPI displays)
-                const SCALE_FACTOR = 2;
-                const width = sourceWidth * SCALE_FACTOR;
-                const height = sourceHeight * SCALE_FACTOR;
+                const scale = fitPngScale(sourceWidth, sourceHeight, requestedScale);
+                // Round down so fractional dimensions cannot exceed the pixel-area cap.
+                const width = Math.max(1, Math.floor(sourceWidth * scale));
+                const height = Math.max(1, Math.floor(sourceHeight * scale));
 
                 const canvas = document.createElement('canvas');
                 canvas.width = width;
@@ -191,8 +224,15 @@ async function rasterizeSvgDataUriToPng(
 
                 ctx.drawImage(img, 0, 0, width, height);
 
+                const dataUrl = canvas.toDataURL('image/png');
+                if (!isValidPngDataUrl(dataUrl)) {
+                    logger.debug('Canvas encoding returned an invalid PNG data URL');
+                    resolve(null);
+                    return;
+                }
+
                 resolve({
-                    dataUrl: canvas.toDataURL('image/png'),
+                    dataUrl,
                     originalWidth: sourceWidth,
                     originalHeight: sourceHeight,
                 });

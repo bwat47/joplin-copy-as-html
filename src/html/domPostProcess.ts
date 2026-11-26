@@ -155,7 +155,10 @@ function stripGithubAlertMarkers(root: HTMLElement): void {
 // ----------------------
 
 /** The HTML options that affect post-processing. */
-export type PostProcessOptions = Pick<HtmlOptions, 'embedImages' | 'downloadRemoteImages' | 'embedSvgAsPng'>;
+export type PostProcessOptions = Pick<
+    HtmlOptions,
+    'embedImages' | 'downloadRemoteImages' | 'embedSvgAsPng' | 'pngScale'
+>;
 
 /**
  * Post-processes rendered HTML with sanitization, resource cleanup, and image processing.
@@ -207,7 +210,7 @@ export async function postProcessHtml(html: string, opts: PostProcessOptions): P
     wrapTopLevelImages(root);
 
     if (opts.embedSvgAsPng) {
-        await convertSvgImagesToPng(root);
+        await convertSvgImagesToPng(root, opts.pngScale);
     }
 
     return root.innerHTML;

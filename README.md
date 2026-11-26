@@ -27,13 +27,16 @@ Configure the plugin in Joplin's settings under **Copy as HTML**.
 
 Local Joplin images are embedded as base64 by default, allowing you to paste text and images together. Both Markdown images and HTML `<img>` tags are supported.
 
-| Setting                          | Default | Behavior                                                                                                                                      |
-| -------------------------------- | ------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
-| Embed images as base64           | On      | Embeds local Joplin images in the HTML. Turning this off removes local Joplin images from the output.                                         |
-| Download and embed remote images | Off     | Downloads and embeds remote HTTP/HTTPS images when image embedding is enabled. Otherwise, remote images remain linked to their original URLs. |
-| Convert SVG images to PNG        | On      | Converts embedded SVG images to PNG for compatibility with editors and email clients.                                                         |
+| Setting                          | Default | Behavior                                                                                                                                             |
+| -------------------------------- | ------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Embed images as base64           | On      | Embeds local Joplin images in the HTML. Turning this off removes local Joplin images from the output.                                                |
+| Download and embed remote images | Off     | Downloads and embeds remote HTTP/HTTPS images when image embedding is enabled. Otherwise, remote images remain linked to their original URLs.        |
+| Convert SVG images to PNG        | On      | Converts embedded SVG images to PNG for compatibility with editors and email clients.                                                                |
+| PNG scale                        | 2×      | Resolution of converted PNG images relative to the SVG size (`1×`, `2×`, `3×`, or `4×`). Only applies when **Convert SVG images to PNG** is enabled. |
 
 Successfully embedded remote images can be viewed without internet access. If a download fails, the original image URL is retained.
+
+To limit memory use, the PNG scale is automatically reduced for very large SVG images, so in rare cases they may be converted at a lower resolution than selected.
 
 Drawings from Freehand Drawing, Excalidraw, and Drawio are supported when stored as Joplin image resources (embedded like any other image resource).
 
