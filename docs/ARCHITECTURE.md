@@ -78,7 +78,7 @@ All settings are registered in `settings.ts` via `registerPluginSettings()`. Set
 - `embedImages` (default `true`): replace Joplin resources with base64 data URIs; disable to strip Joplin images only.
 - `downloadRemoteImages` (default `false`): with `embedImages` enabled, fetch remote HTTP(S) images and embed them.
 - `embedSvgAsPng` (default `true`): rasterize embedded SVGs to PNG to improve compatibility with SVG-averse applications.
-- `pngScale` (default `2`, choices `1 | 2 | 3 | 4`): pixel scale factor for SVG-to-PNG rasterization when `embedSvgAsPng` is enabled, clamped per image to canvas side and pixel-area limits.
+- `pngScale` (default `2`, choices `1 | 2 | 3 | 4`): pixel scale factor for SVG-to-PNG rasterization when `embedSvgAsPng` is enabled, clamped per image to the plugin's canvas side and pixel-area caps (to limit memory use).
 - `exportFullHtml` (default `false`): wrap output in a minimal HTML document with bundled (or user supplied) CSS.
 
 ### Plain Text

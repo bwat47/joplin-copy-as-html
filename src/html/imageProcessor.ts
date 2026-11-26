@@ -4,7 +4,8 @@ import type { PngScale } from '../types';
 import { convertResourceToBase64, downloadRemoteImageAsBase64 } from './assetProcessor';
 import { isInsideCode } from './domHelpers';
 
-// Cap canvas dimensions to limit memory use during SVG rasterization.
+// Conservative caps on canvas dimensions to limit memory use during SVG rasterization.
+// These are the plugin's own limits, set below Chromium's maximums.
 // At the pixel-area cap, one RGBA buffer uses 256 MiB.
 const MAX_CANVAS_SIDE = 16_384;
 const MAX_CANVAS_AREA = 8_192 * 8_192;
@@ -107,8 +108,8 @@ function isSvgDataUri(src: string | null): boolean {
 }
 
 /**
- * Lowers `requested` if needed so a `width`×`height` image's canvas stays within Chromium's
- * side and pixel-area limits while preserving its aspect ratio.
+ * Lowers `requested` if needed so a `width`×`height` image's canvas stays within the plugin's
+ * side and pixel-area caps (`MAX_CANVAS_SIDE`, `MAX_CANVAS_AREA`) while preserving its aspect ratio.
  */
 export function fitPngScale(width: number, height: number, requested: number): number {
     if (width <= 0 || height <= 0) {
@@ -184,7 +185,7 @@ export async function convertSvgImagesToPng(
  * @remarks
  * Requires browser environment with Canvas API (Chromium 116+).
  * Returns null in Node.js/SSR environments or if rasterization fails.
- * Reduces `requestedScale` per image if needed to stay within Chromium's canvas limits.
+ * Reduces `requestedScale` per image if needed to stay within the plugin's canvas memory caps.
  */
 async function rasterizeSvgDataUriToPng(
     svgDataUri: string,
