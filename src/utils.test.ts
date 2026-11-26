@@ -81,12 +81,14 @@ describe('validateHtmlSettings', () => {
             exportFullHtml: false,
             downloadRemoteImages: false,
             embedSvgAsPng: true,
+            pngScale: 2,
         });
         expect(validateHtmlSettings(null)).toEqual({
             embedImages: true,
             exportFullHtml: false,
             downloadRemoteImages: false,
             embedSvgAsPng: true,
+            pngScale: 2,
         });
     });
 
@@ -96,14 +98,27 @@ describe('validateHtmlSettings', () => {
             exportFullHtml: true,
             downloadRemoteImages: true,
             embedSvgAsPng: true,
+            pngScale: 4,
         };
         expect(validateHtmlSettings(settings)).toEqual({
             embedImages: false,
             exportFullHtml: true,
             downloadRemoteImages: true,
             embedSvgAsPng: true,
+            pngScale: 4,
         });
     });
+
+    it.each([1, 2, 3, 4] as const)('should accept valid pngScale %d', (pngScale) => {
+        expect(validateHtmlSettings({ pngScale }).pngScale).toBe(pngScale);
+    });
+
+    it.each([0, 5, -1, 2.5, '2', '3', null, undefined, Number.NaN])(
+        'should fall back to default pngScale for invalid value: %s',
+        (pngScale) => {
+            expect(validateHtmlSettings({ pngScale }).pngScale).toBe(2);
+        }
+    );
 
     it('should return default values for invalid setting types', () => {
         const settings = {
@@ -111,12 +126,14 @@ describe('validateHtmlSettings', () => {
             exportFullHtml: 1,
             downloadRemoteImages: 'yes',
             embedSvgAsPng: 'y',
+            pngScale: '4',
         };
         expect(validateHtmlSettings(settings)).toEqual({
             embedImages: true,
             exportFullHtml: false,
             downloadRemoteImages: false,
             embedSvgAsPng: true,
+            pngScale: 2,
         });
     });
 
@@ -129,16 +146,19 @@ describe('validateHtmlSettings', () => {
             exportFullHtml: false,
             downloadRemoteImages: false,
             embedSvgAsPng: true,
+            pngScale: 2,
         });
 
         const settings2 = {
             exportFullHtml: true,
+            pngScale: 3,
         };
         expect(validateHtmlSettings(settings2)).toEqual({
             embedImages: true,
             exportFullHtml: true,
             downloadRemoteImages: false,
             embedSvgAsPng: true,
+            pngScale: 3,
         });
     });
 

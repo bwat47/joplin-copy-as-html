@@ -1,6 +1,6 @@
 import joplin from 'api';
 import { SettingItemType } from 'api/types';
-import { DEFAULT_HTML_OPTIONS, DEFAULT_PLAIN_TEXT_OPTIONS, SETTINGS } from './constants';
+import { DEFAULT_HTML_OPTIONS, DEFAULT_PLAIN_TEXT_OPTIONS, PNG_SCALES, SETTINGS } from './constants';
 import type { HtmlOptions, PlainTextOptions } from './types';
 import { validateHtmlSettings, validatePlainTextSettings } from './utils';
 
@@ -50,6 +50,17 @@ export async function registerPluginSettings(): Promise<void> {
             label: 'Convert SVG images to PNG',
             description:
                 'If enabled, embedded SVG images will be rasterized as PNG to improve compatibility with applications that cannot display inline SVG.',
+        },
+        [SETTINGS.PNG_SCALE]: {
+            value: DEFAULT_HTML_OPTIONS.pngScale,
+            type: SettingItemType.Int,
+            isEnum: true,
+            options: Object.fromEntries(PNG_SCALES.map((scale) => [scale, `${scale}×`])),
+            section: SECTION_ID,
+            public: true,
+            label: 'PNG scale',
+            description:
+                'Resolution of converted PNG images relative to the SVG size. Only applies when "Convert SVG images to PNG" is enabled.',
         },
         [SETTINGS.PRESERVE_SUPERSCRIPT]: {
             value: DEFAULT_PLAIN_TEXT_OPTIONS.preserveSuperscript,
@@ -221,6 +232,7 @@ const HTML_SETTING_KEYS = [
     SETTINGS.EXPORT_FULL_HTML,
     SETTINGS.DOWNLOAD_REMOTE_IMAGES,
     SETTINGS.EMBED_SVG_AS_PNG,
+    SETTINGS.PNG_SCALE,
 ];
 
 /**

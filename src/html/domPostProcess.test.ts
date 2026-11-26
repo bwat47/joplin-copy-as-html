@@ -7,7 +7,12 @@ vi.mock('./assetProcessor');
 
 const mockConvertResource = assetProcessor.convertResourceToBase64 as Mock;
 
-const defaultOpts: PostProcessOptions = { embedImages: true, downloadRemoteImages: false, embedSvgAsPng: true };
+const defaultOpts: PostProcessOptions = {
+    embedImages: true,
+    downloadRemoteImages: false,
+    embedSvgAsPng: true,
+    pngScale: 2,
+};
 const noSvgConversion: PostProcessOptions = { ...defaultOpts, embedSvgAsPng: false };
 
 // Matches renderMarkup output for a mermaid code block, including the source kept for the Rich Text Editor
@@ -119,9 +124,9 @@ describe('domPostProcess', () => {
             expect(out).toBe('');
         });
 
-        it('leaves SVG images when embedSvgAsPng is false', async () => {
+        it('leaves SVG images when embedSvgAsPng is false regardless of pngScale', async () => {
             const src = 'data:image/svg+xml;charset=utf-8,%3Csvg%3E%3C%2Fsvg%3E';
-            const out = await postProcessHtml(`<p><img src="${src}"></p>`, noSvgConversion);
+            const out = await postProcessHtml(`<p><img src="${src}"></p>`, { ...noSvgConversion, pngScale: 4 });
 
             expect(out).toBe(`<p><img src="${src}"></p>`);
         });

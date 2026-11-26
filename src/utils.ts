@@ -1,6 +1,6 @@
 import joplin from 'api';
 import { ToastType } from 'api/types';
-import { DEFAULT_HTML_OPTIONS, DEFAULT_PLAIN_TEXT_OPTIONS } from './constants';
+import { DEFAULT_HTML_OPTIONS, DEFAULT_PLAIN_TEXT_OPTIONS, PNG_SCALES } from './constants';
 import { logger } from './logger';
 import type { HtmlOptions, PlainTextOptions } from './types';
 
@@ -32,8 +32,8 @@ export function validatePlainTextSettings(settings: unknown): PlainTextOptions {
 }
 
 /**
- * Builds HTML options from saved settings, replacing missing or non-boolean
- * values with the corresponding defaults.
+ * Builds HTML options from saved settings, replacing missing or invalid
+ * values with the corresponding defaults without coercing their types.
  */
 export function validateHtmlSettings(settings: unknown): HtmlOptions {
     const s: Partial<Record<keyof HtmlOptions, unknown>> = isRecord(settings) ? settings : {};
@@ -43,6 +43,7 @@ export function validateHtmlSettings(settings: unknown): HtmlOptions {
         exportFullHtml: validateBooleanSetting(s.exportFullHtml, d.exportFullHtml),
         downloadRemoteImages: validateBooleanSetting(s.downloadRemoteImages, d.downloadRemoteImages),
         embedSvgAsPng: validateBooleanSetting(s.embedSvgAsPng, d.embedSvgAsPng),
+        pngScale: validateEnumSetting(s.pngScale, PNG_SCALES, d.pngScale),
     };
 }
 
@@ -53,7 +54,7 @@ export function validateBooleanSetting(setting: unknown, defaultValue: boolean):
 /**
  * Returns `setting` if it is one of the `allowed` values, otherwise `defaultValue`.
  */
-function validateEnumSetting<T extends string>(setting: unknown, allowed: readonly T[], defaultValue: T): T {
+function validateEnumSetting<T extends string | number>(setting: unknown, allowed: readonly T[], defaultValue: T): T {
     return allowed.some((value) => value === setting) ? (setting as T) : defaultValue;
 }
 

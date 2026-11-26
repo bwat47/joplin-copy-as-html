@@ -6,13 +6,14 @@
  *
  */
 
-import type { HtmlOptions, PlainTextOptions } from './types';
+import type { HtmlOptions, PlainTextOptions, PngScale } from './types';
 
 export const SETTINGS = {
     EMBED_IMAGES: 'embedImages',
     EXPORT_FULL_HTML: 'exportFullHtml',
     DOWNLOAD_REMOTE_IMAGES: 'downloadRemoteImages',
     EMBED_SVG_AS_PNG: 'embedSvgAsPng',
+    PNG_SCALE: 'pngScale',
     PRESERVE_SUPERSCRIPT: 'preserveSuperscript',
     PRESERVE_SUBSCRIPT: 'preserveSubscript',
     PRESERVE_EMPHASIS: 'preserveEmphasis',
@@ -31,12 +32,15 @@ export const SETTINGS = {
     PRESERVE_TABLE_PIPES: 'preserveTablePipes',
 };
 
+export const PNG_SCALES: readonly PngScale[] = [1, 2, 3, 4];
+
 /** Default HTML conversion options, used when registering settings and as validation fallbacks. */
 export const DEFAULT_HTML_OPTIONS: HtmlOptions = {
     embedImages: true,
     exportFullHtml: false,
     downloadRemoteImages: false,
     embedSvgAsPng: true,
+    pngScale: 2,
 };
 
 /** Default plain text conversion options, used when registering settings and as validation fallbacks. */

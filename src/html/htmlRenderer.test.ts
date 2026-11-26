@@ -18,6 +18,7 @@ function htmlOptions(overrides: Partial<HtmlOptions> = {}): HtmlOptions {
         exportFullHtml: false,
         downloadRemoteImages: false,
         embedSvgAsPng: true,
+        pngScale: 2,
         ...overrides,
     };
 }

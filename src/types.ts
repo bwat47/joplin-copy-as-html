@@ -1,8 +1,11 @@
+export type PngScale = 1 | 2 | 3 | 4;
+
 export interface HtmlOptions {
     embedImages: boolean;
     exportFullHtml: boolean;
     downloadRemoteImages: boolean;
     embedSvgAsPng: boolean;
+    pngScale: PngScale;
 }
 
 export interface PlainTextOptions {
