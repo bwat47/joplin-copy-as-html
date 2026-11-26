@@ -1,4 +1,3 @@
-import { DEFAULT_HTML_OPTIONS } from '../constants';
 import { logger } from '../logger';
 import type { PngScale } from '../types';
 import { convertResourceToBase64, downloadRemoteImageAsBase64 } from './assetProcessor';
@@ -136,10 +135,7 @@ function isValidPngDataUrl(dataUrl: string): boolean {
  * @param root - Content root to process
  * @param pngScale - Requested PNG pixel scale relative to the SVG's natural dimensions
  */
-export async function convertSvgImagesToPng(
-    root: HTMLElement,
-    pngScale: PngScale = DEFAULT_HTML_OPTIONS.pngScale
-): Promise<void> {
+export async function convertSvgImagesToPng(root: HTMLElement, pngScale: PngScale): Promise<void> {
     const svgImgs = Array.from(root.querySelectorAll('img'))
         .map((img) => ({ img, src: img.getAttribute('src') }))
         .filter(

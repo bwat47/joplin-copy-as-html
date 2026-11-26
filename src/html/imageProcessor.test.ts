@@ -191,24 +191,6 @@ describe('imageProcessor', () => {
         const svgMarkup = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24"></svg>';
         const svgSrc = `data:image/svg+xml;base64,${Buffer.from(svgMarkup, 'utf8').toString('base64')}`;
 
-        it('converts SVG image sources to PNG data URIs at default 2x scale', async () => {
-            const env = mockRasterEnvironment({ naturalWidth: 24, naturalHeight: 12 });
-            const root = createRoot(`<p><img src="${svgSrc}" alt="icon"></p>`);
-
-            try {
-                await convertSvgImagesToPng(root);
-                const img = root.querySelector('img');
-                expect(img?.getAttribute('src')).toBe('data:image/png;base64,TESTPNG');
-                expect(img?.getAttribute('width')).toBe('24');
-                expect(img?.getAttribute('height')).toBe('12');
-                expect(env.canvases[0]?.width).toBe(48);
-                expect(env.canvases[0]?.height).toBe(24);
-                expect(env.drawImage).toHaveBeenCalledWith(expect.anything(), 0, 0, 48, 24);
-            } finally {
-                env.restore();
-            }
-        });
-
         it.each([1, 2, 3, 4] as PngScale[])(
             'rasterizes at %dx scale while keeping unscaled display dimensions',
             async (scale) => {
