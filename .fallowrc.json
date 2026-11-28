@@ -3,10 +3,14 @@
     "entry": ["src/index.ts"],
     "supportEntry": ["src/**/*.test.ts", "src/testUtils/vitestSetup.ts"],
     "ignorePatterns": ["**/*.d.ts", "api/**"],
+    "typeAware": {
+        "enabled": true
+    },
     "rules": {
         "complexity-crap": "off",
         "dev-dependencies-in-production": "off",
-        "test-only-exports": "warn"
+        "test-only-exports": "warn",
+        "require-suppression-reason": "error"
     },
     "overrides": [
         {
